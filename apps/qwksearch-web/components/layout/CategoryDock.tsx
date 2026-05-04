@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils"
 import { Dock, DockIcon, DockItem, DockLabel } from "@/components/ui/dock"
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -24,7 +23,6 @@ import {
 import iconRead from '@/components/icons/icon-read.svg'
 import iconNews from '@/components/icons/icon-news-title.svg'
 import iconSettings from '@/components/icons/icon-configure.svg'
-import { useCategoryDockVisibility } from '@/components/layout/category-dock-context'
 
 const themeNames = [
   "modern-minimal",
@@ -152,9 +150,8 @@ const NAV_ITEMS = [
   // { href: "/news", label: "News", icon: iconNews },
 ]
 
-function SettingsMenu({ side, onOpenSettings, onToggleDock, dockHidden }: { side: "bottom" | "top"; onOpenSettings: () => void; onToggleDock: () => void; dockHidden: boolean }) {
+function SettingsMenu({ side, onOpenSettings }: { side: "bottom" | "top"; onOpenSettings: () => void }) {
   const themeState = useThemeState()
-  const isMobile = useIsMobile()
 
   return (
     <DropdownMenuContent side={side} align="end" className="w-48">
@@ -203,11 +200,6 @@ function SettingsMenu({ side, onOpenSettings, onToggleDock, dockHidden }: { side
         <Settings className="mr-2 h-4 w-4" />
         Settings
       </DropdownMenuItem>
-      {isMobile && (
-        <DropdownMenuCheckboxItem checked={dockHidden} onCheckedChange={() => onToggleDock()}>
-          Hide App Dock
-        </DropdownMenuCheckboxItem>
-      )}
       <DropdownMenuItem>
         <UserCircle2 className="mr-2 h-4 w-4" />
         Profile
@@ -227,14 +219,10 @@ function DockInstance({
   dockClassName,
   side,
   allItems,
-  onToggleDock,
-  dockHidden,
 }: {
   dockClassName: string
   side: "bottom" | "top"
   allItems: { key: string; label: string; icon: any; active: boolean; onClick: () => void }[]
-  onToggleDock: () => void
-  dockHidden: boolean
 }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const isMobile = useIsMobile()
@@ -278,7 +266,7 @@ function DockInstance({
             </DockItem>
           </DropdownMenuTrigger>
         </Dock>
-        <SettingsMenu side={side} onOpenSettings={handleOpenSettings} onToggleDock={onToggleDock} dockHidden={dockHidden} />
+        <SettingsMenu side={side} onOpenSettings={handleOpenSettings} />
       </DropdownMenu>
       <AnimatePresence>
         {isSettingsOpen && <SettingsDialogue isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} />}
@@ -295,33 +283,53 @@ function DockInstance({
 export function CategoryDock() {
   const pathname = usePathname()
   const router = useRouter()
-  const { dockHidden, toggleDock } = useCategoryDockVisibility()
-  const [dockTemporarilyVisible, setDockTemporarilyVisible] = useState(false)
+  const [dockVisible, setDockVisible] = useState(true)
   const desktopDockRef = useRef<HTMLDivElement>(null)
   const mobileDockRef = useRef<HTMLDivElement>(null)
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Collapse temporarily-visible dock when clicking outside
+  const cancelHide = () => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current)
+      hideTimerRef.current = null
+    }
+  }
+
+  // Click-outside handler: wait 1s before hiding so dropdown menu items can register
   useEffect(() => {
-    if (!dockTemporarilyVisible) return
-    const handleClick = (e: MouseEvent) => {
+    const handleMouseDown = (e: MouseEvent) => {
       const inDesktop = desktopDockRef.current?.contains(e.target as Node)
       const inMobile = mobileDockRef.current?.contains(e.target as Node)
-      if (!inDesktop && !inMobile) {
-        setDockTemporarilyVisible(false)
+      // Also treat Radix dropdown portals (rendered outside the dock div) as "inside"
+      const inPortal = (e.target as Element)?.closest?.('[data-radix-popper-content-wrapper]')
+      if (inDesktop || inMobile || inPortal) {
+        cancelHide()
+      } else {
+        cancelHide()
+        hideTimerRef.current = setTimeout(() => setDockVisible(false), 1000)
       }
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [dockTemporarilyVisible])
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown)
+      cancelHide()
+    }
+  }, [])
 
-  const handleToggleDock = () => {
-    toggleDock()
-    setDockTemporarilyVisible(false)
-  }
-
-  const showDockTemporarily = () => {
-    setDockTemporarilyVisible(true)
-  }
+  // Keyboard shortcuts: Alt+1 through Alt+3 for navigation items
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+        const numKey = parseInt(event.key, 10)
+        if (numKey >= 1 && numKey <= NAV_ITEMS.length) {
+          event.preventDefault()
+          router.push(NAV_ITEMS[numKey - 1].href)
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [router])
 
   const allItems = NAV_ITEMS.map(({ href, label, icon }) => ({
     key: href,
@@ -334,43 +342,19 @@ export function CategoryDock() {
     onClick: () => router.push(href),
   }))
 
-  // Keyboard shortcuts: Alt+1 through Alt+3 for navigation items
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Check if Alt key is pressed (and not Ctrl/Meta to avoid conflicts)
-      if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
-        const key = event.key
-        const numKey = parseInt(key, 10)
-
-        // Alt+1 through Alt+3 for the nav items
-        if (numKey >= 1 && numKey <= NAV_ITEMS.length) {
-          event.preventDefault()
-          const navItem = NAV_ITEMS[numKey - 1]
-          router.push(navItem.href)
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [router])
-
-  const isDockVisible = !dockHidden || dockTemporarilyVisible
-
   return (
     <>
       {/* Desktop: top-left corner */}
       <div className="hidden md:block fixed top-0 left-2 z-50" ref={desktopDockRef}>
-        {isDockVisible ? (
+        {dockVisible ? (
           <DockInstance
             dockClassName="h-[52px] shrink-0 !mt-0 !mx-0"
             side="bottom"
             allItems={allItems}
-            onToggleDock={handleToggleDock} dockHidden={dockHidden}
           />
         ) : (
           <button
-            onClick={showDockTemporarily}
+            onClick={() => { cancelHide(); setDockVisible(true) }}
             className="bg-background border border-border border-t-0 rounded-b-lg px-3 py-1 flex items-center gap-1 shadow-md hover:bg-accent transition-colors text-muted-foreground"
             aria-label="Show dock"
           >
@@ -381,17 +365,16 @@ export function CategoryDock() {
 
       {/* Mobile: fixed bottom bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe" ref={mobileDockRef}>
-        {isDockVisible ? (
+        {dockVisible ? (
           <DockInstance
             dockClassName="h-[52px] shrink-0 !mt-0 mx-auto w-max mb-2 !gap-1 !p-1"
             side="top"
             allItems={allItems}
-            onToggleDock={handleToggleDock} dockHidden={dockHidden}
           />
         ) : (
           <div className="flex justify-center">
             <button
-              onClick={showDockTemporarily}
+              onClick={() => { cancelHide(); setDockVisible(true) }}
               className="bg-background border border-border border-b-0 rounded-t-lg px-4 py-1.5 flex items-center gap-1 shadow-md hover:bg-accent transition-colors text-muted-foreground"
               aria-label="Show dock"
             >

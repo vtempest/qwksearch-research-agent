@@ -4,6 +4,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Upload, CloudIcon, FolderOpen, Loader2, Clock, Settings } from 'lucide-react';
 import grab from 'grab-url';
 import {
@@ -22,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { useGooglePicker } from './GoogleDrivePicker';
 import { useChat } from '@/components/ResearchAgent/hooks/useChat';
 import { categories } from '../SearchConfig/categories';
-import { ModelSelector } from '../SearchConfig/ModelSelector';
+import { ModelSelectorSubmenu } from '../SearchConfig/ModelSelectorSubmenu';
 
 interface FileUploadDropdownProps {
   onFileSelect: (files: FileList | File[]) => void;
@@ -257,19 +258,12 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
             align="start"
             side="top"
             sideOffset={8}
-            className="w-52"
-            onInteractOutside={(e) => {
-              // Prevent closing when interacting with nested popovers (e.g. ModelSelector)
-              const target = e.target as Element;
-              if (target?.closest?.('[data-radix-popper-content-wrapper]')) {
-                e.preventDefault();
-              }
-            }}
+            className="w-44"
           >
             {/* Categories flyout submenu */}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="gap-2">
-                <img src={primaryCategory.icon} alt={primaryCategory.name} className="w-4 h-4 flex-shrink-0" />
+                <Image src={primaryCategory.icon} alt={primaryCategory.name} width={16} height={16} className="w-4 h-4 flex-shrink-0" />
                 <span>Category</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-44">
@@ -281,7 +275,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
                     onSelect={(e) => e.preventDefault()}
                     className="gap-2"
                   >
-                    <img src={cat.icon} alt={cat.name} className="w-3.5 h-3.5 flex-shrink-0" />
+                    <Image src={cat.icon} alt={cat.name} width={14} height={14} className="w-3.5 h-3.5 flex-shrink-0" />
                     <span>{cat.name}</span>
                   </DropdownMenuCheckboxItem>
                 ))}
@@ -315,11 +309,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
 
             <DropdownMenuSeparator />
 
-            {/* Model selector — plain div so its own Popover stays independent */}
-            <div className="px-3 py-1.5 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Model</span>
-              <ModelSelector />
-            </div>
+            <ModelSelectorSubmenu />
 
             <DropdownMenuSeparator />
 

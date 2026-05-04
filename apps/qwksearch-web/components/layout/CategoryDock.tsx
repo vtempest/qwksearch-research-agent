@@ -24,6 +24,7 @@ import {
 import iconRead from '@/components/icons/icon-read.svg'
 import iconNews from '@/components/icons/icon-news-title.svg'
 import iconSettings from '@/components/icons/icon-configure.svg'
+import { useCategoryDockVisibility } from '@/components/layout/category-dock-context'
 
 const themeNames = [
   "modern-minimal",
@@ -203,7 +204,7 @@ function SettingsMenu({ side, onOpenSettings, onToggleDock, dockHidden }: { side
         Settings
       </DropdownMenuItem>
       {isMobile && (
-        <DropdownMenuCheckboxItem checked={dockHidden} onCheckedChange={() => setTimeout(onToggleDock, 0)}>
+        <DropdownMenuCheckboxItem checked={dockHidden} onCheckedChange={() => onToggleDock()}>
           Hide App Dock
         </DropdownMenuCheckboxItem>
       )}
@@ -294,15 +295,10 @@ function DockInstance({
 export function CategoryDock() {
   const pathname = usePathname()
   const router = useRouter()
-  const [dockHidden, setDockHidden] = useState(false)
+  const { dockHidden, toggleDock } = useCategoryDockVisibility()
   const [dockTemporarilyVisible, setDockTemporarilyVisible] = useState(false)
   const desktopDockRef = useRef<HTMLDivElement>(null)
   const mobileDockRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const saved = localStorage.getItem('dock-hidden')
-    if (saved === 'true') setDockHidden(true)
-  }, [])
 
   // Collapse temporarily-visible dock when clicking outside
   useEffect(() => {
@@ -318,11 +314,9 @@ export function CategoryDock() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [dockTemporarilyVisible])
 
-  const toggleDock = () => {
-    const next = !dockHidden
-    setDockHidden(next)
+  const handleToggleDock = () => {
+    toggleDock()
     setDockTemporarilyVisible(false)
-    localStorage.setItem('dock-hidden', String(next))
   }
 
   const showDockTemporarily = () => {
@@ -372,7 +366,7 @@ export function CategoryDock() {
             dockClassName="h-[52px] shrink-0 !mt-0 !mx-0"
             side="bottom"
             allItems={allItems}
-            onToggleDock={toggleDock} dockHidden={dockHidden}
+            onToggleDock={handleToggleDock} dockHidden={dockHidden}
           />
         ) : (
           <button
@@ -392,7 +386,7 @@ export function CategoryDock() {
             dockClassName="h-[52px] shrink-0 !mt-0 mx-auto w-max mb-2 !gap-1 !p-1"
             side="top"
             allItems={allItems}
-            onToggleDock={toggleDock} dockHidden={dockHidden}
+            onToggleDock={handleToggleDock} dockHidden={dockHidden}
           />
         ) : (
           <div className="flex justify-center">

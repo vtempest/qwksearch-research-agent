@@ -35,6 +35,7 @@ export const chats = sqliteTable('chats', {
   files: text('files', { mode: 'json' })
     .$type<File[]>()
     .default(sql`'[]'`),
+  thinkingTimeLimit: integer('thinkingTimeLimit').default(0),
 });
 
 export const user = sqliteTable('user', {

@@ -51,6 +51,7 @@ export const handleHistorySave = async (
   files: string[],
   userId: string | null,
   db: ReturnType<typeof getDB>,
+  thinkingTimeLimit = 0,
 ): Promise<void> => {
   // Skip database persistence entirely for unauthenticated guests
   if (!userId) return;
@@ -80,6 +81,7 @@ export const handleHistorySave = async (
         createdAt: new Date().toString(),
         focusMode,
         userId,
+        thinkingTimeLimit,
       })
       .execute();
     console.log(

@@ -9,12 +9,14 @@ import crypto from "crypto";
 import { toast } from "sonner";
 import {
   Message,
+  SearchingMessage,
 } from "@/components/ResearchAgent/ChatConversation/ChatWindow";
 import { getSuggestions } from "@/lib/server-actions";
 import { getAutoMediaSearch } from "@/lib/config/serverRegistry";
 import { ChatModelProvider } from "./types";
 
 const SOURCE_EXTRACTION_KEY = "sourceExtractionEnabled";
+const THINKING_TIME_KEY = "thinkingTimeLimit";
 
 /**
  * Parameters for sending a chat message.
@@ -125,6 +127,11 @@ export async function sendMessage(
     typeof window !== "undefined" &&
     localStorage.getItem(SOURCE_EXTRACTION_KEY) === "true";
 
+  const thinkingTimeLimit =
+    typeof window !== "undefined"
+      ? Number(localStorage.getItem(THINKING_TIME_KEY) ?? "0") || 0
+      : 0;
+
   // Prevent duplicate sends or empty messages
   if (loading || !message) return;
 
@@ -171,6 +178,40 @@ export async function sendMessage(
       toast.error(data.data);
       setLoading(false);
       return;
+    }
+
+    // Handle live search progress events
+    if (data.type === "searching") {
+      const searchData = data.data as { query: string; category?: string; status: "running" | "done" };
+      setMessages((prevMessages) => {
+        const existingIdx = prevMessages.findIndex(
+          (m) => m.messageId === data.messageId && m.role === "searching",
+        );
+        if (existingIdx === -1) {
+          return [
+            ...prevMessages,
+            {
+              role: "searching",
+              messageId: data.messageId,
+              chatId: chatId,
+              createdAt: new Date(),
+              queries: [{ query: searchData.query, category: searchData.category, status: searchData.status }],
+            } as SearchingMessage,
+          ];
+        }
+        return prevMessages.map((m, i) => {
+          if (i !== existingIdx) return m;
+          const sm = m as SearchingMessage;
+          const qIdx = sm.queries.findIndex((q) => q.query === searchData.query);
+          if (qIdx === -1) {
+            return { ...sm, queries: [...sm.queries, { query: searchData.query, category: searchData.category, status: searchData.status }] };
+          }
+          const updatedQueries = sm.queries.map((q, qi) =>
+            qi === qIdx ? { ...q, status: searchData.status } : q,
+          );
+          return { ...sm, queries: updatedQueries };
+        });
+      });
     }
 
     // Handle sources (search results, documents)
@@ -290,6 +331,7 @@ export async function sendMessage(
           providerId: chatModelProvider.providerId,
         },
         sourceExtractionEnabled,
+        thinkingTimeLimit,
         systemInstructions: localStorage.getItem("systemInstructions"),
       }),
     });

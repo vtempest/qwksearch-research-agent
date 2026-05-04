@@ -75,6 +75,11 @@ export const bodySchema = z.object({
   sourceExtractionEnabled: z.boolean().optional().default(false),
   /** Custom system instructions to prepend to the prompt. */
   systemInstructions: z.string().nullable().optional().default(""),
+  /**
+   * Max seconds to spend extracting source content.
+   * 0 = unlimited (uses server default); >0 = budget spread across top 3 sources.
+   */
+  thinkingTimeLimit: z.number().int().min(0).optional().default(0),
 });
 
 /**

@@ -8,6 +8,7 @@
 import {
   AssistantMessage,
   Message,
+  SearchingMessage,
   SourceMessage,
   SuggestionMessage,
   UserMessage,
@@ -71,6 +72,14 @@ export const buildSections = (messages: Message[]): Section[] => {
           m.sources &&
           (nextUserMessageIndex === -1 || j < nextUserMessageIndex),
       ) as SourceMessage | undefined;
+
+      // Find the searching progress message within this turn
+      const searchingMessage = messages.find(
+        (m, j) =>
+          j > i &&
+          m.role === "searching" &&
+          (nextUserMessageIndex === -1 || j < nextUserMessageIndex),
+      ) as SearchingMessage | undefined;
 
       let thinkingEnded = false;
       let processedMessage = aiMessage?.content ?? "";
@@ -163,6 +172,7 @@ export const buildSections = (messages: Message[]): Section[] => {
         userMessage: msg as UserMessage,
         assistantMessage: aiMessage,
         sourceMessage: sourceMessage,
+        searchingMessage: searchingMessage,
         parsedAssistantMessage: processedMessage,
         speechMessage,
         thinkingEnded,

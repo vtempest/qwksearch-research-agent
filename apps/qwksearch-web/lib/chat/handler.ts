@@ -195,6 +195,7 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
       body.systemInstructions as string,
       body.category,
       body.sourceExtractionEnabled,
+      body.thinkingTimeLimit,
     );
 
     // --- Set up the SSE response stream ---
@@ -216,6 +217,7 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
       body.files,
       userId,
       db,
+      body.thinkingTimeLimit,
     );
     console.log(
       "[POST /api/chat] handleHistorySave completed, returning stream response",

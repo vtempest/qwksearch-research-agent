@@ -35,8 +35,8 @@ interface StreamEvent {
  * | `"error"`     | Error description     | _absent_      |
  */
 interface SSEMessage {
-  type: "message" | "sources" | "messageEnd" | "error";
-  data?: string | Document[];
+  type: "message" | "sources" | "searching" | "messageEnd" | "error";
+  data?: string | Document[] | { query: string; category?: string; status: string };
   messageId?: string;
 }
 
@@ -104,7 +104,13 @@ export const handleEmitterEvents = async (
     /** @type {StreamEvent} */
     const parsedData: StreamEvent = JSON.parse(data);
 
-    if (parsedData.type === "response") {
+    if (parsedData.type === "searching") {
+      writeSSE({
+        type: "searching",
+        data: parsedData.data,
+        messageId: aiMessageId,
+      });
+    } else if (parsedData.type === "response") {
       writeSSE({
         type: "message",
         data: parsedData.data,

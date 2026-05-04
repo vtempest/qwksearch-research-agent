@@ -8,6 +8,7 @@ import {
   AssistantMessage,
   ChatTurn,
   Message,
+  SearchingMessage,
   SourceMessage,
   UserMessage,
 } from "@/components/ResearchAgent/ChatConversation/ChatWindow";
@@ -28,6 +29,8 @@ export type Section = {
   speechMessage: string | undefined;
   /** Sources/references used to generate the response */
   sourceMessage: SourceMessage | undefined;
+  /** Live search progress (queries + statuses) while the agent is running */
+  searchingMessage: SearchingMessage | undefined;
   /** Whether the AI has finished its reasoning/thinking phase */
   thinkingEnded: boolean;
   /** Follow-up question suggestions for the user */

@@ -40,7 +40,7 @@ function htmlToText(html: string): string {
 import { getSourceScrapeTimeout } from "../config/serverRegistry";
 import { formatChatHistoryAsString } from "../utils";
 import EventEmitter from "events";
-import type { Config, BasicChainInput, MetaSearchAgentType } from "./meta-search-types";
+import type { Config, BasicChainInput, MetaSearchAgentType, SearchingEvent } from "./meta-search-types";
 import { buildFallbackDocs, rerankDocs, processDocs } from "./doc-utils";
 import { groupAndSummarizeDocs } from "./link-summarizer";
 import { handleStream } from "./stream-handler";
@@ -71,6 +71,8 @@ class MetaSearchAgent implements MetaSearchAgentType {
     llm: BaseChatModel,
     category: string = "general",
     sourceExtractionEnabled = false,
+    thinkingTimeLimit = 0,
+    emitter?: EventEmitter,
   ) {
     (llm as unknown as ChatOpenAI).temperature = 0;
 
@@ -118,6 +120,19 @@ class MetaSearchAgent implements MetaSearchAgentType {
           question = "latest information";
         }
 
+        // Emit "searching" progress event so the client can show live status
+        const categoryLabel = this.config.activeEngines.length > 0
+          ? this.config.activeEngines.slice(0, 2).join(", ")
+          : "Web";
+        const emitSearching = (status: SearchingEvent["status"], query: string, cat?: string) => {
+          emitter?.emit("data", JSON.stringify({
+            type: "searching",
+            data: { query, category: cat ?? categoryLabel, status } satisfies SearchingEvent,
+          }));
+        };
+
+        emitSearching("running", question);
+
         let res: { results: any[]; suggestions: string[] };
 
         if (
@@ -162,17 +177,36 @@ class MetaSearchAgent implements MetaSearchAgentType {
           documents = buildFallbackDocs(question);
         }
 
-        const scrapeCount = sourceExtractionEnabled ? 3 : 0;
-        const scrapeTimeout = Math.max(1, getSourceScrapeTimeout());
+        emitSearching("done", question);
+
+        // Determine extraction budget from thinkingTimeLimit (seconds).
+        // thinkingTimeLimit === 0 means unlimited; use server config.
+        let scrapeCount: number;
+        let perSourceTimeout: number;
+
+        if (thinkingTimeLimit > 0) {
+          // Spread the time budget across 3 sources
+          scrapeCount = 3;
+          perSourceTimeout = Math.max(2, Math.floor(thinkingTimeLimit / scrapeCount));
+        } else if (sourceExtractionEnabled) {
+          scrapeCount = 3;
+          perSourceTimeout = Math.max(1, getSourceScrapeTimeout());
+        } else {
+          scrapeCount = 0;
+          perSourceTimeout = 0;
+        }
 
         if (scrapeCount > 0) {
-          const extractionTasks = documents.slice(0, scrapeCount).map(async (doc, idx) => {
+          const docsToScrape = documents.slice(0, scrapeCount);
+          emitSearching("running", `Extracting top ${docsToScrape.length} sources`, "extract");
+
+          const extractionTasks = docsToScrape.map(async (doc, idx) => {
             const url = doc.metadata?.url;
             if (!url) return;
             try {
               const result = await waitWithTimeout(
-                scrapeURL(url, { timeout: scrapeTimeout }),
-                scrapeTimeout * 1000 + 1500,
+                scrapeURL(url, { timeout: perSourceTimeout }),
+                perSourceTimeout * 1000 + 1500,
               );
               if (typeof result === "string" && result.length > 100) {
                 const text = htmlToText(result)
@@ -190,6 +224,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
           });
 
           await Promise.allSettled(extractionTasks);
+          emitSearching("done", `Extracting top ${docsToScrape.length} sources`, "extract");
         }
 
         return { query: question, docs: documents };
@@ -204,6 +239,8 @@ class MetaSearchAgent implements MetaSearchAgentType {
     systemInstructions: string,
     category: string = "general",
     sourceExtractionEnabled = false,
+    thinkingTimeLimit = 0,
+    emitter?: EventEmitter,
   ) {
     return RunnableSequence.from([
       RunnableMap.from({
@@ -222,6 +259,8 @@ class MetaSearchAgent implements MetaSearchAgentType {
               llm,
               category,
               sourceExtractionEnabled,
+              thinkingTimeLimit,
+              emitter,
             );
             const result = await searchRetrieverChain.invoke({
               chat_history: processedHistory,
@@ -256,6 +295,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
     systemInstructions: string,
     category: string = "general",
     sourceExtractionEnabled = false,
+    thinkingTimeLimit = 0,
   ) {
     const emitter = new EventEmitter();
 
@@ -266,6 +306,8 @@ class MetaSearchAgent implements MetaSearchAgentType {
       systemInstructions,
       category,
       sourceExtractionEnabled,
+      thinkingTimeLimit,
+      emitter,
     );
 
     const stream = answeringChain.streamEvents(

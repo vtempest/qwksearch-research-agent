@@ -57,6 +57,13 @@
       "when": 1767698211119,
       "tag": "0007_mute_diamondback",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1767800000000,
+      "tag": "0008_thinking_time_limit",
+      "breakpoints": true
     }
   ]
 }

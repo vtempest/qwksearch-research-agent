@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 import { useGooglePicker } from './GoogleDrivePicker';
 import { useChat } from '@/components/ResearchAgent/hooks/useChat';
 import { categories } from '../SearchConfig/categories';
-import { ModelSelector } from '../SearchConfig/ModelSelector';
+import { ModelSelectorSubmenu } from '../SearchConfig/ModelSelectorSubmenu';
 
 interface FileUploadDropdownProps {
   onFileSelect: (files: FileList | File[]) => void;
@@ -257,14 +257,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
             align="start"
             side="top"
             sideOffset={8}
-            className="w-52"
-            onInteractOutside={(e) => {
-              // Prevent closing when interacting with nested popovers (e.g. ModelSelector)
-              const target = e.target as Element;
-              if (target?.closest?.('[data-radix-popper-content-wrapper]')) {
-                e.preventDefault();
-              }
-            }}
+            className="w-44"
           >
             {/* Categories flyout submenu */}
             <DropdownMenuSub>
@@ -315,11 +308,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
 
             <DropdownMenuSeparator />
 
-            {/* Model selector — plain div so its own Popover stays independent */}
-            <div className="px-3 py-1.5 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Model</span>
-              <ModelSelector />
-            </div>
+            <ModelSelectorSubmenu />
 
             <DropdownMenuSeparator />
 

@@ -282,8 +282,8 @@ export async function sendMessage(
         document.getElementById(`search-videos-${lastMsg.messageId}`)?.click();
       }
 
-      // Fetch follow-up suggestions if we have sources and haven't fetched yet for this request
-      if (!suggestionsFetched && capturedSources.length > 0) {
+      // Fetch follow-up suggestions after every AI response
+      if (!suggestionsFetched) {
         suggestionsFetched = true;
         const suggestions = await getSuggestions(messagesRef.current);
         setMessages((prev) => [

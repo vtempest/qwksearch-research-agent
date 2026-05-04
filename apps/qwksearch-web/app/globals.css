@@ -443,3 +443,47 @@ figure.code-block .hljs {
   background: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
+
+/* Allotment sash — VS Code style */
+:root {
+  --focus-border: var(--ring);
+  --separator-border: var(--border);
+}
+
+.sash {
+  cursor: ew-resize;
+}
+
+.sash.sash-vertical {
+  cursor: ns-resize;
+}
+
+.sash::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  transition: background-color 0.1s ease-out;
+  background: transparent;
+}
+
+.sash-horizontal::before {
+  top: 50%;
+  transform: translateY(-50%);
+  height: 2px;
+  width: 100%;
+}
+
+.sash-vertical::before {
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 100%;
+}
+
+.sash:hover::before,
+.sash-hover::before,
+.sash-active::before {
+  background-color: var(--focus-border);
+  transition-delay: 0.1s;
+}

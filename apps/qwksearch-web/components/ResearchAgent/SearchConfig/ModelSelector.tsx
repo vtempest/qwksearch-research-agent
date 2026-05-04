@@ -14,6 +14,7 @@ import { useChat } from "@/components/ResearchAgent/hooks/useChat";
 import grab from "grab-url";
 import SettingsDialogue from "@/components/Settings/SettingsDialogue";
 import { AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 interface ModelSelectorProps {
     chatModelProvider?: ChatModelProvider;
@@ -29,6 +30,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ chatModelProvider:
     const [searchQuery, setSearchQuery] = useState('');
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         const loadProviders = async () => {
@@ -97,7 +99,11 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ chatModelProvider:
 
     const handleAddModel = () => {
         setIsPopoverOpen(false);
-        setIsSettingsOpen(true);
+        if (window.innerWidth < 1024) {
+            router.push('/settings?section=models');
+        } else {
+            setIsSettingsOpen(true);
+        }
     };
 
     return (

@@ -1,0 +1,27 @@
+{
+    "name": "search-extract-web-api",
+    "description": "70+ search engines across 10 categories and Scrape Extract API",
+    "type": "module",
+    "version": "1.0.0",
+    "author": "vtempest",
+    "license": "MIT",
+    "scripts": {
+        "dev": "bun --watch demo/index.ts",
+        "start": "bun demo/index.ts",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "@huggingface/transformers": "^3.8.1",
+        "@scalar/hono-api-reference": "^0.9.26",
+        "grab-url": "^1.0.8",
+        "hono": "^4.6.12",
+        "linkedom": "^0.18.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.17",
+        "@vitest/coverage-v8": "^1.0.4",
+        "tsx": "^4.7.1",
+        "typescript": "^5.3.3",
+        "vitest": "^1.0.4"
+    }
+}

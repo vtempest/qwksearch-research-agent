@@ -11,16 +11,34 @@ interface CategoryDockContextValue {
   categoryState: CategoryState | null
   register: (state: CategoryState) => void
   unregister: () => void
+  dockHidden: boolean
+  toggleDock: () => void
 }
 
 const CategoryDockContext = createContext<CategoryDockContextValue>({
   categoryState: null,
   register: () => { },
   unregister: () => { },
+  dockHidden: false,
+  toggleDock: () => { },
 })
 
 export function CategoryDockProvider({ children }: { children: ReactNode }) {
   const [categoryState, setCategoryState] = useState<CategoryState | null>(null)
+  const [dockHidden, setDockHidden] = useState(false)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dock-hidden')
+    if (saved === 'true') setDockHidden(true)
+  }, [])
+
+  const toggleDock = useCallback(() => {
+    setDockHidden(prev => {
+      const next = !prev
+      localStorage.setItem('dock-hidden', String(next))
+      return next
+    })
+  }, [])
 
   const register = useCallback((state: CategoryState) => {
     setCategoryState(state)
@@ -31,7 +49,7 @@ export function CategoryDockProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <CategoryDockContext.Provider value={{ categoryState, register, unregister }}>
+    <CategoryDockContext.Provider value={{ categoryState, register, unregister, dockHidden, toggleDock }}>
       {children}
     </CategoryDockContext.Provider>
   )
@@ -55,4 +73,9 @@ export function useCategoryDock(currentCategory: any, onCategoryChange: (categor
 
 export function useCategoryDockState() {
   return useContext(CategoryDockContext).categoryState
+}
+
+export function useCategoryDockVisibility() {
+  const { dockHidden, toggleDock } = useContext(CategoryDockContext)
+  return { dockHidden, toggleDock }
 }

@@ -60,6 +60,19 @@ export interface SuggestionMessage extends BaseMessage {
   suggestions: string[];
 }
 
+export interface SearchQuery {
+  query: string;
+  /** Display label e.g. "Web", "Academic" */
+  category?: string;
+  status: 'running' | 'done';
+}
+
+/** Transient progress message emitted while the agent runs searches. */
+export interface SearchingMessage extends BaseMessage {
+  role: 'searching';
+  queries: SearchQuery[];
+}
+
 /**
  * Union type representing all possible message roles in a chat.
  */
@@ -67,7 +80,8 @@ export type Message =
   | AssistantMessage
   | UserMessage
   | SourceMessage
-  | SuggestionMessage;
+  | SuggestionMessage
+  | SearchingMessage;
 
 /**
  * Represents a single exchange in the chat (user + assistant).

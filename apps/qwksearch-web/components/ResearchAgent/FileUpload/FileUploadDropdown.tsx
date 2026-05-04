@@ -4,7 +4,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Upload, CloudIcon, FolderOpen, Loader2, Clock } from 'lucide-react';
+import { Upload, CloudIcon, FolderOpen, Loader2, Clock, Settings } from 'lucide-react';
 import grab from 'grab-url';
 import {
   DropdownMenu,
@@ -249,7 +249,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
               type="button"
               aria-label="Search options"
             >
-              <img src={primaryCategory.icon} alt={primaryCategory.name} className="w-5 h-5" />
+              <Settings className="w-5 h-5" />
             </button>
           </DropdownMenuTrigger>
 

@@ -16,7 +16,16 @@ export interface MetaSearchAgentType {
     systemInstructions: string,
     category?: string,
     sourceExtractionEnabled?: boolean,
+    thinkingTimeLimit?: number,
   ) => Promise<EventEmitter>;
+}
+
+/** Emitted on the EventEmitter data channel to report live search progress. */
+export interface SearchingEvent {
+  query: string;
+  /** Display label shown in the UI (e.g. "Academic · max 10"). */
+  category?: string;
+  status: "running" | "done";
 }
 
 export interface Config {

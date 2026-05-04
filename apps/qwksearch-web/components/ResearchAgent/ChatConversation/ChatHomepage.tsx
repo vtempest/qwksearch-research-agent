@@ -9,20 +9,20 @@ import ChatInputBox from '../MessageComposer/ChatInputBox';
 import RecentHistoryChips from './RecentHistoryChips';
 import { useChat } from '@/components/ResearchAgent/hooks/useChat';
 import { getBackgroundArtwork } from './background-art';
+import { useCategoryDockVisibility } from '@/components/layout/category-dock-context';
+import { cn } from '@/lib/utils';
 const { listFooterLinks } = config;
 
 /**
  * The homepage component for the chat interface.
  * Displays a background artwork (image or video), a settings button,
- * and the main chat input box. Detects the user's operating system
- * for customized download links.
- * 
- * @returns {JSX.Element} The rendered chat homepage
+ * and the main chat input box fixed at the bottom of the screen.
  */
 export default function ChatHomepage() {
   const { sendMessage } = useChat();
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [deviceInfo, setDeviceInfo] = useState({ os: '' });
+  const { dockHidden } = useCategoryDockVisibility();
 
   useEffect(() => {
     const showBg = localStorage.getItem('showBackgroundArt');
@@ -41,26 +41,13 @@ export default function ChatHomepage() {
     }
   }, []);
 
-
-
-  /**
-   * Handles sending a message from the homepage input.
-   * 
-   * @param data - The message data including text and attachments
-   */
-  const handleSendMessage = (data: {
-    message: string;
-    files: any[];
-    pastedContent: any[];
-    model: string;
-    isThinkingEnabled: boolean;
-  }) => {
-    if (data.message.trim()) {
-      sendMessage(data.message);
-    }
-  };
-
   const isVideo = backgroundUrl && (backgroundUrl.endsWith('.webm') || backgroundUrl.endsWith('.mp4'));
+
+  // On mobile: dock is fixed bottom-0 at ~64px height. Lift input above it when dock is visible.
+  // On desktop (md+): dock is at top-left, input stays at bottom-0.
+  const inputBottomClass = dockHidden
+    ? 'bottom-0'
+    : 'bottom-0 md:bottom-0 max-md:bottom-16';
 
   return (
     <div className="relative min-h-screen w-full">
@@ -90,38 +77,41 @@ export default function ChatHomepage() {
         <div className="absolute w-full flex flex-row items-center justify-end pr-5 pt-2 sm:pt-5">
           <SettingsButtonMobile />
         </div>
-        <div className="flex flex-col items-center justify-start pt-16 sm:justify-center sm:pt-0 min-h-screen max-w-screen-sm mx-auto p-2 space-y-4">
-          <div className="flex flex-col items-center justify-center w-full space-y-8">
-            <MessageBoxLoading />
+        {/* Centered content above the fixed input */}
+        <div className="flex flex-col items-center justify-center min-h-screen pb-48 max-w-screen-sm mx-auto p-2">
+          <MessageBoxLoading />
+          <p className="text-lg text-gray-500 text-center justify-center mt-4">
+            <a
+              aria-label="Chrome Web Store"
+              className="download-chrome download-btn text-center justify-center"
+              target="_blank"
+              href={config.DOWNLOAD_CHROME_URL}
+            >
+            </a>
 
-            <div className="w-full space-y-2">
-              <ChatInputBox />
-              <RecentHistoryChips />
-              <p className="text-lg text-gray-500 text-center justify-center mt-4">
-                <a
-                  aria-label="Chrome Web Store"
-                  className="download-chrome download-btn text-center justify-center"
-                  target="_blank"
-                  href={config.DOWNLOAD_CHROME_URL}
-                >
-                </a>
-
-                <a
-                  aria-label="Microsoft Store"
-                  className="download-windows download-btn text-center justify-center"
-                  target="_blank"
-                  href={deviceInfo.os == "Windows"
-                    ? `ms-windows-store://pdp/?productid=${config.DOWNLOAD_WINDOWS_STORE_ID}`
-                    : `https://apps.microsoft.com/detail/${config.DOWNLOAD_WINDOWS_STORE_ID}?rtc=1`
-                  }
-                >
-                </a>
-              </p>
-            </div>
-          </div>
+            <a
+              aria-label="Microsoft Store"
+              className="download-windows download-btn text-center justify-center"
+              target="_blank"
+              href={deviceInfo.os == "Windows"
+                ? `ms-windows-store://pdp/?productid=${config.DOWNLOAD_WINDOWS_STORE_ID}`
+                : `https://apps.microsoft.com/detail/${config.DOWNLOAD_WINDOWS_STORE_ID}?rtc=1`
+              }
+            >
+            </a>
+          </p>
         </div>
       </div>
+
+      {/* Fixed bottom input — sits above app dock when visible */}
+      <div className={cn('fixed left-0 right-0 z-40 px-2 pb-2', inputBottomClass)}>
+        <div className="max-w-2xl mx-auto space-y-2">
+          <RecentHistoryChips />
+          <ChatInputBox />
+        </div>
+      </div>
+
       <Footer listFooterLinks={listFooterLinks} />
     </div>
   );
-};
+}

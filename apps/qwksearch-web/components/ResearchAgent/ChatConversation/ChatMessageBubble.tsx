@@ -7,6 +7,7 @@ import React, { Ref, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Markdown, { MarkdownToJSX } from 'markdown-to-jsx';
 import MessageSources from '../SearchResults/MessageSources';
+import SearchProgressIndicator from '../SearchResults/SearchProgressIndicator';
 import { useTextToSpeech } from '@/components/ResearchAgent/hooks/voice/useTextToVoice';
 import { useChat, Section } from '@/components/ResearchAgent/hooks/useChat';
 import Citation from '../SearchResults/WebCitationBadge';
@@ -168,6 +169,13 @@ const MessageBox = ({
           ref={dividerRef}
           className="flex flex-col space-y-6 w-full"
         >
+          {section.searchingMessage && section.searchingMessage.queries.length > 0 && (
+            <SearchProgressIndicator
+              queries={section.searchingMessage.queries}
+              loading={loading && isLast}
+            />
+          )}
+
           {section.sourceMessage &&
             section.sourceMessage.sources.length > 0 && (
               <div className="flex flex-col space-y-2">

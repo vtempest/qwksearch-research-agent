@@ -59,6 +59,9 @@ import { wikidata } from "./sources/academic/wikidata.js";
 import { semantic_scholar } from "./sources/academic/semantic_scholar.js";
 import { crossref } from "./sources/academic/crossref.js";
 import { pubmed } from "./sources/academic/pubmed.js";
+import { openalex } from "./sources/academic/openalex.js";
+import { doaj } from "./sources/academic/doaj.js";
+import { core } from "./sources/academic/core.js";
 
 // Torrent engines
 import { torrent_1337x } from "./sources/torrents/1337x.js";
@@ -157,9 +160,12 @@ const readmeDescriptions: Record<string, string> = {
   "wikimedia_commons": "Image search across media stored on Wikimedia Commons",
   "------------------------": "-----------------------------------------------------------------",
   "arxiv": "Repository of preprint research papers in physics, math, CS and more",
+  "core": "Aggregator of open access research papers from repositories worldwide (requires CORE_API_KEY)",
   "crossref": "Infrastructure service providing DOIs and metadata for scholarly content",
+  "doaj": "Directory of Open Access Journals — community-curated index of open access scholarly articles",
   "google_scholar": "Google's search engine for scholarly literature and citations",
   "internet_archive_scholar": "Internet Archive search for digitized scholarly works",
+  "openalex": "Open catalog of scholarly works, authors, and institutions (successor to Microsoft Academic)",
   "pubmed": "Database of biomedical and life sciences literature from NCBI",
   "semantic_scholar": "AI-powered literature search and discovery tool for research papers",
   "---------------------": "---------------------------------------------------------------------",
@@ -262,13 +268,16 @@ export const ALL_ENGINES: EngineMetadata[] = [
     { name: "yahoo_news", fn: yahoo_news, categories: ["news"] },
     { name: "bing_news", fn: bing_news, categories: ["news"] },
     { name: "google_news", fn: google_news, categories: ["news"] },
-    // Academic (6)
+    // Academic (9)
     { name: "google_scholar", fn: google_scholar, categories: ["academic"] },
     { name: "arxiv", fn: arxiv, categories: ["academic"] },
     { name: "wikidata", fn: wikidata, categories: ["academic"] },
     { name: "semantic_scholar", fn: semantic_scholar, categories: ["academic"] },
     { name: "crossref", fn: crossref, categories: ["academic"] },
     { name: "pubmed", fn: pubmed, categories: ["academic"] },
+    { name: "openalex", fn: openalex, categories: ["academic"] },
+    { name: "doaj", fn: doaj, categories: ["academic"] },
+    { name: "core", fn: core, categories: ["academic"] },
     // Torrents (7)
     { name: "1337x", fn: torrent_1337x, categories: ["torrents"] },
     { name: "thepiratebay", fn: thepiratebay, categories: ["torrents"] },

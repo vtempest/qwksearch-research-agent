@@ -4,6 +4,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Upload, CloudIcon, FolderOpen, Loader2, Clock, Settings } from 'lucide-react';
 import grab from 'grab-url';
 import {
@@ -262,7 +263,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
             {/* Categories flyout submenu */}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="gap-2">
-                <img src={primaryCategory.icon} alt={primaryCategory.name} className="w-4 h-4 flex-shrink-0" />
+                <Image src={primaryCategory.icon} alt={primaryCategory.name} width={16} height={16} className="w-4 h-4 flex-shrink-0" />
                 <span>Category</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-44">
@@ -274,7 +275,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
                     onSelect={(e) => e.preventDefault()}
                     className="gap-2"
                   >
-                    <img src={cat.icon} alt={cat.name} className="w-3.5 h-3.5 flex-shrink-0" />
+                    <Image src={cat.icon} alt={cat.name} width={14} height={14} className="w-3.5 h-3.5 flex-shrink-0" />
                     <span>{cat.name}</span>
                   </DropdownMenuCheckboxItem>
                 ))}

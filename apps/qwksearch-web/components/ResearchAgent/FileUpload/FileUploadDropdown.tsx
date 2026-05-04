@@ -286,7 +286,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="gap-2">
                 <Clock className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
-                <span>Thinking Time</span>
+                <span>Speed</span>
                 <span className="ml-auto text-xs text-muted-foreground">{currentThinkingLabel}</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-36">

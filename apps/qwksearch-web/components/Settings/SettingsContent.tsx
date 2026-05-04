@@ -11,6 +11,8 @@ import {
   Database,
   MessageSquareText,
   UserCircle,
+  HardDrive,
+  Wand2,
 } from 'lucide-react';
 import Preferences from './Sections/Preferences';
 import Account from './Sections/Account';
@@ -32,6 +34,8 @@ import {
 import Personalization from './Sections/Personalization';
 import Storage from './Sections/Storage';
 import RewritePrompts from './Sections/RewritePrompts';
+import FileSources from './Sections/FileSources';
+import AIRewriteModes from './Sections/AIRewriteModes';
 
 const sections = [
   {
@@ -96,6 +100,22 @@ const sections = [
     description: 'Configure AI rewriting prompts and templates.',
     icon: MessageSquareText,
     component: RewritePrompts,
+    dataAdd: 'rewritePrompts',
+  },
+  {
+    key: 'fileSources',
+    name: 'File Sources',
+    description: 'Manage storage sources (SSH, S3, R2, B2, Google Docs, Turso DB).',
+    icon: HardDrive,
+    component: FileSources,
+    dataAdd: 'storage',
+  },
+  {
+    key: 'aiRewriteModes',
+    name: 'AI Rewrite Modes',
+    description: 'Customize AI rewrite prompts and add your own modes.',
+    icon: Wand2,
+    component: AIRewriteModes,
     dataAdd: 'rewritePrompts',
   },
 ];

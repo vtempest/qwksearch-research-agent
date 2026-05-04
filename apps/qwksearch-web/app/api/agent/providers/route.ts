@@ -40,9 +40,9 @@ export const GET = async (req: Request) => {
 export const POST = async (req: NextRequest) => {
   try {
     const body = await req.json();
-    const { type, name, config } = body;
+    const { type, config } = body;
 
-    if (!type || !name || !config) {
+    if (!type || !config) {
       return Response.json(
         {
           message: "Missing required fields.",
@@ -55,7 +55,7 @@ export const POST = async (req: NextRequest) => {
 
     const registry = new ModelRegistry();
 
-    const newProvider = await registry.addProvider(type, name, config);
+    const newProvider = await registry.addProvider(type, config);
 
     return Response.json(
       {

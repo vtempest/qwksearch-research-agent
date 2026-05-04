@@ -137,13 +137,12 @@ class ModelRegistry {
 
   async addProvider(
     type: string,
-    name: string,
     config: Record<string, any>,
   ): Promise<ConfigModelProvider> {
     const provider = providers[type];
     if (!provider) throw new Error('Invalid provider type');
 
-    const newProvider = configManager.addModelProvider(type, name, config);
+    const newProvider = configManager.addModelProvider(type, config);
 
     const instance = createProviderInstance(
       provider,
@@ -193,18 +192,16 @@ class ModelRegistry {
 
   async updateProvider(
     providerId: string,
-    name: string,
     config: any,
   ): Promise<ConfigModelProvider> {
     const updated = await configManager.updateModelProvider(
       providerId,
-      name,
       config,
     );
     const instance = createProviderInstance(
       providers[updated.type],
       providerId,
-      name,
+      updated.name,
       config,
     );
 

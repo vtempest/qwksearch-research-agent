@@ -7,6 +7,7 @@
 
 import crypto from "crypto";
 import { toast } from "sonner";
+import grab from "grab-url";
 import {
   Message,
   SearchingMessage,
@@ -14,6 +15,8 @@ import {
 import { getSuggestions } from "@/lib/server-actions";
 import { getAutoMediaSearch } from "@/lib/config/serverRegistry";
 import { ChatModelProvider } from "./types";
+
+const ARTICLE_PREFETCH_COUNT = 3;
 
 const SOURCE_EXTRACTION_KEY = "sourceExtractionEnabled";
 const THINKING_TIME_KEY = "thinkingTimeLimit";
@@ -153,6 +156,12 @@ export async function sendMessage(
   let suggestionsFetched = false;
   let capturedSources: any[] = [];
 
+  // Buffering state for deferred response reveal
+  const requestStartTime = Date.now();
+  const shouldBuffer = thinkingTimeLimit > 0;
+  let bufferedContent = "";
+  let bufferedMessageId = "";
+
   // Generate or use provided message ID
   const messageId = providedMessageId ?? crypto.randomBytes(7).toString("hex");
 
@@ -229,74 +238,115 @@ export async function sendMessage(
       ]);
       if (capturedSources.length > 0) {
         setMessageAppeared(true);
+        // Prefetch top article content in the background while waiting for the response
+        capturedSources.slice(0, ARTICLE_PREFETCH_COUNT).forEach((source) => {
+          const url = source?.metadata?.url;
+          if (url && url !== "File") {
+            grab(`doc/article?url=${encodeURIComponent(url)}`).catch(() => {});
+          }
+        });
       }
     }
 
     // Handle message chunks (streaming AI response)
     if (data.type === "message") {
-      if (!added) {
-        // First chunk - create the assistant message
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          {
-            content: data.data,
-            messageId: data.messageId,
-            chatId: chatId,
-            role: "assistant",
-            createdAt: new Date(),
-          },
-        ]);
-        added = true;
-        setMessageAppeared(true);
-      } else {
-        // Subsequent chunks - append to existing message
-        setMessages((prev) =>
-          prev.map((msg) => {
-            if (msg.messageId === data.messageId && msg.role === "assistant") {
-              return { ...msg, content: msg.content + data.data };
-            }
-            return msg;
-          }),
-        );
-      }
       receivedMessage += data.data;
+      if (shouldBuffer) {
+        // Accumulate content; it will be flushed after the thinking wait
+        bufferedContent += data.data;
+        if (!bufferedMessageId) bufferedMessageId = data.messageId;
+        added = true;
+      } else {
+        if (!added) {
+          // First chunk - create the assistant message
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              content: data.data,
+              messageId: data.messageId,
+              chatId: chatId,
+              role: "assistant",
+              createdAt: new Date(),
+            },
+          ]);
+          added = true;
+          setMessageAppeared(true);
+        } else {
+          // Subsequent chunks - append to existing message
+          setMessages((prev) =>
+            prev.map((msg) => {
+              if (msg.messageId === data.messageId && msg.role === "assistant") {
+                return { ...msg, content: msg.content + data.data };
+              }
+              return msg;
+            }),
+          );
+        }
+      }
     }
 
     // Handle stream completion
     if (data.type === "messageEnd") {
-      // Update chat history with the complete exchange
-      setChatHistory((prevHistory) => [
-        ...prevHistory,
-        ["human", message],
-        ["assistant", receivedMessage],
-      ]);
+      const finalize = async () => {
+        // Flush buffered response if we were holding it
+        if (shouldBuffer && bufferedContent) {
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              content: bufferedContent,
+              messageId: bufferedMessageId,
+              chatId: chatId,
+              role: "assistant",
+              createdAt: new Date(),
+            },
+          ]);
+          setMessageAppeared(true);
+        }
 
-      setLoading(false);
-
-      // Auto-trigger media search if enabled
-      const lastMsg = messagesRef.current[messagesRef.current.length - 1];
-      const autoMediaSearch = getAutoMediaSearch();
-
-      if (autoMediaSearch) {
-        document.getElementById(`search-images-${lastMsg.messageId}`)?.click();
-        document.getElementById(`search-videos-${lastMsg.messageId}`)?.click();
-      }
-
-      // Fetch follow-up suggestions after every AI response
-      if (!suggestionsFetched) {
-        suggestionsFetched = true;
-        const suggestions = await getSuggestions(messagesRef.current);
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "suggestion",
-            suggestions: suggestions,
-            chatId: chatId,
-            createdAt: new Date(),
-            messageId: crypto.randomBytes(7).toString("hex"),
-          },
+        // Update chat history with the complete exchange
+        setChatHistory((prevHistory) => [
+          ...prevHistory,
+          ["human", message],
+          ["assistant", receivedMessage],
         ]);
+
+        setLoading(false);
+
+        // Auto-trigger media search if enabled
+        const lastMsg = messagesRef.current[messagesRef.current.length - 1];
+        const autoMediaSearch = getAutoMediaSearch();
+
+        if (autoMediaSearch) {
+          document.getElementById(`search-images-${lastMsg.messageId}`)?.click();
+          document.getElementById(`search-videos-${lastMsg.messageId}`)?.click();
+        }
+
+        // Fetch follow-up suggestions after every AI response
+        if (!suggestionsFetched) {
+          suggestionsFetched = true;
+          const suggestions = await getSuggestions(messagesRef.current);
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "suggestion",
+              suggestions: suggestions,
+              chatId: chatId,
+              createdAt: new Date(),
+              messageId: crypto.randomBytes(7).toString("hex"),
+            },
+          ]);
+        }
+      };
+
+      if (shouldBuffer) {
+        const elapsed = Date.now() - requestStartTime;
+        const remaining = thinkingTimeLimit * 1000 - elapsed;
+        if (remaining > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remaining));
+        }
       }
+
+      await finalize();
     }
   };
 
@@ -388,6 +438,20 @@ export async function sendMessage(
   } catch (err: any) {
     // Handle abort (user clicked stop)
     if (err.name === "AbortError") {
+      // Flush any buffered content immediately on abort
+      if (shouldBuffer && bufferedContent) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            content: bufferedContent,
+            messageId: bufferedMessageId,
+            chatId: chatId,
+            role: "assistant",
+            createdAt: new Date(),
+          },
+        ]);
+        setMessageAppeared(true);
+      }
       // Finalize chat history with whatever was received so far
       if (receivedMessage) {
         setChatHistory((prevHistory) => [

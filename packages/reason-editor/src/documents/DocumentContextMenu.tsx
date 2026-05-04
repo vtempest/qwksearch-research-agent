@@ -98,15 +98,14 @@ export const DocumentContextMenu = ({
           <Copy className="mr-2 h-4 w-4" />
           Duplicate
         </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onClick={onManageTags}>
-          <Tag className="mr-2 h-4 w-4" />
-          Manage Tags
-        </ContextMenuItem>
-        <ContextMenuSeparator />
         <ContextMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
           <Trash2 className="mr-2 h-4 w-4" />
           Delete
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={onManageTags}>
+          <Tag className="mr-2 h-4 w-4" />
+          Tag Phrase
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

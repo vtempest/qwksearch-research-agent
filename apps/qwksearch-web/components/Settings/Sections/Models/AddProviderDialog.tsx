@@ -27,7 +27,6 @@ const AddProvider = ({
     modelProviders[0]?.key || null,
   );
   const [config, setConfig] = useState<Record<string, any>>({});
-  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const providerConfigMap = useMemo(() => {
@@ -66,7 +65,6 @@ const AddProvider = ({
           method: 'POST',
           body: {
             type: selectedProvider,
-            name: name,
             config: config,
           },
         })
@@ -121,23 +119,6 @@ const AddProvider = ({
                       ),
                     )}
                   </select>
-                </div>
-
-                <div
-                  key="name"
-                  className="flex flex-col items-start space-y-2"
-                >
-                  <label className="text-xs text-black/70 dark:text-white/70">
-                    Connection Name*
-                  </label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-lg border border-light-200 dark:border-dark-200 bg-light-primary dark:bg-dark-primary px-4 py-3 pr-10 text-sm text-black/80 dark:text-white/80 placeholder:text-black/40 dark:placeholder:text-white/40 focus-visible:outline-none focus-visible:border-light-300 dark:focus-visible:border-dark-300 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                    placeholder={'e.g., My OpenAI Connection'}
-                    type="text"
-                    required={true}
-                  />
                 </div>
 
                 {selectedProviderFields.map((field: UIConfigField) => (

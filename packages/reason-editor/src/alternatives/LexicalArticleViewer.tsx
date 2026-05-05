@@ -131,13 +131,13 @@ function HighlightPlugin({ isHighlightMode }: { isHighlightMode: boolean }) {
   return null;
 }
 
-// Plugin to make editor read-only
-function ReadOnlyPlugin() {
+// Controls editability: editable only in highlight mode so Lexical tracks selection
+function EditabilityPlugin({ isHighlightMode }: { isHighlightMode: boolean }) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    editor.setEditable(false);
-  }, [editor]);
+    editor.setEditable(isHighlightMode);
+  }, [editor, isHighlightMode]);
 
   return null;
 }
@@ -228,7 +228,7 @@ const LexicalArticleViewer: React.FC<LexicalArticleViewerProps> = ({
           ErrorBoundary={LexicalErrorBoundary}
         />
         <HistoryPlugin />
-        <ReadOnlyPlugin />
+        <EditabilityPlugin isHighlightMode={isHighlightMode} />
         <HtmlLoaderPlugin html={html} />
         <HighlightPlugin isHighlightMode={isHighlightMode} />
       </div>

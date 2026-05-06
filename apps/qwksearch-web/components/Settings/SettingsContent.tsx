@@ -7,7 +7,6 @@ import {
   Search,
   Server,
   Sliders,
-  ToggleRight,
   Database,
   MessageSquareText,
   UserCircle,
@@ -31,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import Personalization from './Sections/Personalization';
 import Storage from './Sections/Storage';
 import RewritePrompts from './Sections/RewritePrompts';
 import FileSources from './Sections/FileSources';
@@ -53,14 +51,6 @@ const sections = [
     icon: Sliders,
     component: Preferences,
     dataAdd: 'preferences',
-  },
-  {
-    key: 'personalization',
-    name: 'Personalization',
-    description: 'Customize the behavior and tone of the model.',
-    icon: ToggleRight,
-    component: Personalization,
-    dataAdd: 'personalization',
   },
   {
     key: 'models',

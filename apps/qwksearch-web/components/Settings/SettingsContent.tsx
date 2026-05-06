@@ -87,22 +87,6 @@ const sections = [
     dataAdd: 'search',
   },
   {
-    key: 'storage',
-    name: 'Storage',
-    description: 'Manage data storage, caching, and editor settings.',
-    icon: Database,
-    component: Storage,
-    dataAdd: 'storage',
-  },
-  {
-    key: 'rewritePrompts',
-    name: 'Rewrite Prompts',
-    description: 'Configure AI rewriting prompts and templates.',
-    icon: MessageSquareText,
-    component: RewritePrompts,
-    dataAdd: 'rewritePrompts',
-  },
-  {
     key: 'fileSources',
     name: 'File Sources',
     description: 'Manage storage sources (SSH, S3, R2, B2, Google Docs, Turso DB).',

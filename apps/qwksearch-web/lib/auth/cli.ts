@@ -1,5 +1,5 @@
 /**
- * CLI-only auth export for `bunx @better-auth/cli generate`.
+ * CLI-only auth export for `bun x @better-auth/cli generate`.
  * This file must NOT be imported by any Worker/edge code —
  * which is unavailable in the Cloudflare Workers runtime.
  */

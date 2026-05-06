@@ -69,7 +69,7 @@ VOLUME ["/output"]
 ENTRYPOINT ["/bin/sh", "-c", "\
   set -e && \
   echo '==> Building Linux targets (AppImage + deb)...' && \
-  bunx tauri build --bundles appimage,deb && \
+  bun x tauri build --bundles appimage,deb && \
   mkdir -p /output && \
   find src-tauri/target/release/bundle -type f \\( -name '*.AppImage' -o -name '*.deb' \\) \
     -exec cp -v {} /output/ \\; && \

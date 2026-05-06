@@ -1,7 +1,17 @@
 'use client';
 
-// Google One Tap is disabled (oneTapClient plugin is not active in authClient).
-// To re-enable: uncomment oneTapClient in lib/auth/client.ts and restore the effect here.
+import { useEffect } from 'react';
+import { authClient } from '@/lib/auth/client';
+import { useSession } from '@/components/ResearchAgent/hooks/useSession';
+
 export default function GoogleOneTap() {
+  const { isAuthenticated, isLoading } = useSession();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      authClient.oneTap();
+    }
+  }, [isLoading, isAuthenticated]);
+
   return null;
 }

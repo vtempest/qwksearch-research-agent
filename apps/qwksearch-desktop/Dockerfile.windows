@@ -69,7 +69,7 @@ VOLUME ["/output"]
 ENTRYPOINT ["/bin/sh", "-c", "\
   set -e && \
   echo '==> Building Windows target (NSIS .exe, cross-compiled via MinGW)...' && \
-  bunx tauri build --target x86_64-pc-windows-gnu --bundles nsis && \
+  bun x tauri build --target x86_64-pc-windows-gnu --bundles nsis && \
   mkdir -p /output && \
   find src-tauri/target/x86_64-pc-windows-gnu/release/bundle -type f \\( -name '*.exe' -o -name '*.msi' \\) \
     -exec cp -v {} /output/ \\; && \

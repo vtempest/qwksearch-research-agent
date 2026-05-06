@@ -105,7 +105,7 @@ export const DocumentContextMenu = ({
         <ContextMenuSeparator />
         <ContextMenuItem onClick={onManageTags}>
           <Tag className="mr-2 h-4 w-4" />
-          Tag Phrase
+          Tag Keyword
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

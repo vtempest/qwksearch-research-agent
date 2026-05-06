@@ -54,7 +54,7 @@ async function authBuilder() {
           autoSignInAfterVerification: true,
         },
         plugins: [
-          // oneTap(),
+          oneTap(),
           openAPI(),
           anonymous(),
           magicLink({

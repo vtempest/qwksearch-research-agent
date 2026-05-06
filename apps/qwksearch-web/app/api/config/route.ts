@@ -32,6 +32,12 @@ export const GET = async (req: NextRequest) => {
       },
     );
 
+    // Don't expose the site-default Tavily key — users should only see their own override
+    const envTavilyKey = process.env.TAVILY_API_KEY || '';
+    if (values.search?.tavilyApiKey === envTavilyKey) {
+      values.search = { ...values.search, tavilyApiKey: '' };
+    }
+
     return NextResponse.json({
       values,
       fields,

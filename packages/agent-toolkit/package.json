@@ -1,5 +1,5 @@
 {
-  "name": "ai-research-agent",
+  "name": "chat-agent-toolkit",
   "version": "1.2.1",
   "description": "Multi-provider AI agent toolkit: generate language responses, search the web, extract content, and manage memory across 10+ LLM providers.",
   "author": "vtempest <grokthiscontact@gmail.com>",

@@ -40,20 +40,11 @@ class ConfigManager {
       {
         name: "Theme",
         key: "theme",
-        type: "select",
-        options: [
-          {
-            name: "Light",
-            value: "light",
-          },
-          {
-            name: "Dark",
-            value: "dark",
-          },
-        ],
+        type: "theme",
+        options: [],
         required: false,
-        description: "Choose between light and dark layouts for the app.",
-        default: "dark",
+        description: "Choose a color theme and light/dark mode for the app.",
+        default: "modern-minimal",
         scope: "client",
       },
       {
@@ -92,50 +83,12 @@ class ConfigManager {
         scope: "client",
       },
       {
-        name: "Measurement Unit",
-        key: "measureUnit",
-        type: "select",
-        options: [
-          {
-            name: "Imperial",
-            value: "Imperial",
-          },
-          {
-            name: "Metric",
-            value: "Metric",
-          },
-        ],
-        required: false,
-        description: "Choose between Metric  and Imperial measurement unit.",
-        default: "Metric",
-        scope: "client",
-      },
-      {
-        name: "Auto video & image search",
-        key: "autoMediaSearch",
-        type: "switch",
-        required: false,
-        description: "Automatically search for relevant images and videos.",
-        default: true,
-        scope: "client",
-      },
-      {
         name: "Background Art",
         key: "showBackgroundArt",
         type: "switch",
         required: false,
         description: "Show a random artistic background on the chat homepage.",
         default: true,
-        scope: "client",
-      },
-      {
-        name: "3-source extraction",
-        key: "sourceExtractionEnabled",
-        type: "switch",
-        required: false,
-        description:
-          "Wait for extraction of the top 3 source pages before answering.",
-        default: false,
         scope: "client",
       },
       {
@@ -191,10 +144,10 @@ class ConfigManager {
       {
         name: "Tavily API Key",
         key: "tavilyApiKey",
-        type: "string",
+        type: "password",
         required: false,
         description:
-          "Your Tavily API key for enhanced search capabilities. Get one at https://tavily.com",
+          "Optional. Enter your own Tavily API key to override the site default. Leave blank to use the site-provided key.",
         placeholder: "tvly-...",
         default: "",
         scope: "server",

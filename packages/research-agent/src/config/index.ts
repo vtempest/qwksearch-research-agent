@@ -52,9 +52,10 @@ class ConfigManager {
       {
         name: "Tavily API Key",
         key: "tavilyApiKey",
-        type: "string",
+        type: "password",
         required: false,
-        description: "Your Tavily API key for enhanced search capabilities.",
+        description:
+          "Optional. Enter your own Tavily API key to override the site default.",
         placeholder: "tvly-...",
         default: "",
         scope: "server",

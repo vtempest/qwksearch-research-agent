@@ -268,7 +268,9 @@ pre::-webkit-scrollbar-thumb {
 }
 
 .typeahead-popover {
-  background-color: hsl(var(--popover));
+  background-color: hsl(var(--popover) / 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid hsl(var(--border));
   box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.3);
   border-radius: 8px;

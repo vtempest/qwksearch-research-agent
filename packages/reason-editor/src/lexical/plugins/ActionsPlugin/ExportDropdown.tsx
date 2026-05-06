@@ -44,12 +44,12 @@ export default function ExportDropdown({
         <span>Import File</span>
       </DropDownItem>
 
-      <DropDownItem
+      {/* <DropDownItem
         onClick={() => exportAsJson(editor)}
         className="item">
         <FileJson size={16} />
         <span>Export JSON</span>
-      </DropDownItem>
+      </DropDownItem> */}
 
       <DropDownItem
         onClick={() => exportAsMarkdown(editor, shouldPreserveNewLinesInMarkdown)}

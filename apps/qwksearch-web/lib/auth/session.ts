@@ -1,4 +1,4 @@
-import { initAuth } from "../auth";
+import { initAuth } from "./index";
 import { headers } from "next/headers";
 
 export interface AuthSession {

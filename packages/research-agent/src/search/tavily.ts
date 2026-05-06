@@ -29,7 +29,10 @@ export const searchTavily = async (
   query: string,
   opts?: TavilySearchOptions,
 ): Promise<{ results: TavilySearchResult[]; suggestions: string[] }> => {
-  const tavilyApiKey = configManager.getConfig("search.tavilyApiKey", "");
+  const tavilyApiKey =
+    configManager.getConfig("search.tavilyApiKey", "") ||
+    (typeof process !== "undefined" ? process.env.TAVILY_API_KEY : "") ||
+    "";
 
   if (!tavilyApiKey) {
     throw new Error(
@@ -78,7 +81,9 @@ export const searchTavily = async (
 };
 
 export const getTavilyApiKey = () =>
-  configManager.getConfig("search.tavilyApiKey", "");
+  configManager.getConfig("search.tavilyApiKey", "") ||
+  (typeof process !== "undefined" ? process.env.TAVILY_API_KEY : "") ||
+  "";
 
 export const isTavilyConfigured = () => {
   const apiKey = getTavilyApiKey();

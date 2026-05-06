@@ -1,6 +1,6 @@
 {
   "name": "ai-research-agent",
-  "version": null,
+  "version": "1.2.5",
   "module": "index.ts",
   "description": "Separch, extract, vectorize, outline graph, and monitor the web for a topic with AI Research Agent.",
   "author": "vtempest <grokthiscontact@gmail.com>",
@@ -29,7 +29,7 @@
   "scripts": {
     "build": "vite build",
     "test": "vitest",
-    "ship": "npx standard-version --release-as patch; npm publish",
+    "ship": "npm run build && npx standard-version --release-as patch; rm CHANGELOG.md; npm publish",
     "test-ui": "vitest --ui --watch",
     "make": "rm -rf dist/*; NODE_OPTIONS=--max-old-space-size=15192 BUN_JSC_forceRAMSize=15192  vite build "
   },

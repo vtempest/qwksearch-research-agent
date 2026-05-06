@@ -16,9 +16,9 @@ const getBaseURL = () => {
 export const authClient = createAuthClient({
   baseURL: getBaseURL(),
   plugins: [
-    // oneTapClient({
-    //   clientId: NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-    // }),
+    oneTapClient({
+      clientId: NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+    }),
     magicLinkClient(),
     cloudflareClient(),
     anonymousClient(),

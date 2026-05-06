@@ -43,12 +43,19 @@ type SwitchUIConfigField = BaseUIConfigField & {
   default?: boolean;
 };
 
+type ThemeUIConfigField = BaseUIConfigField & {
+  type: "theme";
+  options: [];
+  default?: string;
+};
+
 type UIConfigField =
   | StringUIConfigField
   | SelectUIConfigField
   | PasswordUIConfigField
   | TextareaUIConfigField
-  | SwitchUIConfigField;
+  | SwitchUIConfigField
+  | ThemeUIConfigField;
 
 type ConfigModelProvider = {
   id: string;
@@ -121,10 +128,12 @@ export type {
   UIConfigSections,
   SelectUIConfigField,
   StringUIConfigField,
+  PasswordUIConfigField,
   ModelProviderUISection,
   MCPServerUISection,
   ConfigModelProvider,
   MCPServerConfig,
   TextareaUIConfigField,
   SwitchUIConfigField,
+  ThemeUIConfigField,
 };

@@ -26,8 +26,13 @@ const UpdateProvider = ({
     const config: Record<string, any> = {};
 
     fields.forEach((field) => {
-      config[field.key] =
-        modelProvider.config[field.key] || field.default || '';
+      // Don't pre-fill password fields for env-based providers — let users provide their own key
+      if (field.type === 'password' && modelProvider.isEnvBased) {
+        config[field.key] = '';
+      } else {
+        config[field.key] =
+          modelProvider.config[field.key] || field.default || '';
+      }
     });
 
     setConfig(config);
@@ -37,11 +42,21 @@ const UpdateProvider = ({
     e.preventDefault();
     setLoading(true);
     try {
+      // For env-based providers, fall back to the original stored value for empty password fields
+      const resolvedConfig = { ...config };
+      if (modelProvider.isEnvBased) {
+        fields.forEach((field) => {
+          if (field.type === 'password' && !resolvedConfig[field.key]) {
+            resolvedConfig[field.key] = modelProvider.config[field.key];
+          }
+        });
+      }
+
       const data: ConfigModelProvider = (
         await grab(`agent/providers/${modelProvider.id}`, {
           method: 'PATCH',
           body: {
-            config: config,
+            config: resolvedConfig,
           },
         })
       ).provider;

@@ -10,6 +10,7 @@ import { ChatProvider } from '@/components/ResearchAgent/hooks/useChat';
 import GoogleOneTap from '@/components/layout/GoogleOneTap';
 import { SessionProvider } from '@/components/ResearchAgent/hooks/useSession';
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { FontProvider } from "@/components/theme/font-provider";
 import { ExtractPanelProvider } from '@/components/ResearchAgent/ArticleReader/ExtractPanelContext';
 import { APP_NAME } from '@/lib/config/site';
 import { CategoryDock } from '@/components/layout/CategoryDock';
@@ -41,8 +42,12 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{
           __html: `var __name = function(fn, name) { Object.defineProperty(fn, 'name', { value: name, configurable: true }); return fn; };`
         }} />
+        <script dangerouslySetInnerHTML={{
+          __html: `(function(){try{var f=localStorage.getItem('fontFamily');if(f&&f!=='system-default')document.documentElement.style.fontFamily=f;}catch(e){}})();`
+        }} />
       </head>
       <body className={cn('h-full', 'font-sans')}>
+        <FontProvider />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

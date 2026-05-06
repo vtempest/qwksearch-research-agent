@@ -101,12 +101,10 @@ export default function Account() {
   const [showApiKey, setShowApiKey] = useState(false);
 
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
   const [nameSaving, setNameSaving] = useState(false);
-  const [emailSaving, setEmailSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [deletingSession, setDeletingSession] = useState<string | null>(null);
@@ -130,7 +128,6 @@ export default function Account() {
         ]);
         setProfile(profileData);
         setName(profileData.name ?? '');
-        setEmail(profileData.email ?? '');
         setApiKey(profileData.apiKey ?? '');
         setLinkedAccounts(Array.isArray(accountsData) ? accountsData : []);
         setSessions(Array.isArray(sessionsData) ? sessionsData : []);
@@ -188,24 +185,6 @@ export default function Account() {
       toast.error(err.message ?? 'Failed to save name.');
     } finally {
       setNameSaving(false);
-    }
-  };
-
-  const handleSaveEmail = async () => {
-    setEmailSaving(true);
-    try {
-      const res = await fetch('/api/user', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
-      setProfile((p) => p ? { ...p, email } : p);
-      toast.success('Email saved.');
-    } catch (err: any) {
-      toast.error(err.message ?? 'Failed to save email.');
-    } finally {
-      setEmailSaving(false);
     }
   };
 
@@ -367,25 +346,6 @@ export default function Account() {
           Please use 32 characters at maximum.
         </p>
         <SaveButton onClick={handleSaveName} loading={nameSaving} />
-      </SectionCard>
-
-      {/* Email */}
-      <SectionCard>
-        <SectionTitle
-          title="Email"
-          subtitle="Enter the email address you want to use to log in."
-        />
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
-          type="email"
-          className={inputClass}
-        />
-        <p className="mt-1 text-[10px] text-black/40 dark:text-white/40">
-          Please use a valid email address.
-        </p>
-        <SaveButton onClick={handleSaveEmail} loading={emailSaving} />
       </SectionCard>
 
       {/* Change Password */}

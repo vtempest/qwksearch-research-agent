@@ -41,24 +41,9 @@ const MessageBox = ({
 }) => {
   const { loading, sendMessage } = useChat();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [fontFamily, setFontFamily] = useState('');
   const [copiedUserMsg, setCopiedUserMsg] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(section.userMessage.content);
-
-  useEffect(() => {
-    const update = () => {
-      const val = localStorage.getItem('fontFamily') || '';
-      setFontFamily(val === 'system-default' ? '' : val);
-    };
-    update();
-    window.addEventListener('client-config-changed', update);
-    window.addEventListener('storage', update);
-    return () => {
-      window.removeEventListener('client-config-changed', update);
-      window.removeEventListener('storage', update);
-    };
-  }, []);
 
   /**
    * Copies the user's original message text to the clipboard.

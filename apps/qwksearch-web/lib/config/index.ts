@@ -114,8 +114,6 @@ class ConfigManager {
           { name: "Stella", value: "stella" },
         ],
       },
-    ],
-    personalization: [
       {
         name: "System Instructions",
         key: "systemInstructions",
@@ -127,6 +125,7 @@ class ConfigManager {
         scope: "client",
       },
     ],
+    personalization: [],
     modelProviders: [],
     mcpServers: [],
     search: [

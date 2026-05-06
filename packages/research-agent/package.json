@@ -1,6 +1,6 @@
 {
   "name": "ai-research-agent",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "module": "index.ts",
   "description": "Separch, extract, vectorize, outline graph, and monitor the web for a topic with AI Research Agent.",
   "author": "vtempest <grokthiscontact@gmail.com>",

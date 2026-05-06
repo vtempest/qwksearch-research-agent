@@ -99,11 +99,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ chatModelProvider:
 
     const handleAddModel = () => {
         setIsPopoverOpen(false);
-        if (window.innerWidth < 1024) {
-            router.push('/settings?section=models');
-        } else {
-            setIsSettingsOpen(true);
-        }
+        router.push('/settings?section=models');
     };
 
     return (
@@ -211,15 +207,6 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ chatModelProvider:
                 </div>
             </PopoverContent>
         </Popover>
-        <AnimatePresence>
-            {isSettingsOpen && (
-                <SettingsDialogue
-                    isOpen={isSettingsOpen}
-                    setIsOpen={setIsSettingsOpen}
-                    initialSection="models"
-                />
-            )}
-        </AnimatePresence>
         </>
     );
 };

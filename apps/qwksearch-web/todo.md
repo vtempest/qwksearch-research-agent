@@ -14,5 +14,6 @@ filter ootine
 
 find replace all docs
 
-
 option to start talkign when on the site first or to have it do that via  a button from anythwrr
+
+https://openrouter.ai/apps

@@ -224,16 +224,11 @@ function DockInstance({
   side: "bottom" | "top"
   allItems: { key: string; label: string; icon: any; active: boolean; onClick: () => void }[]
 }) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const isMobile = useIsMobile()
   const router = useRouter()
 
   const handleOpenSettings = () => {
-    if (isMobile) {
-      router.push('/settings')
-    } else {
-      setIsSettingsOpen(true)
-    }
+    router.push('/settings')
   }
 
   return (
@@ -268,9 +263,6 @@ function DockInstance({
         </Dock>
         <SettingsMenu side={side} onOpenSettings={handleOpenSettings} />
       </DropdownMenu>
-      <AnimatePresence>
-        {isSettingsOpen && <SettingsDialogue isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} />}
-      </AnimatePresence>
     </>
   )
 }

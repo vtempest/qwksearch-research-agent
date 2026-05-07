@@ -14,7 +14,7 @@ import {
 } from "@/components/ResearchAgent/ChatConversation/ChatWindow";
 import { getSuggestions } from "@/lib/server-actions";
 import { getAutoMediaSearch } from "@/lib/config/serverRegistry";
-import { ChatModelProvider } from "./types";
+import { ChatModelProvider } from "@/types/chat";
 
 const ARTICLE_PREFETCH_COUNT = 3;
 

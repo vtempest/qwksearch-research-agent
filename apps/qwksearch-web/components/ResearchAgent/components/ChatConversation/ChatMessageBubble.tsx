@@ -3,7 +3,7 @@
  */
 'use client';
 
-import React, { Ref, useState, useEffect } from 'react';
+import React, { Ref, useState } from 'react';
 import { cn } from '@/lib/utils';
 import Markdown, { MarkdownToJSX } from 'markdown-to-jsx';
 import MessageSources from '../SearchResults/MessageSources';
@@ -30,7 +30,6 @@ import FollowUpSuggestions from './MessageBubble/FollowUpSuggestions';
  */
 const MessageBox = ({
   section,
-  sectionIndex,
   dividerRef,
   isLast,
 }: {

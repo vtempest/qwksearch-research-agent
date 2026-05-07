@@ -3,8 +3,8 @@
  */
 import { useState, useCallback } from "react";
 import React from "react";
-import { AttachedFile, PastedContent } from "../types";
-import type { ChatFile } from "@/components/ResearchAgent/hooks/useChat/types";
+import { AttachedFile, PastedContent } from "@/types/research";
+import type { ChatFile } from "@/types/chat";
 import grab from "grab-url";
 
 const SUPPORTED_EXTS = ["pdf", "docx", "txt", "html", "htm"];

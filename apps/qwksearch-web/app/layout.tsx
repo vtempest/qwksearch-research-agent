@@ -11,7 +11,7 @@ import GoogleOneTap from '@/components/layout/GoogleOneTap';
 import { SessionProvider } from '@/components/ResearchAgent/hooks/useSession';
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { FontProvider } from "@/components/theme/font-provider";
-import { ExtractPanelProvider } from '@/components/ResearchAgent/ArticleReader/ExtractPanelContext';
+import { ExtractPanelProvider } from '@/components/ResearchAgent/components/ArticleReader/ExtractPanelContext';
 import { APP_NAME } from '@/lib/config/site';
 import { CategoryDock } from '@/components/layout/CategoryDock';
 import { CategoryDockProvider } from '@/components/layout/category-dock-context';

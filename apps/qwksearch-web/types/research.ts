@@ -1,7 +1,7 @@
 /**
  * Type definitions used by the ResearchAgent area of the ResearchAgent feature.
  */
-import { ChatFile } from "@/components/ResearchAgent/hooks/useChat/types";
+import { ChatFile } from "@/types/chat";
 
 export interface Article {
   html?: string;

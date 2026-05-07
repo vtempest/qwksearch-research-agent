@@ -25,7 +25,6 @@ class ConfigManager {
     version: this.configVersion,
     setupComplete: getEnv("SETUP_COMPLETE") === "true" || false,
     preferences: {},
-    personalization: {},
     modelProviders: [],
     mcpServers: [],
     search: {
@@ -125,7 +124,6 @@ class ConfigManager {
         scope: "client",
       },
     ],
-    personalization: [],
     modelProviders: [],
     mcpServers: [],
     search: [
@@ -215,9 +213,8 @@ class ConfigManager {
         getEnv("SOURCE_EXTRACTION_ENABLED") === "true";
     }
 
-    // Load personalization from environment variables
     if (getEnv("SYSTEM_INSTRUCTIONS")) {
-      this.currentConfig.personalization.systemInstructions =
+      this.currentConfig.preferences.systemInstructions =
         getEnv("SYSTEM_INSTRUCTIONS");
     }
   }

@@ -44,6 +44,7 @@
     "@huggingface/transformers": "^4.2.0",
     "@lexical/clipboard": "0.44.0",
     "@lexical/code": "0.44.0",
+    "@lexical/code-shiki": "0.44.0",
     "@lexical/file": "0.44.0",
     "@lexical/hashtag": "0.44.0",
     "@lexical/headless": "0.44.0",

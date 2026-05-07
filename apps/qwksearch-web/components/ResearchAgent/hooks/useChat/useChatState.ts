@@ -12,7 +12,7 @@ import {
   ChatTurn,
   Message,
 } from "@/components/ResearchAgent/ChatConversation/ChatWindow";
-import { ChatFile, ChatModelProvider, Section } from "./types";
+import { ChatFile, ChatModelProvider, Section } from "@/types/chat";
 import { buildSections } from "./buildSections";
 
 /**

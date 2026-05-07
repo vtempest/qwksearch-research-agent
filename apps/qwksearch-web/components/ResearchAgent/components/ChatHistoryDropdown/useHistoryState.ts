@@ -12,7 +12,7 @@ import {
   deleteGuestChat,
   clearAllGuestChats,
 } from "@/lib/storage/guest";
-import { Chat } from "@/components/ResearchAgent/types";
+import { Chat } from "@/types/research";
 import grab from "grab-url";
 import { toast } from "sonner";
 

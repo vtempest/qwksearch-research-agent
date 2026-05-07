@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 import { GlowingEffect } from '@/components/ui/glowing-effect';
 import { useExtractPanel } from '../ArticleReader/ExtractPanelContext';
-import type { CategoryTab, SearchCategory, SearchParams, SearchResult } from '../types';
+import type { CategoryTab, SearchCategory, SearchParams, SearchResult } from '@/types/research';
 
 const CATEGORY_TABS: CategoryTab[] = [
   {

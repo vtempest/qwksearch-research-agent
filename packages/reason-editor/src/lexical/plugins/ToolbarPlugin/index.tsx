@@ -84,7 +84,6 @@ import { EmbedConfigs } from '../AutoEmbedPlugin';
 import { INSERT_COLLAPSIBLE_COMMAND } from '../CollapsiblePlugin';
 import { INSERT_DATETIME_COMMAND } from '../DateTimePlugin';
 import { InsertEquationDialog } from '../EquationsPlugin';
-import { INSERT_EXCALIDRAW_COMMAND } from '../ExcalidrawPlugin';
 import { InsertImageDialog } from '../ImagesPlugin';
 import InsertLayoutDialog from '../LayoutPlugin/InsertLayoutDialog';
 import { INSERT_PAGE_BREAK } from '../PageBreakPlugin';
@@ -1323,14 +1322,6 @@ export default function ToolbarPlugin({
                   <Icon name="gif" />
                   <span className="text">GIF</span>
                 </DropDownItem> */}
-                <DropDownItem
-                  onClick={() =>
-                    dispatchToolbarCommand(INSERT_EXCALIDRAW_COMMAND)
-                  }
-                  className="item">
-                  <Icon name="diagram-2" />
-                  <span className="text">Excalidraw</span>
-                </DropDownItem>
                 <DropDownItem
                   onClick={() => {
                     showModal('Insert Table', (onClose) => (

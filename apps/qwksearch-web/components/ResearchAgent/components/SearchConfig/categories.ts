@@ -1,13 +1,13 @@
 /**
  * Category metadata used by ResearchAgent search configuration controls.
  */
-import iconSearchWeb from '@/components/icons/categories/icon-search-web.svg';
-import iconSearchNews from '@/components/icons/categories/icon-search-news.svg';
-import iconSearchVideos from '@/components/icons/categories/icon-search-videos.svg';
-import iconSearchImages from '@/components/icons/categories/icon-search-images.svg';
-import iconSearchAcademic from '@/components/icons/categories/icon-search-academic.svg';
-import iconSearchFiles from '@/components/icons/categories/icon-search-files.svg';
-import iconSearchTech from '@/components/icons/categories/icon-search-tech.svg';
+import iconSearchWeb from '@/components/ResearchAgent/icons/icon-search-web.svg';
+import iconSearchNews from '@/components/ResearchAgent/icons/icon-search-news.svg';
+import iconSearchVideos from '@/components/ResearchAgent/icons/icon-search-videos.svg';
+import iconSearchImages from '@/components/ResearchAgent/icons/icon-search-images.svg';
+import iconSearchAcademic from '@/components/ResearchAgent/icons/icon-search-academic.svg';
+import iconSearchFiles from '@/components/ResearchAgent/icons/icon-search-files.svg';
+import iconSearchTech from '@/components/ResearchAgent/icons/icon-search-tech.svg';
 
 export const categories = [
   {

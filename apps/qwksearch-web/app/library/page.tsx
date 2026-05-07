@@ -6,9 +6,9 @@ import {
   Sun, Clock, CalendarDays, Archive, Pin, Trash, Search, X,
   Trash2, Lock, Library, MessageSquare,
 } from 'lucide-react';
-import { useHistoryState } from '@/components/ResearchAgent/ChatHistoryDropdown/useHistoryState';
-import { HistoryDialogs } from '@/components/ResearchAgent/ChatHistoryDropdown/HistoryDialogs';
-import { Chat } from '@/components/ResearchAgent/types';
+import { useHistoryState } from '@/components/ResearchAgent/components/ChatHistoryDropdown/useHistoryState';
+import { HistoryDialogs } from '@/components/ResearchAgent/components/ChatHistoryDropdown/HistoryDialogs';
+import { Chat } from '@/types/research';
 import { formatTimeDifference } from '@/lib/utils';
 
 type CategoryKey = 'Today' | 'Yesterday' | 'This Week' | 'Older';

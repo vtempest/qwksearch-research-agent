@@ -3,7 +3,7 @@
  */
 import React from "react";
 import { Icons } from "./MessageInputIconSet";
-import { PastedContent } from "../types";
+import { PastedContent } from "@/types/research";
 
 interface PastedContentCardProps {
     content: PastedContent;

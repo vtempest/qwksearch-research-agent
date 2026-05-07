@@ -181,7 +181,7 @@ const Chat = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <HistoryDropdown position="bottom" align="right" />
+          <HistoryDropdown />
 
           <Tooltip>
             <TooltipTrigger asChild>

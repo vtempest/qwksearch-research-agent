@@ -13,7 +13,7 @@ import {
   SuggestionMessage,
   UserMessage,
 } from "@/components/ResearchAgent/ChatConversation/ChatWindow";
-import { Section } from "./types";
+import { Section } from "@/types/chat";
 
 /**
  * Transforms a flat array of messages into structured UI sections.

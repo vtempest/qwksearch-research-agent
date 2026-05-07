@@ -84,9 +84,6 @@ type Config = {
   preferences: {
     [key: string]: any;
   };
-  personalization: {
-    [key: string]: any;
-  };
   modelProviders: ConfigModelProvider[];
   mcpServers: MCPServerConfig[];
   search: {
@@ -115,7 +112,6 @@ type MCPServerUISection = {
 
 type UIConfigSections = {
   preferences: UIConfigField[];
-  personalization: UIConfigField[];
   modelProviders: ModelProviderUISection[];
   mcpServers: MCPServerUISection[];
   search: UIConfigField[];

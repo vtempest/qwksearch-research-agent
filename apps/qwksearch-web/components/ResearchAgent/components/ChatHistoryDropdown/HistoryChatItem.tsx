@@ -5,7 +5,7 @@
 'use client';
 
 import { Trash, Pin } from 'lucide-react';
-import { Chat } from '@/components/ResearchAgent/types';
+import { Chat } from '@/types/research';
 import { formatTimeDifference } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';

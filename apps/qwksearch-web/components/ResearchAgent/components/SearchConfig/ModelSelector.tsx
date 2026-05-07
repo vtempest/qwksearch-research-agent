@@ -9,7 +9,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { MinimalProvider } from "ai-research-agent/models/types";
 import { Icons } from "../MessageComposer/MessageInputIconSet";
-import { ChatModelProvider } from "../types";
+import { ChatModelProvider } from "@/types/chat";
 import { useChat } from "@/components/ResearchAgent/hooks/useChat";
 import grab from "grab-url";
 import { useRouter } from "next/navigation";

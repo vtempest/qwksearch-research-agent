@@ -3,7 +3,7 @@
  */
 import React from "react";
 import { Icons } from "../MessageComposer/MessageInputIconSet";
-import { AttachedFile } from "../types";
+import { AttachedFile } from "@/types/research";
 
 interface FilePreviewCardProps {
     file: AttachedFile;

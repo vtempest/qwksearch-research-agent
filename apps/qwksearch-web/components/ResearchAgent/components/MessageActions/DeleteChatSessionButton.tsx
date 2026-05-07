@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Chat } from '@/components/ResearchAgent/types';
+import { Chat } from '@/types/research';
 import { useSession } from '@/components/ResearchAgent/hooks/useSession';
 import grab from 'grab-url';
 import { deleteGuestChat } from '@/lib/storage/guest';

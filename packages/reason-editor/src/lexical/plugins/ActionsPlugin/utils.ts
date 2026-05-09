@@ -148,6 +148,38 @@ export async function importJsonFile(editor: LexicalEditor, file: File): Promise
 }
 
 /**
+ * Imports an HTML file into the editor.
+ */
+export async function importHtmlFile(editor: LexicalEditor, file: File): Promise<void> {
+  const { $generateNodesFromDOM } = await import('@lexical/html');
+  const html = await file.text();
+  editor.update(() => {
+    const parser = new DOMParser();
+    const dom = parser.parseFromString(html, 'text/html');
+    const nodes = $generateNodesFromDOM(editor, dom);
+    const root = $getRoot();
+    root.clear();
+    root.append(...nodes);
+  });
+}
+
+/**
+ * Imports a plain text file into the editor.
+ */
+export async function importPlainTextFile(editor: LexicalEditor, file: File): Promise<void> {
+  const text = await file.text();
+  editor.update(() => {
+    const root = $getRoot();
+    root.clear();
+    text.split(/\n+/).forEach((line) => {
+      const paragraph = $createParagraphNode();
+      if (line.trim()) paragraph.append($createTextNode(line));
+      root.append(paragraph);
+    });
+  });
+}
+
+/**
  * Prompts the user to select a file and imports it based on its extension.
  */
 export async function importCustomFile(
@@ -156,7 +188,7 @@ export async function importCustomFile(
 ): Promise<void> {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.docx,.md,.markdown,.json';
+  input.accept = '.docx,.md,.markdown,.json,.html,.htm,.txt';
 
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement;
@@ -171,10 +203,30 @@ export async function importCustomFile(
       await importMarkdownFile(editor, file, shouldPreserveNewLines);
     } else if (fileName.endsWith('.json')) {
       await importJsonFile(editor, file);
+    } else if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
+      await importHtmlFile(editor, file);
+    } else if (fileName.endsWith('.txt')) {
+      await importPlainTextFile(editor, file);
     }
   };
 
   input.click();
+}
+
+/**
+ * Exports the editor content as plain text.
+ */
+export function exportAsPlainText(editor: LexicalEditor): void {
+  editor.getEditorState().read(() => {
+    const text = $getRoot().getTextContent();
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Playground ${new Date().toISOString()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
 }
 
 /**

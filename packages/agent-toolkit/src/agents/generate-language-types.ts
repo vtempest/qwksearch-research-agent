@@ -7,6 +7,7 @@
 /** Supported LLM provider identifiers */
 export type LLMProviderName =
   | "nvidia"
+  | "openrouter"
   | "anthropic"
   | "google"
   | "openai"

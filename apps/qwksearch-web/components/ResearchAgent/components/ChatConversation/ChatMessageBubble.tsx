@@ -200,7 +200,6 @@ const MessageBox = ({
                     'prose prose-lg prose-h1:mb-3 prose-h2:mb-2 prose-h2:mt-6 prose-h2:font-[800] prose-h3:mt-4 prose-h3:mb-1.5 prose-h3:font-[600] dark:prose-invert prose-p:leading-loose prose-pre:p-0 font-[400]',
                     'min-w-0 max-w-none break-words text-foreground font-inter',
                   )}
-                  style={fontFamily ? { fontFamily } : undefined}
                   options={markdownOverrides}
                 >
                   {parsedMessage}

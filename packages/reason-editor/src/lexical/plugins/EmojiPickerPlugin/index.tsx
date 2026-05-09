@@ -24,7 +24,7 @@ import * as ReactDOM from 'react-dom';
  * Represents an emoji option in the typeahead menu.
  */
 class EmojiOption extends MenuOption {
-  title: string;
+  declare title: string;
   emoji: string;
   keywords: Array<string>;
 

@@ -168,6 +168,7 @@ export default function ActionsPlugin({
         editor={editor}
         shouldPreserveNewLinesInMarkdown={shouldPreserveNewLinesInMarkdown}
         showFlashMessage={showFlashMessage}
+        showModal={showModal}
       />
 
       {/* <button

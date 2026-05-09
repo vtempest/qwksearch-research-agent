@@ -60,6 +60,9 @@ export function useFloatingTextFormatToolbar(
           // Get anchor and focus nodes - these might be element nodes (e.g., ListItemNode)
           let anchorNode = selection.anchor.getNode();
           let focusNode = selection.focus.getNode();
+          const anchorOffset = selection.anchor.offset;
+          const focusOffset = selection.focus.offset;
+          const isBackward = selection.isBackward();
 
           // If anchor/focus are on element nodes, get their text content
           if ($isElementNode(anchorNode)) {

@@ -6,7 +6,6 @@ import { getFileSources } from '../../lib/file-sources/sources';
 import { AnyFileSource } from '../../types/fileSource';
 import { FileManagerModal } from '../../modals/FileManagerModal';
 import { SidebarToolbar } from './SidebarToolbar';
-import { SidebarFooter } from './SidebarFooter';
 import { SidebarContent } from './SidebarContent';
 import type { SidebarProps } from './types';
 
@@ -59,7 +58,7 @@ export const Sidebar = ({
   });
 
   // File manager modal state
-  const [isFileManagerOpen, setIsFileManagerOpen] = useState(false);
+  const [isFileManagerOpen, setIsFileManagerOpen] = useState(true);
 
   // Update active source when activeFileSourceId changes
   useEffect(() => {
@@ -138,6 +137,11 @@ export const Sidebar = ({
               onToggleOutlineExpanded={handleToggleOutlineExpanded}
               treeRef={treeRef}
               outlineRef={outlineRef}
+              showRightOutline={showRightOutline}
+              deletedDocs={deletedDocs}
+              onRestore={onRestore}
+              onViewModeChange={onViewModeChange}
+              onToggleRightOutline={onToggleRightOutline}
             />
             <div className="flex-1 min-h-0 overflow-hidden">
               <SidebarContent
@@ -161,16 +165,6 @@ export const Sidebar = ({
                 headings={headings}
               />
             </div>
-            <SidebarFooter
-              viewMode={viewMode}
-              showRightOutline={showRightOutline}
-              isMobile={isMobile}
-              deletedDocs={deletedDocs}
-              onRestore={onRestore}
-              onSettingsClick={onSettingsClick}
-              onViewModeChange={onViewModeChange}
-              onToggleRightOutline={onToggleRightOutline}
-            />
             <FileManagerModal open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen} documents={activeDocuments} onSelectDocument={onSelect} />
           </aside>
         </SheetContent>
@@ -198,6 +192,11 @@ export const Sidebar = ({
         onToggleOutlineExpanded={handleToggleOutlineExpanded}
         treeRef={treeRef}
         outlineRef={outlineRef}
+        showRightOutline={showRightOutline}
+        deletedDocs={deletedDocs}
+        onRestore={onRestore}
+        onViewModeChange={onViewModeChange}
+        onToggleRightOutline={onToggleRightOutline}
       />
       <div className="flex-1 min-h-0 overflow-hidden">
         <SidebarContent
@@ -221,16 +220,6 @@ export const Sidebar = ({
           headings={headings}
         />
       </div>
-      <SidebarFooter
-        viewMode={viewMode}
-        showRightOutline={showRightOutline}
-        isMobile={isMobile}
-        deletedDocs={deletedDocs}
-        onRestore={onRestore}
-        onSettingsClick={onSettingsClick}
-        onViewModeChange={onViewModeChange}
-        onToggleRightOutline={onToggleRightOutline}
-      />
       <FileManagerModal open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen} documents={activeDocuments} onSelectDocument={onSelect} />
     </aside>
   );

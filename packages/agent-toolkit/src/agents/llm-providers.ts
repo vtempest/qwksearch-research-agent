@@ -73,6 +73,14 @@ export function createLLMProvider(
         configuration: { baseURL: "https://integrate.api.nvidia.com/v1" },
       });
 
+    case "openrouter":
+      return new ChatOpenAI({
+        apiKey,
+        model,
+        temperature,
+        configuration: { baseURL: "https://openrouter.ai/api/v1" },
+      });
+
     default:
       return null;
   }

@@ -70,10 +70,10 @@ bun i qwksearch-api-client
 **Reimagine The Web as Self-Organizing Mind Map**
 
 - 🔍 **Web Search** - 100+ popular sites search across 10 categories: Web Search, Academic, Videos, Images, Files, News, etc
-- 📝 **Article Preview** - Extract and summarize articles before reading them
+- 📝 **Article Preview** - Extract, format with APA cite, and summarize articles, PDFs, Youtube, and URLs before reading them
 - 🤖 **User Choice of LLM** - OpenAI, Claude, Gemini, Groq, Ollama, Anthropic, etc
 - 📄 **File Upload Support** - Ask questions about PDFs, URLs, DOCX, Google Docs, and Youtube
-- 📚 **Search History** - All searches saved locally for privacy
+- 📚 **Search History** - All searches saved with memories, except for privacy mode
 - ❓ **Follow-up Questions** - Generate follow-up questions to ask language models
 
 ## REASON Writing Agent
@@ -84,8 +84,9 @@ bun i qwksearch-api-client
     <img width="400px" src="https://i.imgur.com/pDvMC1Q.png" />
 </p>
 
+- 📝 **Complex Rich Text Editor**: full featured alternative to Google Docs based onMeta's Lexical with easy minimalist UI
 - 📂 **Nested Document Tree**: organize research notes with a nested document organizer with drag-and-drop, tabs, and custom storage sources
-- 🖱️ **Context Menu Operations**: right-click to access quick actions for seamless document management
+- 🖱️ **Context Menu**: right-click to access quick actions for seamless document management
 - 🔍 **Full-Text Search**: instantly find documents by title or content with full-text search
 - ✨ **AI Rewriting**: leverage AI to rewrite and improve your text directly within the editor
 - 👥 **Team Management**: collaborate with team members and manage access rights

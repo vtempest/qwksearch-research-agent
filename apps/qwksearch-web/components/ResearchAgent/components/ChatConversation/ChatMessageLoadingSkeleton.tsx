@@ -1,7 +1,7 @@
 /**
  * React component that renders ChatMessageLoadingSkeleton within the ResearchAgent area of ResearchAgent.
  */
-import QuantumWaveOrbital from 'quantum-sphere-loading-icon';
+import QuantumWaveOrbital from 'quantum-sphere-loading-icon/react';
 
 
 /**

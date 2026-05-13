@@ -5,7 +5,7 @@ import { Share2, Link, FileText, FileType, FileDown, FileSpreadsheet, SquarePen,
 import { toast } from 'sonner';
 import MessageBox from './ChatMessageBubble';
 import MessageBoxLoading from './ChatMessageLoadingSkeleton';
-import { useChat } from '../hooks/useChat';
+import { useChat } from '../../hooks/useChat';
 import { useExtractPanel } from '../ArticleReader/ExtractPanelContext';
 import ChatInputBox from '../MessageComposer/ChatInputBox';
 import ArticleExtractPanel from '../ArticleReader/ArticleExtractPanel';

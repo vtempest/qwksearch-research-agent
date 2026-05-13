@@ -6,8 +6,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import grab from 'grab-url';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogTitle } from '../../ui/dialog';
-import { VisuallyHidden } from '../../ui/visually-hidden';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useExtractPanel } from './ExtractPanelContext';
 import {
   ArticlePanelHeader,

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Footer from '@/components/layout/Footer';
 import * as config from '@/lib/config/site';
-import SettingsButtonMobile from '../../Settings/SettingsButtonMobile';
+import SettingsButtonMobile from '@/components/Settings/SettingsButtonMobile';
 import MessageBoxLoading from './ChatMessageLoadingSkeleton';
 import { GradientBlur } from '@/components/ui/gradient-blur';
 import ChatInputBox from '../MessageComposer/ChatInputBox';

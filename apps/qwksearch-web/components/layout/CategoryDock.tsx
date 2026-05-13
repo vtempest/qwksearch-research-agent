@@ -4,8 +4,6 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { UserCircle2, Moon, Sun, Palette, Settings } from "lucide-react"
-import { AnimatePresence } from "framer-motion"
-import SettingsDialogue from "@/components/Settings/SettingsDialogue"
 import { useTheme } from "next-themes"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -21,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import iconRead from '@/components/icons/icon-read.svg'
-import iconNews from '@/components/icons/icon-news-title.svg'
 import iconSettings from '@/components/icons/icon-configure.svg'
 
 const themeNames = [

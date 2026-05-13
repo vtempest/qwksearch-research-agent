@@ -9,7 +9,7 @@ import grab from "grab-url";
 import {
   ChatTurn,
   Message,
-} from "@/components/ResearchAgent/ChatConversation/ChatWindow";
+} from "@/components/ResearchAgent/components/ChatConversation/ChatWindow";
 import { getGuestChat } from "@/lib/storage/guest";
 import { ChatFile } from "@/types/chat";
 

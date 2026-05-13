@@ -1,4 +1,4 @@
-import { Message } from "@/components/ResearchAgent/ChatConversation/ChatWindow";
+import { Message } from "@/components/ResearchAgent/components/ChatConversation/ChatWindow";
 import type { ChatFile as File } from "@/types/chat";
 
 export interface GuestChat {

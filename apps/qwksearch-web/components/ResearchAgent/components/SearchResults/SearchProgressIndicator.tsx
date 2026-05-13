@@ -1,7 +1,7 @@
 'use client';
 
 import { Loader2, Search } from 'lucide-react';
-import { SearchQuery } from '@/components/ResearchAgent/ChatConversation/ChatWindow';
+import { SearchQuery } from '@/components/ResearchAgent/components/ChatConversation/ChatWindow';
 import { cn } from '@/lib/utils';
 
 interface SearchProgressIndicatorProps {

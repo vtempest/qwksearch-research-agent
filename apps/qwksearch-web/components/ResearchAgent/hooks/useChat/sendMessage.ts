@@ -11,7 +11,7 @@ import grab from "grab-url";
 import {
   Message,
   SearchingMessage,
-} from "@/components/ResearchAgent/ChatConversation/ChatWindow";
+} from "@/components/ResearchAgent/components/ChatConversation/ChatWindow";
 import { getSuggestions } from "@/lib/server-actions";
 import { getAutoMediaSearch } from "@/lib/config/serverRegistry";
 import { ChatModelProvider } from "@/types/chat";

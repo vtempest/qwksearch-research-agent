@@ -49,7 +49,7 @@ const ModelSelect = ({
           onClick={() => setIsImageExpanded(false)}
         >
           <img 
-            src="https://i.imgur.com/DeW0Lv8.jpeg" 
+            src="https://i.imgur.com/xONCKTz.jpeg" 
             alt="Expanded view" 
             className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl"
           />
@@ -57,7 +57,7 @@ const ModelSelect = ({
       )}
       <div className="space-y-3 lg:space-y-5">
         <img 
-          src="https://i.imgur.com/DeW0Lv8.jpeg" 
+          src="https://i.imgur.com/xONCKTz.jpeg" 
           alt="Thumbnail view" 
           className="w-16 h-16 rounded-md object-cover cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => setIsImageExpanded(true)}

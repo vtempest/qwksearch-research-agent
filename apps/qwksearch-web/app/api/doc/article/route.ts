@@ -42,6 +42,20 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Reject malformed URLs and search-engine result pages — these are never
+    // extractable as articles and shouldn't hit the cache layer.
+    const searchEnginePatterns = [
+      /^https?:\/\/(www\.)?google\.[^/]+\/search/i,
+      /^https?:\/\/(www\.)?bing\.com\/search/i,
+      /^https?:\/\/(www\.)?duckduckgo\.com\/\?/i,
+    ];
+    if (/\s/.test(url) || searchEnginePatterns.some((p) => p.test(url))) {
+      return NextResponse.json(
+        { error: "URL is not an extractable article" },
+        { status: 400 },
+      );
+    }
+
     // Check for video URLs that can't be extracted as articles
     // Note: YouTube is allowed and handled by the extraction API
     const videoPatterns = [
@@ -147,7 +161,12 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching article:", error);
+    const err = error as Error & { cause?: unknown };
+    console.error("Error fetching article:", {
+      message: err?.message,
+      cause: err?.cause,
+      stack: err?.stack,
+    });
     return NextResponse.json(
       { error: "Failed to fetch article" },
       { status: 500 },
@@ -187,7 +206,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error storing article data:", error);
+    const err = error as Error & { cause?: unknown };
+    console.error("Error storing article data:", {
+      message: err?.message,
+      cause: err?.cause,
+      stack: err?.stack,
+    });
     return NextResponse.json(
       { error: "Failed to store article data" },
       { status: 500 },

@@ -5,7 +5,7 @@
 
 import { useMemo } from 'react';
 import type { Document } from '@langchain/core/documents';
-import { useExtractPanel } from '@/components/ResearchAgent/ArticleReader/ExtractPanelContext';
+import { useExtractPanel } from '@/components/ResearchAgent/components/ArticleReader/ExtractPanelContext';
 import {
   Tooltip,
   TooltipTrigger,

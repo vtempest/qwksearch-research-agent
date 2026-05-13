@@ -11,7 +11,7 @@ import {
   SearchingMessage,
   SourceMessage,
   UserMessage,
-} from "@/components/ResearchAgent/ChatConversation/ChatWindow";
+} from "@/components/ResearchAgent/components/ChatConversation/ChatWindow";
 
 /**
  * Represents a section of the chat UI, grouping related messages together.

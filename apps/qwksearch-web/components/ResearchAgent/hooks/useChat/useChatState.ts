@@ -11,7 +11,7 @@ import { useState, useRef, useMemo } from "react";
 import {
   ChatTurn,
   Message,
-} from "@/components/ResearchAgent/ChatConversation/ChatWindow";
+} from "@/components/ResearchAgent/components/ChatConversation/ChatWindow";
 import { ChatFile, ChatModelProvider, Section } from "@/types/chat";
 import { buildSections } from "./buildSections";
 

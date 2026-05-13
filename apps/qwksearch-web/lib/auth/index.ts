@@ -3,6 +3,7 @@ import { withCloudflare } from "better-auth-cloudflare";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { oneTap, openAPI, magicLink, anonymous } from "better-auth/plugins";
+import { dash } from "@better-auth/infra";
 import { getDB } from "../database";
 import * as schema from "../database/schema";
 import { Resend } from "resend";
@@ -57,6 +58,7 @@ async function authBuilder() {
           oneTap(),
           openAPI(),
           anonymous(),
+          dash(),
           magicLink({
             sendMagicLink: async ({ email, url }) => {
               const resend = new Resend(getEnv("AUTH_RESEND_KEY"));

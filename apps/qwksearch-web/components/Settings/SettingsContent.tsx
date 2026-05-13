@@ -46,7 +46,7 @@ const sections = [
   },
   {
     key: 'preferences',
-    name: 'Preferences',
+    name: 'Personalization',
     description: 'Customize your application preferences.',
     icon: Sliders,
     component: Preferences,
@@ -54,7 +54,7 @@ const sections = [
   },
   {
     key: 'models',
-    name: 'Models',
+    name: 'Language Models',
     description: 'Connect to AI services and manage connections.',
     icon: BrainCog,
     component: Models,
@@ -62,7 +62,7 @@ const sections = [
   },
   {
     key: 'mcpservers',
-    name: 'MCP Servers',
+    name: 'Connectors',
     description: 'Configure Model Context Protocol servers.',
     icon: Server,
     component: MCPServers,
@@ -78,7 +78,7 @@ const sections = [
   },
   {
     key: 'fileSources',
-    name: 'File Sources',
+    name: 'Cloud Storage',
     description: 'Manage storage sources (SSH, S3, R2, B2, Google Docs, Turso DB).',
     icon: HardDrive,
     component: FileSources,
@@ -86,7 +86,7 @@ const sections = [
   },
   {
     key: 'aiRewriteModes',
-    name: 'AI Rewrite Modes',
+    name: 'Rewrite Modes',
     description: 'Customize AI rewrite prompts and add your own modes.',
     icon: Wand2,
     component: AIRewriteModes,

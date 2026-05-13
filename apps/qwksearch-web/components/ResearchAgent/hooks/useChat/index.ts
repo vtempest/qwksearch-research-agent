@@ -48,7 +48,7 @@
  */
 
 // ============ Types ============
-export * from "./types";
+export * from "@/types/chat";
 
 // ============ Utilities ============
 export { checkConfig } from "./chatConfig";

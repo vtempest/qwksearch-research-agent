@@ -1,4 +1,3 @@
-import { google, docs_v1 } from 'googleapis';
 import { tursoQueries } from '@/lib/database/turso';
 
 export interface GoogleDocsConfig {
@@ -7,132 +6,129 @@ export interface GoogleDocsConfig {
   redirectUri: string;
 }
 
+interface ParagraphElement {
+  textRun?: { content?: string };
+}
+interface Paragraph {
+  elements?: ParagraphElement[];
+}
+interface BodyContent {
+  paragraph?: Paragraph;
+}
+
+type DocsRequest = Record<string, unknown>;
+
+async function gfetch<T = any>(
+  url: string,
+  accessToken: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(init.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    const err: any = new Error(text || `Request failed: ${res.status}`);
+    err.code = res.status;
+    throw err;
+  }
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return (await res.json()) as T;
+  return (await res.text()) as unknown as T;
+}
+
 export class GoogleDocsService {
-  private oauth2Client: InstanceType<typeof google.auth.OAuth2>;
-  private docs: docs_v1.Docs;
+  private accessToken: string;
+  private refreshToken?: string;
+  private config: GoogleDocsConfig;
 
   constructor(config: GoogleDocsConfig, accessToken?: string, refreshToken?: string) {
-    this.oauth2Client = new google.auth.OAuth2(
-      config.clientId,
-      config.clientSecret,
-      config.redirectUri
-    );
-
-    if (accessToken) {
-      this.oauth2Client.setCredentials({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-    }
-
-    this.docs = google.docs({ version: 'v1', auth: this.oauth2Client });
+    this.config = config;
+    this.accessToken = accessToken || '';
+    this.refreshToken = refreshToken;
   }
 
-  /**
-   * Generate OAuth URL for user authorization
-   */
   static getAuthUrl(config: GoogleDocsConfig): string {
-    const oauth2Client = new google.auth.OAuth2(
-      config.clientId,
-      config.clientSecret,
-      config.redirectUri
-    );
-
-    return oauth2Client.generateAuthUrl({
+    const params = new URLSearchParams({
+      client_id: config.clientId,
+      redirect_uri: config.redirectUri,
+      response_type: 'code',
       access_type: 'offline',
+      prompt: 'consent',
       scope: [
         'https://www.googleapis.com/auth/documents',
         'https://www.googleapis.com/auth/drive.readonly',
-      ],
+      ].join(' '),
     });
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
 
-  /**
-   * Exchange authorization code for tokens
-   */
   static async getTokensFromCode(
     config: GoogleDocsConfig,
-    code: string
+    code: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const oauth2Client = new google.auth.OAuth2(
-      config.clientId,
-      config.clientSecret,
-      config.redirectUri
-    );
-
-    const { tokens } = await oauth2Client.getToken(code);
-
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        redirect_uri: config.redirectUri,
+        grant_type: 'authorization_code',
+      }).toString(),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const tokens = (await res.json()) as {
+      access_token: string;
+      refresh_token?: string;
+    };
     return {
-      accessToken: tokens.access_token!,
+      accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token!,
     };
   }
 
-  /**
-   * Convert markdown to Google Docs format
-   */
-  private markdownToGoogleDocs(markdown: string): docs_v1.Schema$Request[] {
-    const requests: docs_v1.Schema$Request[] = [];
+  private markdownToGoogleDocs(markdown: string): DocsRequest[] {
+    const requests: DocsRequest[] = [];
     const lines = markdown.split('\n');
     let currentIndex = 1;
 
     lines.forEach((line) => {
       if (!line.trim()) {
-        // Empty line
-        requests.push({
-          insertText: {
-            text: '\n',
-            location: { index: currentIndex },
-          },
-        });
+        requests.push({ insertText: { text: '\n', location: { index: currentIndex } } });
         currentIndex += 1;
         return;
       }
 
-      // Handle headings
       const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
       if (headingMatch) {
         const level = headingMatch[1].length;
         const text = headingMatch[2] + '\n';
-
-        requests.push({
-          insertText: {
-            text,
-            location: { index: currentIndex },
-          },
-        });
-
+        requests.push({ insertText: { text, location: { index: currentIndex } } });
         requests.push({
           updateParagraphStyle: {
-            range: {
-              startIndex: currentIndex,
-              endIndex: currentIndex + text.length - 1,
-            },
-            paragraphStyle: {
-              namedStyleType: `HEADING_${level}` as any,
-            },
+            range: { startIndex: currentIndex, endIndex: currentIndex + text.length - 1 },
+            paragraphStyle: { namedStyleType: `HEADING_${level}` },
             fields: 'namedStyleType',
           },
         });
-
         currentIndex += text.length;
         return;
       }
 
-      // Handle bold **text**
       const boldRegex = /\*\*(.+?)\*\*/g;
-      let processedLine = line;
       const boldMatches = [...line.matchAll(boldRegex)];
-
       if (boldMatches.length > 0) {
-        processedLine = line.replace(boldRegex, '$1');
+        const processedLine = line.replace(boldRegex, '$1');
         requests.push({
-          insertText: {
-            text: processedLine + '\n',
-            location: { index: currentIndex },
-          },
+          insertText: { text: processedLine + '\n', location: { index: currentIndex } },
         });
-
         boldMatches.forEach((match) => {
           const startOffset = line.indexOf(match[0]);
           requests.push({
@@ -141,64 +137,44 @@ export class GoogleDocsService {
                 startIndex: currentIndex + startOffset,
                 endIndex: currentIndex + startOffset + match[1].length,
               },
-              textStyle: {
-                bold: true,
-              },
+              textStyle: { bold: true },
               fields: 'bold',
             },
           });
         });
-
         currentIndex += processedLine.length + 1;
         return;
       }
 
-      // Regular text
-      requests.push({
-        insertText: {
-          text: line + '\n',
-          location: { index: currentIndex },
-        },
-      });
+      requests.push({ insertText: { text: line + '\n', location: { index: currentIndex } } });
       currentIndex += line.length + 1;
     });
 
     return requests;
   }
 
-  /**
-   * Export document to Google Docs
-   */
   async exportToGoogleDocs(
     title: string,
     content: string,
-    documentId: string,
-    userId?: string
+    _documentId: string,
+    _userId?: string,
   ): Promise<{ googleDocId: string; url: string }> {
     try {
-      // Create a new Google Doc
-      const createResponse = await this.docs.documents.create({
-        requestBody: {
-          title,
-        },
-      });
+      const created = await gfetch<{ documentId: string }>(
+        'https://docs.googleapis.com/v1/documents',
+        this.accessToken,
+        { method: 'POST', body: JSON.stringify({ title }) },
+      );
+      const googleDocId = created.documentId;
 
-      const googleDocId = createResponse.data.documentId!;
-
-      // Convert markdown content to Google Docs format
       const requests = this.markdownToGoogleDocs(content);
-
-      // Update the document with content
       if (requests.length > 0) {
-        await this.docs.documents.batchUpdate({
-          documentId: googleDocId,
-          requestBody: {
-            requests,
-          },
-        });
+        await gfetch(
+          `https://docs.googleapis.com/v1/documents/${googleDocId}:batchUpdate`,
+          this.accessToken,
+          { method: 'POST', body: JSON.stringify({ requests }) },
+        );
       }
-
-      // Save sync information
 
       return {
         googleDocId,
@@ -209,113 +185,75 @@ export class GoogleDocsService {
     }
   }
 
-  /**
-   * Import document from Google Docs
-   */
   async importFromGoogleDocs(googleDocId: string): Promise<{ title: string; content: string }> {
     try {
-      const response = await this.docs.documents.get({
-        documentId: googleDocId,
+      const doc = await gfetch<{ title?: string; body?: { content?: BodyContent[] } }>(
+        `https://docs.googleapis.com/v1/documents/${googleDocId}`,
+        this.accessToken,
+      );
+
+      const title = doc.title || 'Untitled';
+      let content = '';
+      doc.body?.content?.forEach((element) => {
+        element.paragraph?.elements?.forEach((elem) => {
+          if (elem.textRun?.content) content += elem.textRun.content;
+        });
       });
 
-      const doc = response.data;
-      const title = doc.title || 'Untitled';
-
-      // Extract text content (simplified - doesn't preserve all formatting)
-      let content = '';
-      const body = doc.body;
-
-      if (body && body.content) {
-        body.content.forEach((element) => {
-          if (element.paragraph) {
-            const paragraph = element.paragraph;
-            if (paragraph.elements) {
-              paragraph.elements.forEach((elem) => {
-                if (elem.textRun) {
-                  content += elem.textRun.content || '';
-                }
-              });
-            }
-          }
-        });
-      }
-
-      return {
-        title,
-        content: content.trim(),
-      };
+      return { title, content: content.trim() };
     } catch (error: any) {
       throw new Error(`Failed to import from Google Docs: ${error.message}`);
     }
   }
 
-  /**
-   * Share Google Doc with specific users
-   */
   async shareGoogleDoc(
     googleDocId: string,
     emailAddress: string,
-    role: 'reader' | 'writer' | 'commenter' = 'reader'
+    role: 'reader' | 'writer' | 'commenter' = 'reader',
   ): Promise<void> {
     try {
-      const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
-
-      await drive.permissions.create({
-        fileId: googleDocId,
-        requestBody: {
-          type: 'user',
-          role,
-          emailAddress,
+      await gfetch(
+        `https://www.googleapis.com/drive/v3/files/${googleDocId}/permissions?sendNotificationEmail=true`,
+        this.accessToken,
+        {
+          method: 'POST',
+          body: JSON.stringify({ type: 'user', role, emailAddress }),
         },
-        sendNotificationEmail: true,
-      });
+      );
     } catch (error: any) {
       throw new Error(`Failed to share Google Doc: ${error.message}`);
     }
   }
 
-  /**
-   * Get sharing link for Google Doc
-   */
   async getShareableLink(googleDocId: string): Promise<string> {
     try {
-      const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
-
-      // Make the document accessible to anyone with the link
-      await drive.permissions.create({
-        fileId: googleDocId,
-        requestBody: {
-          type: 'anyone',
-          role: 'reader',
+      await gfetch(
+        `https://www.googleapis.com/drive/v3/files/${googleDocId}/permissions`,
+        this.accessToken,
+        {
+          method: 'POST',
+          body: JSON.stringify({ type: 'anyone', role: 'reader' }),
         },
-      });
+      );
 
-      // Get the web view link
-      const file = await drive.files.get({
-        fileId: googleDocId,
-        fields: 'webViewLink',
-      });
+      const file = await gfetch<{ webViewLink?: string }>(
+        `https://www.googleapis.com/drive/v3/files/${googleDocId}?fields=webViewLink`,
+        this.accessToken,
+      );
 
-      return file.data.webViewLink || `https://docs.google.com/document/d/${googleDocId}/edit`;
+      return file.webViewLink || `https://docs.google.com/document/d/${googleDocId}/edit`;
     } catch (error: any) {
       throw new Error(`Failed to get shareable link: ${error.message}`);
     }
   }
 
-  /**
-   * Get sync status for a document
-   */
   static async getSyncStatus(documentId: string): Promise<{
     isSynced: boolean;
     googleDocId?: string;
     lastSyncedAt?: string;
   }> {
     const sync = await tursoQueries.getGoogleDocSync(documentId);
-
-    if (!sync) {
-      return { isSynced: false };
-    }
-
+    if (!sync) return { isSynced: false };
     return {
       isSynced: true,
       googleDocId: sync.googleDocId,
@@ -323,9 +261,6 @@ export class GoogleDocsService {
     };
   }
 
-  /**
-   * Remove sync relationship
-   */
   static async removeSyncStatus(documentId: string): Promise<void> {
     await tursoQueries.deleteGoogleDocSync(documentId);
   }

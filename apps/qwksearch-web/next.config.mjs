@@ -49,6 +49,12 @@ const nextConfig = {
         __dirname,
         "lib/stubs/react-email-render.js",
       ),
+      // Force a single lucide-react copy across reason-editor and qwksearch-web.
+      // Without this, Next's SWC barrel optimizer (optimizePackageImports) could
+      // read metadata from one version's node_modules while webpack resolves to
+      // another, producing broken deep imports like "ChevronRight is not defined"
+      // when icon file paths differ between major versions.
+      "lucide-react": path.resolve(__dirname, "node_modules/lucide-react"),
     };
 
     // Prefer root node_modules over nested packages/reason-editor/node_modules

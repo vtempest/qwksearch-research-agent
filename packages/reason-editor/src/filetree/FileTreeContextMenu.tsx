@@ -116,7 +116,7 @@ export const FileTreeContextMenu = ({
           {children}
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-fit min-w-0" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+      <ContextMenuContent className="w-56" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
 
 
         <ContextMenuItem

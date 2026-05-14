@@ -81,6 +81,9 @@ interface SettingsProps {
 
 const settingsNav = [
   { name: "Appearance", icon: Paintbrush },
+  { name: "Storage", icon: Database },
+  { name: "File Sources", icon: HardDrive },
+  { name: "AI Rewrite Modes", icon: Wand2 },
   { name: "About", icon: Info },
 ];
 

@@ -18,9 +18,7 @@ async function authBuilder() {
     const ctx = getCloudflareContext();
     cf = (ctx.cf as Record<string, unknown>) ?? {};
     kv = (ctx.env as any)?.KV;
-  } catch {
-    // Running in Node.js dev mode — CF bindings not available
-  }
+  } catch {}
 
   return betterAuth(
     withCloudflare(

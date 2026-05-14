@@ -130,22 +130,12 @@ export const DocumentTabs = ({
             </Button>
           )}
 
-          {/* Tabs list — scrollable horizontally on hover */}
-          <div
-            ref={tabsListRef}
-            className="flex-1 min-w-0 overflow-x-auto"
-            style={{ scrollbarWidth: 'none' }}
-            onWheel={(e) => {
-              if (tabsListRef.current && e.deltaY !== 0) {
-                e.preventDefault();
-                tabsListRef.current.scrollLeft += e.deltaY;
-              }
-            }}
-          >
-            <TabsList className="h-10 bg-transparent p-0 rounded-none border-0 w-max flex flex-nowrap">
+          {/* Tabs list — overflow hidden so tabs shrink rather than scroll */}
+          <div ref={tabsListRef} className="flex-1 min-w-0 overflow-hidden">
+            <TabsList className="h-10 bg-transparent p-0 rounded-none border-0 w-full flex flex-nowrap">
               {openTabs.map((tabId) => (
                 <ContextMenu key={tabId}>
-                  <ContextMenuTrigger className="shrink-0 min-w-[80px] max-w-[160px]">
+                  <ContextMenuTrigger className="flex-1 min-w-[80px]">
                     <div className="relative group h-10 w-full">
                       <TabsTrigger
                         value={tabId}
@@ -153,9 +143,8 @@ export const DocumentTabs = ({
                         className={cn(
                           'w-full h-10 rounded-none border-r border-border px-2 py-2',
                           'data-[state=active]:bg-background data-[state=active]:text-blue-600 data-[state=active]:font-bold',
-                          'data-[state=active]:shadow-[0_-2px_0_0_theme(colors.blue.500),inset_0_-1px_8px_0_theme(colors.blue.500/10%)]',
-                          'data-[state=active]:border-t-2 data-[state=active]:border-t-blue-500',
-                          'data-[state=active]:border-b-0 data-[state=active]:z-10',
+                          'data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-b-blue-600',
+                          'data-[state=active]:z-10',
                           'data-[state=inactive]:bg-muted/50 data-[state=inactive]:text-muted-foreground data-[state=inactive]:font-normal',
                           'hover:bg-muted pr-7 transition-all duration-200'
                         )}

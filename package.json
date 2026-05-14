@@ -2,7 +2,6 @@
   "name": "qwksearch",
   "private": true,
   "version": "2.2.0",
-  "packageManager": "yarn@4.12.0",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -16,7 +15,7 @@
     "build:editor": "turbo build --filter=reason-editor"
   },
   "devDependencies": {
-    "turbo": "^2.8.14"
+    "turbo": "^2.9.9"
   },
   "trustedDependencies": [
     "@biomejs/biome",
@@ -27,6 +26,6 @@
     "@opennextjs/aws": "3.10.4"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.19.5"
+    "@opennextjs/cloudflare": "^1.19.6"
   }
 }

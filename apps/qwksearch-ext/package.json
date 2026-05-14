@@ -8,14 +8,14 @@
     "@vitejs/plugin-react": "5.2.0"
   },
   "scripts": {
-    "dev": "bunx wxt",
-    "dev:firefox": "bunx wxt -b firefox",
-    "build": "bunx wxt build",
-    "build:firefox": "bunx wxt build -b firefox",
-    "zip": "bunx wxt zip",
-    "zip:firefox": "bunx wxt zip -b firefox",
+    "dev": "bun x wxt",
+    "dev:firefox": "bun x wxt -b firefox",
+    "build": "bun x wxt build",
+    "build:firefox": "bun x wxt build -b firefox",
+    "zip": "bun x wxt zip",
+    "zip:firefox": "bun x wxt zip -b firefox",
     "compile": "tsc --noEmit",
-    "postinstall": "bunx wxt prepare"
+    "postinstall": "bun x wxt prepare"
   },
   "dependencies": {
     "clsx": "^2.1.1",

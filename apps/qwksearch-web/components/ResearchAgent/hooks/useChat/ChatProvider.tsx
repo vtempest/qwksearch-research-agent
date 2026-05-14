@@ -10,7 +10,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import crypto from 'crypto';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { ChatTurn } from '@/components/ResearchAgent/ChatConversation/ChatWindow';
+import { ChatTurn } from '@/components/ResearchAgent/components/ChatConversation/ChatWindow';
 import { saveGuestChat, GuestChat } from '@/lib/storage/guest';
 import { useSession } from '../useSession';
 import { chatContext, ChatContextValue } from './ChatContext';

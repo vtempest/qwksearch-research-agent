@@ -46,6 +46,17 @@ export function DropDownSeparator() {
 }
 
 /**
+ * A section label/heading inside a dropdown menu.
+ */
+export function DropDownLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <DropdownMenuPrimitive.Label className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+      {children}
+    </DropdownMenuPrimitive.Label>
+  );
+}
+
+/**
  * A reusable dropdown menu component based on Radix UI primitives.
  */
 export default function DropDown({

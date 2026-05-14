@@ -54,9 +54,8 @@ export const listFooterLinks: FooterLink[] = [
   //   text: "Docs",
   //   icon: HelpCircle,
   // },
-  // { url: "/pricing", text: "Pricing", icon: "DollarSign" },
   {
-    url: "https://www.linkedin.com/company/qwksearch/posts/",
+    url: "https://www.linkedin.com/company/104158840/admin/page-posts/published/",
     text: "Blog",
     icon: Newspaper,
   },

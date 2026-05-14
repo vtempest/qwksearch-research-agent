@@ -43,12 +43,19 @@ type SwitchUIConfigField = BaseUIConfigField & {
   default?: boolean;
 };
 
+type ThemeUIConfigField = BaseUIConfigField & {
+  type: "theme";
+  options: [];
+  default?: string;
+};
+
 type UIConfigField =
   | StringUIConfigField
   | SelectUIConfigField
   | PasswordUIConfigField
   | TextareaUIConfigField
-  | SwitchUIConfigField;
+  | SwitchUIConfigField
+  | ThemeUIConfigField;
 
 type ConfigModelProvider = {
   id: string;
@@ -75,9 +82,6 @@ type Config = {
   version: number;
   setupComplete: boolean;
   preferences: {
-    [key: string]: any;
-  };
-  personalization: {
     [key: string]: any;
   };
   modelProviders: ConfigModelProvider[];
@@ -108,7 +112,6 @@ type MCPServerUISection = {
 
 type UIConfigSections = {
   preferences: UIConfigField[];
-  personalization: UIConfigField[];
   modelProviders: ModelProviderUISection[];
   mcpServers: MCPServerUISection[];
   search: UIConfigField[];
@@ -121,10 +124,12 @@ export type {
   UIConfigSections,
   SelectUIConfigField,
   StringUIConfigField,
+  PasswordUIConfigField,
   ModelProviderUISection,
   MCPServerUISection,
   ConfigModelProvider,
   MCPServerConfig,
   TextareaUIConfigField,
   SwitchUIConfigField,
+  ThemeUIConfigField,
 };

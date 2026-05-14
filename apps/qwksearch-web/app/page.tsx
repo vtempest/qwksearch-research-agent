@@ -1,4 +1,4 @@
-import ChatWindow from '../components/ResearchAgent/ChatConversation/ChatWindow';
+import ChatWindow from '@/components/ResearchAgent/components/ChatConversation/ChatWindow';
 
 const Home = () => {
   return <ChatWindow />;

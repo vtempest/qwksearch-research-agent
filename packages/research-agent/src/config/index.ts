@@ -52,9 +52,10 @@ class ConfigManager {
       {
         name: "Tavily API Key",
         key: "tavilyApiKey",
-        type: "string",
+        type: "password",
         required: false,
-        description: "Your Tavily API key for enhanced search capabilities.",
+        description:
+          "Optional. Enter your own Tavily API key to override the site default.",
         placeholder: "tvly-...",
         default: "",
         scope: "server",
@@ -193,9 +194,11 @@ class ConfigManager {
     target[finalKey] = val;
   }
 
-  public addModelProvider(type: string, name: string, config: any) {
+  public addModelProvider(type: string, config: any) {
     this.ensureInitialized();
     const hash = hashObj(config);
+    const section = this.uiConfigSections.modelProviders.find(s => s.key === type);
+    const name = section?.name || type;
 
     const newModelProvider: ConfigModelProvider = {
       id: hash,
@@ -215,13 +218,12 @@ class ConfigManager {
       this.currentConfig.modelProviders.filter((p) => p.id !== id);
   }
 
-  public async updateModelProvider(id: string, name: string, config: any) {
+  public async updateModelProvider(id: string, config: any) {
     const provider = this.currentConfig.modelProviders.find(
       (p) => p.id === id,
     );
     if (!provider) throw new Error("Provider not found");
 
-    provider.name = name;
     provider.config = config;
     return provider;
   }

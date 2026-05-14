@@ -43,9 +43,6 @@ export const getTheme = () =>
 export const getAutoMediaSearch = () =>
   configManager.getConfig("preferences.autoMediaSearch", true);
 
-export const getSystemInstructions = () =>
-  configManager.getConfig("personalization.systemInstructions", "");
-
 export const getFontFamily = () =>
   configManager.getConfig("preferences.fontFamily", "");
 

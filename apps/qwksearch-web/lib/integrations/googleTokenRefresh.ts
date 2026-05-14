@@ -1,4 +1,3 @@
-import { OAuth2Client } from "google-auth-library";
 import { getEnv } from "../env";
 
 export interface TokenRefreshResult {
@@ -14,19 +13,27 @@ export async function refreshGoogleAccessToken(
   refreshToken: string,
 ): Promise<TokenRefreshResult> {
   try {
-    const oauth2Client = new OAuth2Client(
-      getEnv("GOOGLE_CLIENT_ID")!,
-      getEnv("GOOGLE_CLIENT_SECRET")!,
-      getEnv("GOOGLE_REDIRECT_URI") ||
-        "https://qwksearch.com/api/doc/google-docs/callback",
-    );
-
-    oauth2Client.setCredentials({
-      refresh_token: refreshToken,
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: getEnv("GOOGLE_CLIENT_ID")!,
+        client_secret: getEnv("GOOGLE_CLIENT_SECRET")!,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      }).toString(),
     });
 
-    // Get new access token
-    const { credentials } = await oauth2Client.refreshAccessToken();
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Failed to refresh access token");
+    }
+
+    const credentials = (await res.json()) as {
+      access_token?: string;
+      refresh_token?: string;
+      expires_in?: number;
+    };
 
     if (!credentials.access_token) {
       throw new Error("Failed to refresh access token");
@@ -35,7 +42,7 @@ export async function refreshGoogleAccessToken(
     return {
       accessToken: credentials.access_token,
       refreshToken: credentials.refresh_token || refreshToken,
-      expiresAt: credentials.expiry_date || Date.now() + 3600 * 1000,
+      expiresAt: Date.now() + (credentials.expires_in ?? 3600) * 1000,
     };
   } catch (error: any) {
     console.error("Token refresh error:", error);

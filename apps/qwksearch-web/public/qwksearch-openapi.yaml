@@ -58,7 +58,7 @@ paths:
       description: Check if the API server is running and healthy
       operationId: getHealth
       responses:
-        '200':
+        "200":
           description: Server is healthy
           content:
             application/json:
@@ -129,7 +129,7 @@ paths:
             type: boolean
             default: false
       responses:
-        '200':
+        "200":
           description: Search results
           content:
             application/json:
@@ -139,23 +139,23 @@ paths:
                   results:
                     type: array
                     items:
-                      $ref: '#/components/schemas/SearchResult'
+                      $ref: "#/components/schemas/SearchResult"
                   elapsedTime:
                     type: integer
                     description: Query execution time in milliseconds
                     example: 1250
-        '400':
+        "400":
           description: Bad request - query parameter is required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: No results found or server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /suggestions:
     post:
@@ -182,12 +182,12 @@ paths:
                       content:
                         type: string
                 chatModel:
-                  $ref: '#/components/schemas/ModelWithProvider'
+                  $ref: "#/components/schemas/ModelWithProvider"
               required:
                 - chatHistory
                 - chatModel
       responses:
-        '200':
+        "200":
           description: Suggestions generated successfully
           content:
             application/json:
@@ -198,13 +198,17 @@ paths:
                     type: array
                     items:
                       type: string
-                    example: ["How does machine learning work?", "Best AI frameworks in 2025"]
-        '500':
+                    example:
+                      [
+                        "How does machine learning work?",
+                        "Best AI frameworks in 2025",
+                      ]
+        "500":
           description: Error generating suggestions
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /discover:
     get:
@@ -229,7 +233,7 @@ paths:
             enum: [normal, preview]
             default: normal
       responses:
-        '200':
+        "200":
           description: Discovered content
           content:
             application/json:
@@ -239,13 +243,13 @@ paths:
                   blogs:
                     type: array
                     items:
-                      $ref: '#/components/schemas/SearchResult'
-        '500':
+                      $ref: "#/components/schemas/SearchResult"
+        "500":
           description: Error occurred during discovery
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /article:
     get:
@@ -264,7 +268,7 @@ paths:
             format: uri
             example: "https://example.com/article"
       responses:
-        '200':
+        "200":
           description: Article retrieved successfully
           content:
             application/json:
@@ -275,19 +279,19 @@ paths:
                     type: boolean
                     description: Whether the article was served from cache
                   article:
-                    $ref: '#/components/schemas/Article'
-        '400':
+                    $ref: "#/components/schemas/Article"
+        "400":
           description: URL parameter is required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Failed to fetch article
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
     post:
       tags:
@@ -320,7 +324,7 @@ paths:
               required:
                 - url
       responses:
-        '200':
+        "200":
           description: Article data stored successfully
           content:
             application/json:
@@ -329,18 +333,18 @@ paths:
                 properties:
                   success:
                     type: boolean
-        '400':
+        "400":
           description: URL is required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Failed to store article data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /chat:
     post:
@@ -391,7 +395,7 @@ paths:
                     type: string
                   description: File IDs to include in context
                 chatModel:
-                  $ref: '#/components/schemas/ModelWithProvider'
+                  $ref: "#/components/schemas/ModelWithProvider"
                 systemInstructions:
                   type: string
                   description: Custom system instructions
@@ -401,7 +405,7 @@ paths:
                 - focusMode
                 - chatModel
       responses:
-        '200':
+        "200":
           description: Streaming response with AI chat
           headers:
             Content-Type:
@@ -417,24 +421,24 @@ paths:
               schema:
                 type: string
                 description: Server-sent events stream with AI responses
-        '400':
+        "400":
           description: Invalid request body or missing message
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
           description: Authentication required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Error processing chat request
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /chats:
     get:
@@ -446,7 +450,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Chats retrieved successfully
           content:
             application/json:
@@ -456,19 +460,19 @@ paths:
                   chats:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Chat'
-        '401':
+                      $ref: "#/components/schemas/Chat"
+        "401":
           description: Authentication required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Error retrieving chats
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /favorites:
     get:
@@ -480,7 +484,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Favorites retrieved successfully
           content:
             application/json:
@@ -490,19 +494,19 @@ paths:
                   favorites:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Favorite'
-        '401':
+                      $ref: "#/components/schemas/Favorite"
+        "401":
           description: Authentication required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Error retrieving favorites
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
     post:
       tags:
@@ -541,7 +545,7 @@ paths:
               required:
                 - url
       responses:
-        '200':
+        "200":
           description: Article already favorited
           content:
             application/json:
@@ -551,8 +555,8 @@ paths:
                   message:
                     type: string
                   favorite:
-                    $ref: '#/components/schemas/Favorite'
-        '201':
+                    $ref: "#/components/schemas/Favorite"
+        "201":
           description: Favorite added successfully
           content:
             application/json:
@@ -562,25 +566,25 @@ paths:
                   message:
                     type: string
                   favorite:
-                    $ref: '#/components/schemas/Favorite'
-        '400':
+                    $ref: "#/components/schemas/Favorite"
+        "400":
           description: URL is required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
           description: Authentication required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Error adding favorite
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
     delete:
       tags:
@@ -599,7 +603,7 @@ paths:
             type: string
             format: uri
       responses:
-        '200':
+        "200":
           description: Favorite removed successfully
           content:
             application/json:
@@ -609,24 +613,24 @@ paths:
                   message:
                     type: string
                     example: "Favorite removed"
-        '400':
+        "400":
           description: URL parameter is required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
           description: Authentication required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Error removing favorite
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   # Document Management Endpoints
   /documents:
@@ -637,18 +641,18 @@ paths:
       description: Retrieve a list of all documents in the system
       operationId: getAllDocuments
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DocumentListResponse'
-        '500':
+                $ref: "#/components/schemas/DocumentListResponse"
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
     post:
       tags:
@@ -661,7 +665,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateDocumentRequest'
+              $ref: "#/components/schemas/CreateDocumentRequest"
             examples:
               root-document:
                 summary: Create root document
@@ -675,24 +679,24 @@ paths:
                   content: "<p>This is a child note</p>"
                   parentId: "123"
       responses:
-        '201':
+        "201":
           description: Document created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DocumentResponse'
-        '400':
+                $ref: "#/components/schemas/DocumentResponse"
+        "400":
           description: Bad request (missing required fields)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /documents/{id}:
     get:
@@ -710,24 +714,24 @@ paths:
             type: string
             example: "1"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DocumentResponse'
-        '404':
+                $ref: "#/components/schemas/DocumentResponse"
+        "404":
           description: Document not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
     put:
       tags:
@@ -748,7 +752,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateDocumentRequest'
+              $ref: "#/components/schemas/UpdateDocumentRequest"
             examples:
               update-title:
                 summary: Update title only
@@ -765,24 +769,24 @@ paths:
                   content: "<p>New content</p>"
                   isExpanded: true
       responses:
-        '200':
+        "200":
           description: Document updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DocumentResponse'
-        '404':
+                $ref: "#/components/schemas/DocumentResponse"
+        "404":
           description: Document not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
     delete:
       tags:
@@ -799,7 +803,7 @@ paths:
             type: string
             example: "1"
       responses:
-        '200':
+        "200":
           description: Document deleted successfully
           content:
             application/json:
@@ -815,18 +819,18 @@ paths:
                       id:
                         type: string
                         example: "1"
-        '404':
+        "404":
           description: Document not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /documents/{id}/duplicate:
     post:
@@ -844,24 +848,24 @@ paths:
             type: string
             example: "1"
       responses:
-        '201':
+        "201":
           description: Document duplicated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DocumentResponse'
-        '404':
+                $ref: "#/components/schemas/DocumentResponse"
+        "404":
           description: Document not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /documents/move:
     post:
@@ -875,7 +879,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MoveDocumentRequest'
+              $ref: "#/components/schemas/MoveDocumentRequest"
             examples:
               move-as-child:
                 summary: Move as child
@@ -890,7 +894,7 @@ paths:
                   targetId: "2"
                   position: "before"
       responses:
-        '200':
+        "200":
           description: Document moved successfully
           content:
             application/json:
@@ -901,19 +905,19 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/MoveDocumentRequest'
-        '400':
+                    $ref: "#/components/schemas/MoveDocumentRequest"
+        "400":
           description: Bad request (invalid operation)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /documents/search/{query}:
     get:
@@ -931,18 +935,18 @@ paths:
             type: string
             example: "meeting notes"
       responses:
-        '200':
+        "200":
           description: Search results
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DocumentListResponse'
-        '500':
+                $ref: "#/components/schemas/DocumentListResponse"
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /documents/bulk:
     post:
@@ -961,7 +965,7 @@ paths:
                 documents:
                   type: array
                   items:
-                    $ref: '#/components/schemas/Document'
+                    $ref: "#/components/schemas/Document"
               required:
                 - documents
             example:
@@ -975,24 +979,24 @@ paths:
                   content: "<p>Content 2</p>"
                   parentId: "1"
       responses:
-        '200':
+        "200":
           description: Documents updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DocumentListResponse'
-        '400':
+                $ref: "#/components/schemas/DocumentListResponse"
+        "400":
           description: Bad request (invalid data)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /teams:
     get:
@@ -1002,7 +1006,7 @@ paths:
       description: Retrieve all teams the user has access to
       operationId: getAllTeams
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -1015,7 +1019,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Team'
+                      $ref: "#/components/schemas/Team"
 
     post:
       tags:
@@ -1043,7 +1047,7 @@ paths:
                 - name
                 - organizationId
       responses:
-        '201':
+        "201":
           description: Team created successfully
           content:
             application/json:
@@ -1054,7 +1058,7 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/Team'
+                    $ref: "#/components/schemas/Team"
 
   /teams/{id}/members:
     post:
@@ -1082,12 +1086,12 @@ paths:
                   format: email
                   example: "user@example.com"
                 role:
-                  $ref: '#/components/schemas/UserRole'
+                  $ref: "#/components/schemas/UserRole"
               required:
                 - email
                 - role
       responses:
-        '201':
+        "201":
           description: Member added successfully
           content:
             application/json:
@@ -1098,7 +1102,7 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/TeamMember'
+                    $ref: "#/components/schemas/TeamMember"
 
   /organizations:
     get:
@@ -1108,7 +1112,7 @@ paths:
       description: Retrieve all organizations the user belongs to
       operationId: getAllOrganizations
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -1121,7 +1125,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Organization'
+                      $ref: "#/components/schemas/Organization"
 
   /ai/rewrite:
     post:
@@ -1144,7 +1148,7 @@ paths:
               required:
                 - text
       responses:
-        '200':
+        "200":
           description: Successful rewrite
           content:
             application/json:
@@ -1155,18 +1159,18 @@ paths:
                     type: string
                     description: The AI-rewritten text
                     example: "This is text that has been rewritten."
-        '400':
+        "400":
           description: Invalid request
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
           description: AI service error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /google-docs/auth:
     get:
@@ -1176,7 +1180,7 @@ paths:
       description: Redirect to Google OAuth consent screen for authorization
       operationId: googleDocsAuth
       responses:
-        '302':
+        "302":
           description: Redirect to Google OAuth
 
   /google-docs/callback:
@@ -1194,7 +1198,7 @@ paths:
             type: string
           description: OAuth authorization code
       responses:
-        '200':
+        "200":
           description: Successful authentication
           content:
             application/json:
@@ -1238,7 +1242,7 @@ paths:
                 - documentId
                 - accessToken
       responses:
-        '200':
+        "200":
           description: Successfully exported
           content:
             application/json:
@@ -1256,12 +1260,12 @@ paths:
                         type: string
                       webContentLink:
                         type: string
-        '404':
+        "404":
           description: Document not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /google-docs/import:
     post:
@@ -1290,7 +1294,7 @@ paths:
                 - googleDocId
                 - accessToken
       responses:
-        '200':
+        "200":
           description: Successfully imported
           content:
             application/json:
@@ -1300,7 +1304,7 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Document'
+                    $ref: "#/components/schemas/Document"
 
   /google-docs/share:
     post:
@@ -1336,7 +1340,7 @@ paths:
                 - role
                 - accessToken
       responses:
-        '200':
+        "200":
           description: Successfully shared
           content:
             application/json:
@@ -1361,7 +1365,7 @@ paths:
             type: string
           description: Document ID to get quotes for
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -1374,13 +1378,13 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Quote'
-        '400':
+                      $ref: "#/components/schemas/Quote"
+        "400":
           description: Missing documentId parameter
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
     post:
       tags:
@@ -1422,7 +1426,7 @@ paths:
                 - documentId
                 - text
       responses:
-        '201':
+        "201":
           description: Quote created successfully
           content:
             application/json:
@@ -1432,13 +1436,13 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Quote'
-        '400':
+                    $ref: "#/components/schemas/Quote"
+        "400":
           description: Invalid request
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /quotes/{id}:
     put:
@@ -1476,7 +1480,7 @@ paths:
                   items:
                     type: string
       responses:
-        '200':
+        "200":
           description: Quote updated successfully
           content:
             application/json:
@@ -1500,7 +1504,7 @@ paths:
             type: string
           description: Quote ID
       responses:
-        '200':
+        "200":
           description: Quote deleted successfully
           content:
             application/json:
@@ -1719,7 +1723,7 @@ components:
         children:
           type: array
           items:
-            $ref: '#/components/schemas/Document'
+            $ref: "#/components/schemas/Document"
           description: Child documents
         isExpanded:
           type: boolean
@@ -1820,7 +1824,7 @@ components:
           format: email
           example: "john@example.com"
         role:
-          $ref: '#/components/schemas/UserRole'
+          $ref: "#/components/schemas/UserRole"
         avatarUrl:
           type: string
           format: uri
@@ -1845,7 +1849,7 @@ components:
         members:
           type: array
           items:
-            $ref: '#/components/schemas/TeamMember'
+            $ref: "#/components/schemas/TeamMember"
         createdAt:
           type: string
           format: date-time
@@ -1877,7 +1881,7 @@ components:
         teams:
           type: array
           items:
-            $ref: '#/components/schemas/Team'
+            $ref: "#/components/schemas/Team"
         createdAt:
           type: string
           format: date-time
@@ -1894,7 +1898,7 @@ components:
           type: boolean
           example: true
         data:
-          $ref: '#/components/schemas/Document'
+          $ref: "#/components/schemas/Document"
 
     DocumentListResponse:
       type: object
@@ -1905,7 +1909,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Document'
+            $ref: "#/components/schemas/Document"
 
     Quote:
       type: object

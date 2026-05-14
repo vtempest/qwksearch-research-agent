@@ -30,7 +30,7 @@ const nextConfig = {
     "@huggingface/transformers",
     "onnxruntime-web",
   ],
-  transpilePackages: ["reason-editor"],
+  transpilePackages: ["reason-editor", "quantum-sphere-loading-icon"],
 
   webpack: (config) => {
     // Resolve reason-editor from source, not dist

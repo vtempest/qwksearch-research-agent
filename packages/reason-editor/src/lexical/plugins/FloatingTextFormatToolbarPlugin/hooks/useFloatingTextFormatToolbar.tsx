@@ -60,6 +60,9 @@ export function useFloatingTextFormatToolbar(
           // Get anchor and focus nodes - these might be element nodes (e.g., ListItemNode)
           let anchorNode = selection.anchor.getNode();
           let focusNode = selection.focus.getNode();
+          const anchorOffset = selection.anchor.offset;
+          const focusOffset = selection.focus.offset;
+          const isBackward = selection.isBackward();
 
           // If anchor/focus are on element nodes, get their text content
           if ($isElementNode(anchorNode)) {
@@ -96,27 +99,25 @@ export function useFloatingTextFormatToolbar(
 
             if (isFirst || isLast) {
               // For first/last nodes, only apply style to selected portion
-              // Get selection offsets - use 0 if the anchor/focus was on an element node
-              const anchorOffset = isFirst && $isTextNode(selection.anchor.getNode())
-                ? selection.anchor.offset
-                : isFirst ? 0 : 0;
-              const focusOffset = isLast && $isTextNode(selection.focus.getNode())
-                ? selection.focus.offset
-                : isLast ? node.getTextContentSize() : node.getTextContentSize();
+              let startOffset = 0;
+              let endOffset = node.getTextContentSize();
 
-              // Determine actual start and end based on selection direction
-              const startOffset = isFirst && isLast
-                ? Math.min(anchorOffset, focusOffset)
-                : isFirst ? anchorOffset : 0;
-              const endOffset = isFirst && isLast
-                ? Math.max(anchorOffset, focusOffset)
-                : isLast ? focusOffset : node.getTextContentSize();
+              if (isFirst && isLast) {
+                startOffset = Math.min(anchorOffset, focusOffset);
+                endOffset = Math.max(anchorOffset, focusOffset);
+              } else if (isFirst) {
+                startOffset = isBackward ? focusOffset : anchorOffset;
+              } else if (isLast) {
+                endOffset = isBackward ? anchorOffset : focusOffset;
+              }
 
               // Skip if selection is collapsed on this node
               if (startOffset === endOffset) return;
 
+              const originalSize = node.getTextContentSize();
+
               // Split the node if needed and apply style only to selected part
-              if (startOffset > 0 || endOffset < node.getTextContentSize()) {
+              if (startOffset > 0 || endOffset < originalSize) {
                 // We need to apply style to a portion of the text
                 let targetNode = node;
 
@@ -127,7 +128,7 @@ export function useFloatingTextFormatToolbar(
                 }
 
                 // Split at end if needed
-                if (endOffset < node.getTextContentSize()) {
+                if (endOffset < originalSize) {
                   const offset = startOffset > 0 ? endOffset - startOffset : endOffset;
                   const [leftNode] = targetNode.splitText(offset);
                   targetNode = leftNode as typeof node;

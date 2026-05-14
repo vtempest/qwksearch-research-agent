@@ -29,7 +29,7 @@ const providerConfigFields: UIConfigField[] = [
     type: "password",
     name: "API Key",
     key: "apiKey",
-    description: "Your DeepSeek API key",
+    description: "Optional. Enter your own DeepSeek API key to override the site default. Leave blank to use the site-provided key.",
     required: true,
     placeholder: "DeepSeek API Key",
     env: "DEEPSEEK_API_KEY",

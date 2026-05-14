@@ -7,10 +7,11 @@ import {
   Search,
   Server,
   Sliders,
-  ToggleRight,
   Database,
   MessageSquareText,
   UserCircle,
+  HardDrive,
+  Wand2,
 } from 'lucide-react';
 import Preferences from './Sections/Preferences';
 import Account from './Sections/Account';
@@ -29,9 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import Personalization from './Sections/Personalization';
 import Storage from './Sections/Storage';
 import RewritePrompts from './Sections/RewritePrompts';
+import FileSources from './Sections/FileSources';
+import AIRewriteModes from './Sections/AIRewriteModes';
 
 const sections = [
   {
@@ -44,23 +46,15 @@ const sections = [
   },
   {
     key: 'preferences',
-    name: 'Preferences',
+    name: 'Personalization',
     description: 'Customize your application preferences.',
     icon: Sliders,
     component: Preferences,
     dataAdd: 'preferences',
   },
   {
-    key: 'personalization',
-    name: 'Personalization',
-    description: 'Customize the behavior and tone of the model.',
-    icon: ToggleRight,
-    component: Personalization,
-    dataAdd: 'personalization',
-  },
-  {
     key: 'models',
-    name: 'Models',
+    name: 'Language Models',
     description: 'Connect to AI services and manage connections.',
     icon: BrainCog,
     component: Models,
@@ -68,7 +62,7 @@ const sections = [
   },
   {
     key: 'mcpservers',
-    name: 'MCP Servers',
+    name: 'Connectors',
     description: 'Configure Model Context Protocol servers.',
     icon: Server,
     component: MCPServers,
@@ -83,19 +77,19 @@ const sections = [
     dataAdd: 'search',
   },
   {
-    key: 'storage',
-    name: 'Storage',
-    description: 'Manage data storage, caching, and editor settings.',
-    icon: Database,
-    component: Storage,
+    key: 'fileSources',
+    name: 'Cloud Storage',
+    description: 'Manage storage sources (SSH, S3, R2, B2, Google Docs, Turso DB).',
+    icon: HardDrive,
+    component: FileSources,
     dataAdd: 'storage',
   },
   {
-    key: 'rewritePrompts',
-    name: 'Rewrite Prompts',
-    description: 'Configure AI rewriting prompts and templates.',
-    icon: MessageSquareText,
-    component: RewritePrompts,
+    key: 'aiRewriteModes',
+    name: 'Rewrite Modes',
+    description: 'Customize AI rewrite prompts and add your own modes.',
+    icon: Wand2,
+    component: AIRewriteModes,
     dataAdd: 'rewritePrompts',
   },
 ];

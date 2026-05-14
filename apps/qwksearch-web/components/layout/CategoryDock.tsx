@@ -1,11 +1,9 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { UserCircle2, Moon, Sun, Palette, Settings, ChevronDown, ChevronUp, ChevronRight } from "lucide-react"
-import { AnimatePresence } from "framer-motion"
-import SettingsDialogue from "@/components/Settings/SettingsDialogue"
+import { UserCircle2, Moon, Sun, Palette, Settings } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -21,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import iconRead from '@/components/icons/icon-read.svg'
-import iconNews from '@/components/icons/icon-news-title.svg'
 import iconSettings from '@/components/icons/icon-configure.svg'
 
 const themeNames = [
@@ -253,16 +250,11 @@ function DockInstance({
   side: "bottom" | "top"
   allItems: { key: string; label: string; icon: any; active: boolean; onClick: () => void }[]
 }) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const isMobile = useIsMobile()
   const router = useRouter()
 
   const handleOpenSettings = () => {
-    if (isMobile) {
-      router.push('/settings')
-    } else {
-      setIsSettingsOpen(true)
-    }
+    router.push('/settings')
   }
 
   return (
@@ -297,9 +289,6 @@ function DockInstance({
         </Dock>
         <SettingsMenu side={side} onOpenSettings={handleOpenSettings} />
       </DropdownMenu>
-      <AnimatePresence>
-        {isSettingsOpen && <SettingsDialogue isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} />}
-      </AnimatePresence>
     </>
   )
 }
@@ -312,38 +301,6 @@ function DockInstance({
 export function CategoryDock() {
   const pathname = usePathname()
   const router = useRouter()
-  const [dockVisible, setDockVisible] = useState(true)
-  const desktopDockRef = useRef<HTMLDivElement>(null)
-  const mobileDockRef = useRef<HTMLDivElement>(null)
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const cancelHide = () => {
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current)
-      hideTimerRef.current = null
-    }
-  }
-
-  // Click-outside handler: wait 1s before hiding so dropdown menu items can register
-  useEffect(() => {
-    const handleMouseDown = (e: MouseEvent) => {
-      const inDesktop = desktopDockRef.current?.contains(e.target as Node)
-      const inMobile = mobileDockRef.current?.contains(e.target as Node)
-      // Also treat Radix dropdown portals (rendered outside the dock div) as "inside"
-      const inPortal = (e.target as Element)?.closest?.('[data-radix-popper-content-wrapper]')
-      if (inDesktop || inMobile || inPortal) {
-        cancelHide()
-      } else {
-        cancelHide()
-        hideTimerRef.current = setTimeout(() => setDockVisible(false), 1000)
-      }
-    }
-    document.addEventListener('mousedown', handleMouseDown)
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown)
-      cancelHide()
-    }
-  }, [])
 
   // Keyboard shortcuts: Alt+1 through Alt+3 for navigation items
   useEffect(() => {
@@ -374,43 +331,21 @@ export function CategoryDock() {
   return (
     <>
       {/* Desktop: top-left corner */}
-      <div className="hidden md:block fixed top-0 left-2 z-50" ref={desktopDockRef}>
-        {dockVisible ? (
-          <DockInstance
-            dockClassName="h-[52px] shrink-0 !mt-0 !mx-0"
-            side="bottom"
-            allItems={allItems}
-          />
-        ) : (
-          <button
-            onClick={() => { cancelHide(); setDockVisible(true) }}
-            className="bg-background border border-border border-t-0 rounded-b-lg px-3 py-1 flex items-center gap-1 shadow-md hover:bg-accent transition-colors text-muted-foreground"
-            aria-label="Show dock"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </button>
-        )}
+      <div className="hidden md:block fixed top-0 left-2 z-50">
+        <DockInstance
+          dockClassName="h-[52px] shrink-0 !mt-0 !mx-0"
+          side="bottom"
+          allItems={allItems}
+        />
       </div>
 
       {/* Mobile: fixed bottom bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe" ref={mobileDockRef}>
-        {dockVisible ? (
-          <DockInstance
-            dockClassName="h-[52px] shrink-0 !mt-0 mx-auto w-max mb-2 !gap-1 !p-1"
-            side="top"
-            allItems={allItems}
-          />
-        ) : (
-          <div className="flex justify-center">
-            <button
-              onClick={() => { cancelHide(); setDockVisible(true) }}
-              className="bg-background border border-border border-b-0 rounded-t-lg px-4 py-1.5 flex items-center gap-1 shadow-md hover:bg-accent transition-colors text-muted-foreground"
-              aria-label="Show dock"
-            >
-              <ChevronUp className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe">
+        <DockInstance
+          dockClassName="h-[52px] shrink-0 !mt-0 mx-auto w-max mb-2 !gap-1 !p-1"
+          side="top"
+          allItems={allItems}
+        />
       </div>
     </>
   )

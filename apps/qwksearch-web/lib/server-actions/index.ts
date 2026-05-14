@@ -13,17 +13,16 @@ export const getSuggestions = async (chatHistory: Message[]) => {
 
   try {
     const data = await grab<{ suggestions: string[] }>(
-      `/api/agent/suggestions`,
+      `agent/suggestions`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: {
+        body: JSON.stringify({
           chatHistory: filteredHistory,
           chatModel: {
             providerId: chatModelProvider,
             key: chatModel,
           },
-        },
+        }),
       },
     );
 

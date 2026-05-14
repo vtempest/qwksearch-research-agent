@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from '../ResearchAgent/hooks/useSession';
+import { useSession } from '@/components/ResearchAgent/hooks/useSession';
 import {
   Avatar,
   AvatarFallback,

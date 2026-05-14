@@ -15,6 +15,7 @@ const ModelSelect = ({
     `${localStorage.getItem('chatModelProviderId')}/${localStorage.getItem('chatModelKey')}`,
   );
   const [loading, setLoading] = useState(false);
+  const [isImageExpanded, setIsImageExpanded] = useState(false);
   const { setChatModelProvider } = useChat();
 
   const handleSave = async (newValue: string) => {
@@ -42,7 +43,25 @@ const ModelSelect = ({
 
   return (
     <section className="rounded-xl border border-light-200 bg-light-primary/80 p-4 lg:p-6 transition-colors dark:border-dark-200 dark:bg-dark-primary/80">
+      {isImageExpanded && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 cursor-pointer"
+          onClick={() => setIsImageExpanded(false)}
+        >
+          <img 
+            src="https://i.imgur.com/xONCKTz.jpeg" 
+            alt="Expanded view" 
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl"
+          />
+        </div>
+      )}
       <div className="space-y-3 lg:space-y-5">
+        <img 
+          src="https://i.imgur.com/xONCKTz.jpeg" 
+          alt="Thumbnail view" 
+          className="w-16 h-16 rounded-md object-cover cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => setIsImageExpanded(true)}
+        />
         <div>
           <h4 className="text-sm lg:text-sm text-black dark:text-white">
             Select Chat Model

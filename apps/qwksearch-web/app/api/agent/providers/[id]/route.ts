@@ -53,10 +53,10 @@ export const PATCH = async (
 ) => {
   try {
     const body = await req.json();
-    const { name, config } = body;
+    const { config } = body;
     const { id } = await params;
 
-    if (!id || !name || !config) {
+    if (!id || !config) {
       return Response.json(
         {
           message: "Missing required fields.",
@@ -69,7 +69,7 @@ export const PATCH = async (
 
     const registry = new ModelRegistry();
 
-    const updatedProvider = await registry.updateProvider(id, name, config);
+    const updatedProvider = await registry.updateProvider(id, config);
 
     return Response.json(
       {

@@ -25,35 +25,35 @@ paths:
       operationId: extractContent
       summary: "## Extract structured content and cite from any URL"
       description: |
-          ![Extractor](https://i.imgur.com/o8NTXxY.png)
-          
-          ### 🚜📜 Tractor the Text Extractor 
-          1. Main Content Detection: Extract the main content from a URL by combining 
-          Mozilla Readability and Postlight Mercury algorithms, utilizing over 100 
-          custom adapters for major sites for article, author, date HTML classes.
-          2. Basic HTML Standardization: Transform complex HTML into a simplified 
-          reading-mode format of basic HTML, making it ideal for research note archival
-            and focused reading, with headings, images and links.
-          3. YouTube Transcript Processing: When a YouTube video URL is detected, 
-          retrieve the complete video transcript including both manual captions and 
-          auto-generated subtitles, maintaining proper timestamp synchronization and 
-          speaker identification where available.
-          4. PDF to HTML: Process PDF documents by extracting
-            formatted text while intelligently handling line breaks, page headers, 
-            footnotes. The system analyzes text height statistics to automatically
-            infer heading levels, creating a properly structured document hierarchy
-            based on standard deviation from mean text size.
-          5. Citation Information Extraction: Identify and extract citation metadata
-            including author names, publication dates, sources, and titles using HTML
-            meta tags and common class name patterns. The system validates author names
-            against a comprehensive database of 90,000 first and last names, 
-          distinguishing between personal and organizational authors to properly 
-          format citations.
-          6. Author Name Formatting: Process author names by checking against 
-          known name databases, handling affixes and titles correctly, and determining
-            whether to reverse the name order based on whether it's a personal or 
-          organizational author, ensuring proper citation formatting.
-          
+        ![Extractor](https://i.imgur.com/o8NTXxY.png)
+
+        ### 🚜📜 Tractor the Text Extractor 
+        1. Main Content Detection: Extract the main content from a URL by combining 
+        Mozilla Readability and Postlight Mercury algorithms, utilizing over 100 
+        custom adapters for major sites for article, author, date HTML classes.
+        2. Basic HTML Standardization: Transform complex HTML into a simplified 
+        reading-mode format of basic HTML, making it ideal for research note archival
+          and focused reading, with headings, images and links.
+        3. YouTube Transcript Processing: When a YouTube video URL is detected, 
+        retrieve the complete video transcript including both manual captions and 
+        auto-generated subtitles, maintaining proper timestamp synchronization and 
+        speaker identification where available.
+        4. PDF to HTML: Process PDF documents by extracting
+          formatted text while intelligently handling line breaks, page headers, 
+          footnotes. The system analyzes text height statistics to automatically
+          infer heading levels, creating a properly structured document hierarchy
+          based on standard deviation from mean text size.
+        5. Citation Information Extraction: Identify and extract citation metadata
+          including author names, publication dates, sources, and titles using HTML
+          meta tags and common class name patterns. The system validates author names
+          against a comprehensive database of 90,000 first and last names, 
+        distinguishing between personal and organizational authors to properly 
+        format citations.
+        6. Author Name Formatting: Process author names by checking against 
+        known name databases, handling affixes and titles correctly, and determining
+          whether to reverse the name order based on whether it's a personal or 
+        organizational author, ensuring proper citation formatting.
+
       parameters:
         - name: url
           in: query
@@ -95,7 +95,7 @@ paths:
             maximum: 30
             default: 5
       responses:
-        '200':
+        "200":
           description: Structured content extraction result
           content:
             application/json:
@@ -145,7 +145,7 @@ paths:
                   - word_count
                   - url
 
-        '500':
+        "500":
           description: Server error or missing URL parameter
           content:
             application/json:
@@ -163,59 +163,66 @@ paths:
       operationId: writeLanguage
       summary: "## Generate language model reply using agent prompts"
       description: |
-          
-          - ❓ **Inputs**: 👄 Language Intelligence Provider, 🔑 API Key,  🤖 agent template name, 🧠 model name and options,
-            and 🆎 context variables for that agent
-          - 🤖 **Agent Instruction Templates**: [LangHub](https://smith.langchain.com/hub) template or custom: 
-            question(query, chat_history), summarize-bullets(article), summarize(article), 
-            suggest-followups(chat_history, article), answer-cite-sources(context, chat_history, query),
-            query-resolution(chat_history, query), knowledge-graph-nodes(query, article), 
-            summary-longtext(summaries)
-          - 🧠 **How Language Models Work**: Language models learn from billions of text examples to 
-          identify statistical patterns and structures across diverse sources, converting words into
-           high-dimensional vectors—numerical lists that capture meaning and relationships between concepts. 
-           These mathematical representations allow models to understand that "king/queen" share properties 
-           and "Paris/France" mirrors "Tokyo/Japan" through their transformer architecture, a neural network 
-           backbone that processes information through multiple layers of analysis. The attention mechanism 
-           enables the system to dynamically focus on relevant parts of input text when generating each word, 
-           maintaining context like humans tracking conversation threads, while calculating probability scores 
-           across the entire vocabulary for each word position based on processed context. Rather than retrieving
-            stored responses, models create novel text by selecting the most probable words given learned 
-            patterns, maintaining coherence across long passages while adapting to specific prompt nuances
-             through deep pattern recognition.  
-             **Self-Attention**: Each word creates three representations: Query (what it's looking for), Key (what
-              it offers), and Value (its actual content). For example, in "The cat sat on the mat," the word "cat" 
-              has a Query vector that searches for actions, a Key vector that advertises itself as a subject, and 
-              a Value vector containing its semantic meaning as an animal. The attention mechanism calculates how
-              much "cat" should focus on other words by comparing its Query with their Keys - finding high 
-              similarity with "sat" (the action) - then combines the corresponding Value vectors to create a
-               contextualized representation where "cat" now understands it's the one doing the sitting.
-             
-          - 📚 **Learning Resources**:
-             [LLM Training Example](https://github.com/vtempest/ai-research-agent/blob/master/packages/neural-net/src/train/predict-next-word.js),
-             [LangChain ReactAgent Tools](https://medium.com/@terrycho/how-langchain-agent-works-internally-trace-by-using-langsmith-df23766e7fb4),
-             [Hugging Face Tutorials](https://huggingface.co/learn), [OpenAI Cookbook](https://cookbook.openai.com),
-             [Transformer Overview](https://jalammar.github.io/illustrated-transformer/),
-             [Building Transformer Guide](https://www.datacamp.com/tutorial/building-a-transformer-with-py-torch),
-             [PyTorch Overview](https://www.learnpytorch.io/pytorch_cheatsheet/)
-             
-          ### 👄  Language Intelligence Providers (LIPs)
 
-            | 👄 Provider | 🤖 Model Families | 📚 Docs | 🔑 Keys | 💰 Valuation | 💸 Revenue (2024) | 💲 Cost (1M Output) |
-            | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
-            | **Google** | Gemini | [Docs](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models) | [Keys](https://cloud.google.com/vertex-ai/generative-ai/docs/start/express-mode/overview#api-keys) | - | ~$400M | \$10.00 |
-            | **Anthropic** | Claude Sonnet, Claude Opus, Claude Haiku | [Docs](https://docs.anthropic.com/en/docs/welcome) | [Keys](https://console.anthropic.com/settings/keys) | \$61.5B | \$1B | \$15.00 |
-            | **OpenAI** | o1, o1-mini, o4, o4-mini, gpt-4, gpt-4-turbo, gpt-4-omni | [Docs](https://platform.openai.com/docs/overview) | [Keys](https://platform.openai.com/api-keys) | \$300B | \$3.7B | \$8.00 |
-            | **Groq** | Llama, DeepSeek, Gemini, Mistral | [Docs](https://console.groq.com/docs/overview) | [Keys](https://console.groq.com/keys) | \$2.8B | - | \$0.79 |
-            | **XAI** | Grok, Grok Vision | [Docs](https://docs.x.ai/docs#models) | [Keys](https://console.x.ai/) | \$80B | \$100M | \$15.00 |
-            | **Perplexity** | Sonar, Sonar Deep Research | [Docs](https://docs.perplexity.ai/models/model-cards) | [Keys](https://www.perplexity.ai/account/api/keys) | \$18B | \$20M | \$15.00 |
-            | **Cloudflare** | Llama, Gemma, Mistral, Phi, Qwen, DeepSeek, Hermes, SQL Coder, Code Llama | [Docs](https://developers.cloudflare.com/workers-ai/) | [Keys](https://dash.cloudflare.com/profile/api-tokens) | \$62.3B | \$1.67B | \$2.25 |
-            | **Ollama** | llama, mistral, mixtral, vicuna, gemma, qwen, deepseek, openchat, openhermes, codelama, codegemma, llava, minicpm, wizardcoder, wizardmath, meditrion, falcon | [Docs](https://ollama.com/docs) | [Keys](https://ollama.com/settings/keys) | - | \$3.2M | \$0 |
-            | **TogetherAI** | Llama, Mistral, Mixtral, Qwen, Gemma, WizardLM, DBRX, DeepSeek, Hermes, SOLAR, StripedHyena | [Docs](https://docs.together.ai/docs/quickstart) | [Keys](https://api.together.xyz/settings/api-keys) | \$3.3B | \$50M | \$0.90 |
+        - ❓ **Inputs**: 👄 Language Intelligence Provider, 🔑 API Key,  🤖 agent template name, 🧠 model name and options,
+          and 🆎 context variables for that agent
+        - 🤖 **Agent Instruction Templates**: [LangHub](https://smith.langchain.com/hub) template or custom: 
+          question(query, chat_history), summarize-bullets(article), summarize(article), 
+          suggest-followups(chat_history, article), answer-cite-sources(context, chat_history, query),
+          query-resolution(chat_history, query), knowledge-graph-nodes(query, article), 
+          summary-longtext(summaries)
+        - 🧠 **How Language Models Work**: Language models learn from billions of text examples to 
+        identify statistical patterns and structures across diverse sources, converting words into
+         high-dimensional vectors—numerical lists that capture meaning and relationships between concepts. 
+         These mathematical representations allow models to understand that "king/queen" share properties 
+         and "Paris/France" mirrors "Tokyo/Japan" through their transformer architecture, a neural network 
+         backbone that processes information through multiple layers of analysis. The attention mechanism 
+         enables the system to dynamically focus on relevant parts of input text when generating each word, 
+         maintaining context like humans tracking conversation threads, while calculating probability scores 
+         across the entire vocabulary for each word position based on processed context. Rather than retrieving
+          stored responses, models create novel text by selecting the most probable words given learned 
+          patterns, maintaining coherence across long passages while adapting to specific prompt nuances
+           through deep pattern recognition.  
+           **Self-Attention**: Each word creates three representations: Query (what it's looking for), Key (what
+            it offers), and Value (its actual content). For example, in "The cat sat on the mat," the word "cat" 
+            has a Query vector that searches for actions, a Key vector that advertises itself as a subject, and 
+            a Value vector containing its semantic meaning as an animal. The attention mechanism calculates how
+            much "cat" should focus on other words by comparing its Query with their Keys - finding high 
+            similarity with "sat" (the action) - then combines the corresponding Value vectors to create a
+             contextualized representation where "cat" now understands it's the one doing the sitting.
+           
+        - 📚 **Learning Resources**:
+           [LLM Training Example](https://github.com/vtempest/ai-research-agent/blob/master/packages/neural-net/src/train/predict-next-word.js),
+           [LangChain ReactAgent Tools](https://medium.com/@terrycho/how-langchain-agent-works-internally-trace-by-using-langsmith-df23766e7fb4),
+           [Hugging Face Tutorials](https://huggingface.co/learn), [OpenAI Cookbook](https://cookbook.openai.com),
+           [Transformer Overview](https://jalammar.github.io/illustrated-transformer/),
+           [Building Transformer Guide](https://www.datacamp.com/tutorial/building-a-transformer-with-py-torch),
+           [PyTorch Overview](https://www.learnpytorch.io/pytorch_cheatsheet/)
+           
+        ### 👄  Language Intelligence Providers (LIPs)
 
-          ![how_transformer_works](https://i.imgur.com/l0BvtlG.jpeg)
-          ![agent_arch_viz](https://i.imgur.com/bailW5n.gif)
-          ![agent_arch_viz2](https://i.imgur.com/uW6E9VJ.gif)
+        | Provider | 🌍 | Top Model (Others) | 🏆 Benchmarks | 📄 Docs | 🔑 Keys | 💰 Funding |
+        |---|---|---|---|---|---|---|
+        | **Anthropic** | 🇺🇸 | Claude Mythos / Opus 4.7 (Sonnet, Haiku) | 🥇 GPQA Diamond 94.6% · 🥇 SWE-bench 93.9% · 🧬 PhD reasoning | [Docs](https://docs.anthropic.com/en/docs/welcome) | [Keys](https://console.anthropic.com/settings/keys) | ~$60B |
+        | **OpenAI** | 🇺🇸 | GPT-5.2 / o3 / Codex (o1, o4, o4-mini, gpt-4o) | 🥇 AIME 2025 100% · 🥇 SWE-bench Pro · 📚 MMLU-Pro 90% | [Docs](https://platform.openai.com/docs/overview) | [Keys](https://platform.openai.com/api-keys) | ~$180B |
+        | **Google Gemini** | 🇺🇸 | Gemini 3.1 Pro (Flash, Flash-Lite, Gemma) | 🥇 GPQA 94.1% · 🥇 LiveCodeBench Elo 2439 · 🌐 #1 in 6/13 Vals | [Docs](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models) | [Keys](https://cloud.google.com/vertex-ai/generative-ai/docs/start/express-mode/overview#api-keys) | Public |
+        | **xAI** | 🇺🇸 | Grok-4 Heavy (Grok-3, Grok Vision) | 🥇 AIME 2025 100% · 🧮 Math competition · ⚡ X integration | [Docs](https://docs.x.ai/docs#models) | [Keys](https://console.x.ai/) | ~$45B |
+        | **Meta** | 🇺🇸 | Llama 4 Maverick / Scout (Llama 3.x, CodeLlama) | 🥇 DocVQA 94.4% · 🥇 10M token context · 📊 ChartQA 90% | [Docs](https://www.llama.com/docs/overview/) | [Keys](https://www.llama.com/llama-downloads/) | Public |
+        | **NVIDIA** | 🇺🇸 | Nemotron-Cascade 2 (Llama Nemotron, Minitron) | 🥇 LCB v6 87.2% · 🏅 IMO+IOI+ICPC gold · 🧮 AIME 98.6% | [Docs](https://docs.api.nvidia.com/nim/reference/llm-apis) | [Keys](https://build.nvidia.com/settings/api-keys) | Public |
+        | **Perplexity AI** | 🇺🇸 | Sonar Reasoning Pro (Sonar, Sonar Deep Research) | 🥇 Search Arena · 🔍 #1 web-grounded QA · 🌐 Real-time retrieval | [Docs](https://docs.perplexity.ai/models/model-cards) | [Keys](https://www.perplexity.ai/account/api/keys) | ~$1B |
+        | **Groq** | 🇺🇸 | (Llama, DeepSeek, Gemma, Mistral, Qwen) | ⚡ #1 inference speed · 🏎️ Fastest TTFT · 🔧 LPU hardware | [Docs](https://console.groq.com/docs/overview) | [Keys](https://console.groq.com/keys) | ~$640M |
+        | **Mistral AI** | 🇫🇷 | Mistral Large 3 (Small 4, Codestral, Devstral, Pixtral) | 🥈 Arena Elo 1418 · 🌍 Multilingual MMLU 85.5% · 🚀 Fastest TTFT | [Docs](https://docs.mistral.ai/) | [Keys](https://console.mistral.ai/api-keys/) | ~$3.1B |
+        | **Together AI** | 🇺🇸 | (Llama, Mistral, Qwen, Gemma, DeepSeek, Hermes) | 🏗️ Widest open hosting · 💸 Best open-source pricing · 🔧 Fine-tuning | [Docs](https://docs.together.ai/docs/quickstart) | [Keys](https://api.together.xyz/settings/api-keys) | ~$225M |
+        | **Moonshot AI (Kimi)** | 🇨🇳 | Kimi K2.5 Reasoning (K2.6, K2) | 🥇 AIME open 96.1% · 🥇 MATH-500 98% · 🥇 HumanEval 99% | [Docs](https://platform.moonshot.cn/docs) | [Keys](https://platform.moonshot.cn/console/api-keys) | ~$3.9B |
+        | **Zhipu AI (GLM)** | 🇨🇳 | GLM-5 Reasoning / GLM-4.7 (GLM-4V, CogView) | 🥇 Chatbot Arena Elo 1451 · 🥇 MMLU 96% · 🧮 AIME 95.7% | [Docs](https://bigmodel.cn/dev/api) | [Keys](https://bigmodel.cn/usercenter/apikeys) | ~$1.8B |
+        | **Alibaba (Qwen)** | 🇨🇳 | Qwen3-Coder / Qwen3-235B (QwQ, Qwen-VL, Qwen-Audio) | 🥇 Codeforces Elo 2056 · 💻 SWE-bench 69.6% · 🏎️ LCB 70.7% | [Docs](https://www.alibabacloud.com/help/en/model-studio/developer-reference/use-qwen-by-calling-api) | [Keys](https://bailian.console.aliyun.com/?apiKey=1) | Public |
+        | **DeepSeek** | 🇨🇳 | DeepSeek V3.2 / R1 (DeepSeek-Coder, DeepSeek-VL) | 🥇 IMO gold (open) · 📚 MMLU-Pro 81.2 · 🧮 AIME 87.5% | [Docs](https://api-docs.deepseek.com/) | [Keys](https://platform.deepseek.com/api_keys) | Bootstrapped |
+        | **Cloudflare** | 🇺🇸 | (Llama, Gemma, Mistral, Phi, Qwen, DeepSeek) | 🌐 Edge inference · ⚡ Serverless CDN scale · 🔒 Privacy-first | [Docs](https://developers.cloudflare.com/workers-ai/) | [Keys](https://dash.cloudflare.com/profile/api-tokens) | Public |
+        | **Ollama** | 🇺🇸 | (Llama, Mistral, Gemma, Qwen, DeepSeek, CodeLlama, LLaVA, Phi) | 🖥️ #1 local inference · 🔒 Fully offline · 🆓 Free self-hosted | [Docs](https://ollama.com/docs) | [Keys](https://ollama.com/settings/keys) | ~$20M |
+
+        ![how_transformer_works](https://i.imgur.com/l0BvtlG.jpeg)
+        ![agent_arch_viz](https://i.imgur.com/bailW5n.gif)
+        ![agent_arch_viz2](https://i.imgur.com/uW6E9VJ.gif)
       requestBody:
         required: true
         content:
@@ -374,7 +381,7 @@ paths:
                   description: (context for some agents) Article to summarize
 
       responses:
-        '200':
+        "200":
           description: Generated language model response (in HTML or Markdown)
           content:
             application/json:
@@ -387,7 +394,7 @@ paths:
                   extact:
                     type: object
                     description: Structured JSON extract from response, in some agents
-        '500':
+        "500":
           description: Server error or missing prompt parameter
           content:
             application/json:
@@ -415,12 +422,11 @@ paths:
         from the past day, week, month, or year), language, and page number.
         The API returns a structured list of results, each including a title, URL, snippet, domain, and other useful details, making it easy to display or analyze the information. This flexible and robust search tool is ideal for apps, research projects, and any situation where up-to-date, diverse web data is needed. 
         [Searxng Overview](https://medium.com/@elmo92/search-in-peace-with-searxng-an-alternative-search-engine-that-keeps-your-searches-private-accd8cddd6fc)
-        
+
         **Web Search Stats**: 
         Google processses 90% of Web Search, 13.6 billion searches every day—almost 5 trillion per year.
         Its search index exceeds 100,000,000 GB and covers 130 trillion pages.
         Ranking uses over 200 factors, including keyword relevance, backlinks, page speed, and user experience; the top organic result gets about 22% of clicks, and ads allow monetizing keyword traffic.
-
 
       parameters:
         - name: q
@@ -486,7 +492,7 @@ paths:
             type: string
             default: en-US
       responses:
-        '200':
+        "200":
           description: A list of search results
           content:
             application/json:
@@ -519,8 +525,8 @@ paths:
                         engines:
                           type: string
                           description: Engines used to find the search result
-                          
-        '400':
+
+        "400":
           description: Missing required query parameter `q`
           content:
             application/json:
@@ -529,7 +535,7 @@ paths:
                 properties:
                   error:
                     type: string
-        '500':
+        "500":
           description: Server error when fetching search results
           content:
             application/json:
@@ -538,7 +544,6 @@ paths:
                 properties:
                   error:
                     type: string
-
 
 components:
   schemas:

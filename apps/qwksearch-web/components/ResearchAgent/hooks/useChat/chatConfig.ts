@@ -8,7 +8,7 @@
 import { toast } from "sonner";
 import grab from "grab-url";
 import { MinimalProvider } from "ai-research-agent/models/types";
-import { ChatModelProvider } from "./types";
+import { ChatModelProvider } from "@/types/chat";
 
 /**
  * Initializes and validates the chat model configuration.

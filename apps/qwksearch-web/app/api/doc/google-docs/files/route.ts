@@ -5,68 +5,66 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { google } from "googleapis";
 import { getEnv } from "@/lib/env";
 
-// Helper to get authenticated Google Drive client
-async function getAuthenticatedDriveClient(
-  accessToken: string,
-  refreshToken?: string,
-): Promise<{ drive: any; oauth2Client: InstanceType<typeof google.auth.OAuth2> }> {
-  const oauth2Client = new google.auth.OAuth2(
-    getEnv("GOOGLE_CLIENT_ID")!,
-    getEnv("GOOGLE_CLIENT_SECRET")!,
-    getEnv("GOOGLE_REDIRECT_URI") ||
-      "https://qwksearch.com/api/google-docs/callback",
-  );
+const DRIVE_BASE = "https://www.googleapis.com/drive/v3";
+const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
-  oauth2Client.setCredentials({
-    access_token: accessToken,
-    refresh_token: refreshToken,
+async function refreshAccessToken(refreshToken: string): Promise<string> {
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: getEnv("GOOGLE_CLIENT_ID")!,
+      client_secret: getEnv("GOOGLE_CLIENT_SECRET")!,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }).toString(),
   });
-
-  const drive = google.drive({ version: "v3", auth: oauth2Client });
-
-  return { drive, oauth2Client };
+  if (!res.ok) {
+    const text = await res.text();
+    const err: any = new Error(text || "invalid_grant");
+    err.code = 401;
+    throw err;
+  }
+  const data = (await res.json()) as { access_token: string };
+  return data.access_token;
 }
 
-// Helper to export Google Docs to different formats
-async function exportGoogleDoc(
-  drive: any,
-  fileId: string,
-  mimeType: string,
-): Promise<Buffer> {
-  const exportMimeType = mimeType.includes("document")
-    ? "text/plain"
-    : mimeType.includes("spreadsheet")
-      ? "text/csv"
-      : mimeType.includes("presentation")
-        ? "text/plain"
-        : "text/plain";
-
-  const response = await drive.files.export(
-    {
-      fileId,
-      mimeType: exportMimeType,
-    },
-    { responseType: "arraybuffer" },
-  );
-
-  return Buffer.from(response.data);
+async function driveRequest(
+  url: string,
+  tokenRef: { token: string; refresh?: string; refreshed: boolean },
+): Promise<Response> {
+  let res = await fetch(url, {
+    headers: { Authorization: `Bearer ${tokenRef.token}` },
+  });
+  if (res.status === 401 && tokenRef.refresh) {
+    tokenRef.token = await refreshAccessToken(tokenRef.refresh);
+    tokenRef.refreshed = true;
+    res = await fetch(url, {
+      headers: { Authorization: `Bearer ${tokenRef.token}` },
+    });
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    const err: any = new Error(text || `Request failed: ${res.status}`);
+    err.code = res.status;
+    throw err;
+  }
+  return res;
 }
 
-// GET /api/google-docs/files?fileId=xxx - Fetch file content from Google Drive
+function pickExportMime(mimeType: string): string {
+  if (mimeType.includes("spreadsheet")) return "text/csv";
+  return "text/plain";
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const fileId = searchParams.get("fileId");
-
+    const fileId = request.nextUrl.searchParams.get("fileId");
     if (!fileId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "fileId parameter is required",
-        },
+        { success: false, error: "fileId parameter is required" },
         { status: 400 },
       );
     }
@@ -77,52 +75,41 @@ export async function GET(request: NextRequest) {
 
     if (!accessToken) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Not authenticated with Google Drive",
-        },
+        { success: false, error: "Not authenticated with Google Drive" },
         { status: 401 },
       );
     }
 
-    const { drive, oauth2Client } = await getAuthenticatedDriveClient(
-      accessToken,
-      refreshToken,
-    );
+    const tokenRef = { token: accessToken, refresh: refreshToken, refreshed: false };
 
-    // Get file metadata
-    const fileMetadata = await drive.files.get({
-      fileId,
-      fields: "id, name, mimeType, size, modifiedTime, webViewLink",
-    });
+    const metaUrl = `${DRIVE_BASE}/files/${encodeURIComponent(fileId)}?fields=${encodeURIComponent("id,name,mimeType,size,modifiedTime,webViewLink")}`;
+    const metaRes = await driveRequest(metaUrl, tokenRef);
+    const file = (await metaRes.json()) as {
+      id?: string;
+      name?: string;
+      mimeType?: string;
+      size?: string;
+      modifiedTime?: string;
+      webViewLink?: string;
+    };
 
-    const file = fileMetadata.data;
-    let content: Buffer;
-
-    // Check if it's a Google Workspace file (needs to be exported)
+    let contentBuf: ArrayBuffer;
     if (file.mimeType?.startsWith("application/vnd.google-apps")) {
-      content = await exportGoogleDoc(drive, fileId, file.mimeType);
+      const exportUrl = `${DRIVE_BASE}/files/${encodeURIComponent(fileId)}/export?mimeType=${encodeURIComponent(pickExportMime(file.mimeType))}`;
+      const res = await driveRequest(exportUrl, tokenRef);
+      contentBuf = await res.arrayBuffer();
     } else {
-      // Regular file - download directly
-      const response = await drive.files.get(
-        {
-          fileId,
-          alt: "media",
-        },
-        { responseType: "arraybuffer" },
-      );
-      content = Buffer.from(response.data);
+      const dlUrl = `${DRIVE_BASE}/files/${encodeURIComponent(fileId)}?alt=media`;
+      const res = await driveRequest(dlUrl, tokenRef);
+      contentBuf = await res.arrayBuffer();
     }
 
-    // Check if token was refreshed
-    const credentials = oauth2Client.credentials;
-    if (credentials.access_token !== accessToken) {
-      // Token was refreshed, update cookie
-      cookieStore.set("google_access_token", credentials.access_token!, {
+    if (tokenRef.refreshed) {
+      cookieStore.set("google_access_token", tokenRef.token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 7,
       });
     }
 
@@ -135,13 +122,12 @@ export async function GET(request: NextRequest) {
         size: file.size,
         modifiedTime: file.modifiedTime,
         webViewLink: file.webViewLink,
-        content: content.toString("base64"),
+        content: Buffer.from(contentBuf).toString("base64"),
       },
     });
   } catch (error: any) {
     console.error("Error fetching Google Drive file:", error);
 
-    // Check if it's an authentication error
     if (error.code === 401 || error.message?.includes("invalid_grant")) {
       return NextResponse.json(
         {
@@ -153,8 +139,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Google Drive returns 404 when the file doesn't exist or the token scope
-    // doesn't cover it (drive.file scope limitation)
     if (error.code === 404 || error.message?.includes("File not found")) {
       return NextResponse.json(
         {
@@ -166,10 +150,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to fetch file from Google Drive",
-      },
+      { success: false, error: error.message || "Failed to fetch file from Google Drive" },
       { status: 500 },
     );
   }

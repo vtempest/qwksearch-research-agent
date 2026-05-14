@@ -3,8 +3,7 @@
  */
 
 export function setDomHiddenUntilFound(dom: HTMLElement): void {
-  // @ts-expect-error
-  dom.hidden = "until-found";
+  (dom as HTMLElement & { hidden: string }).hidden = "until-found";
 }
 
 export function domOnBeforeMatch(dom: HTMLElement, callback: () => void): void {

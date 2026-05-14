@@ -20,17 +20,19 @@ const UpdateProvider = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [config, setConfig] = useState<Record<string, any>>({});
-  const [name, setName] = useState(modelProvider.name);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const config: Record<string, any> = {
-      name: modelProvider.name,
-    };
+    const config: Record<string, any> = {};
 
     fields.forEach((field) => {
-      config[field.key] =
-        modelProvider.config[field.key] || field.default || '';
+      // Don't pre-fill password fields for env-based providers — let users provide their own key
+      if (field.type === 'password' && modelProvider.isEnvBased) {
+        config[field.key] = '';
+      } else {
+        config[field.key] =
+          modelProvider.config[field.key] || field.default || '';
+      }
     });
 
     setConfig(config);
@@ -40,12 +42,21 @@ const UpdateProvider = ({
     e.preventDefault();
     setLoading(true);
     try {
+      // For env-based providers, fall back to the original stored value for empty password fields
+      const resolvedConfig = { ...config };
+      if (modelProvider.isEnvBased) {
+        fields.forEach((field) => {
+          if (field.type === 'password' && !resolvedConfig[field.key]) {
+            resolvedConfig[field.key] = modelProvider.config[field.key];
+          }
+        });
+      }
+
       const data: ConfigModelProvider = (
         await grab(`agent/providers/${modelProvider.id}`, {
           method: 'PATCH',
           body: {
-            name: name,
-            config: config,
+            config: resolvedConfig,
           },
         })
       ).provider;
@@ -95,23 +106,6 @@ const UpdateProvider = ({
             <div className="border-t border-light-200 dark:border-dark-200" />
             <div className="flex-1 overflow-y-auto px-6 py-4">
               <div className="flex flex-col space-y-4">
-                <div
-                  key="name"
-                  className="flex flex-col items-start space-y-2"
-                >
-                  <label className="text-xs text-black/70 dark:text-white/70">
-                    Connection Name*
-                  </label>
-                  <input
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    className="w-full rounded-lg border border-light-200 dark:border-dark-200 bg-light-primary dark:bg-dark-primary px-4 py-3 pr-10 text-sm text-black/80 dark:text-white/80 placeholder:text-black/40 dark:placeholder:text-white/40 focus-visible:outline-none focus-visible:border-light-300 dark:focus-visible:border-dark-300 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                    placeholder={'Connection Name'}
-                    type="text"
-                    required={true}
-                  />
-                </div>
-
                 {fields.map((field: UIConfigField) => (
                   <div
                     key={field.key}

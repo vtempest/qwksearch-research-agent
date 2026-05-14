@@ -8,8 +8,8 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import { ChatTurn, Message } from '@/components/ResearchAgent/ChatConversation/ChatWindow';
-import { ChatFile, ChatModelProvider, Section } from './types';
+import { ChatTurn, Message } from '@/components/ResearchAgent/components/ChatConversation/ChatWindow';
+import { ChatFile, ChatModelProvider, Section } from '@/types/chat';
 
 /**
  * The value provided by the ChatContext.

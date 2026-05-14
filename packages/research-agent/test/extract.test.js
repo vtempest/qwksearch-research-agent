@@ -1,9 +1,10 @@
 import { test, expect } from "vitest";
-import { convertYoutubeToText } from "../src/extractor/url-to-content/youtube-to-text";
-
+// import { convertYoutubeToText } from "../src/extractor/url-to-content/youtube-to-text";
+import { extractContent } from "../src/extractor/url-to-content/url-to-content";
 test("extract url", async () => {
   let urls = [
-    "https://www.youtube.com/watch?time_continue=4828&v=scDMh_32r9M&embeds_referring_euri=https%3A%2F%2Fdebate-ai.com%2F&source_ve_path=Mjg2NjY",
+    "https://www.independent.org/pdf/tir/tir_10_1_2_pennington.pdf",
+    // "https://www.youtube.com/watch?time_continue=4828&v=scDMh_32r9M&embeds_referring_euri=https%3A%2F%2Fdebate-ai.com%2F&source_ve_path=Mjg2NjY",
     // "https://www.cnn.com/2024/07/26/politics/video/kamala-harris-barack-michelle-obama-endorsement-president-ctm-ldn-digvid",
     // "https://iep.utm.edu/republic/",
     //   "https://www.technologyreview.com/2024/07/30/1095489/openai-has-released-a-new-chatgpt-bot-that-you-can-talk-to/",
@@ -12,7 +13,7 @@ test("extract url", async () => {
   ];
 
   for (var url of urls) {
-    var result = await convertYoutubeToText(url);
+    var result = await extractContent(url);
     console.log(result);
   }
 

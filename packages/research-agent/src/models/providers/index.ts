@@ -55,6 +55,11 @@ export const getModelProvidersUIConfigSection =
         name: "NVIDIA",
         fields: getNvidiaConfigFields(),
       },
+      {
+        key: "openrouter",
+        name: "OpenRouter",
+        fields: getOpenRouterConfigFields(),
+      },
     ];
   };
 
@@ -156,6 +161,32 @@ function getDeepSeekConfigFields() {
       required: true,
       placeholder: "DeepSeek API Key",
       env: "DEEPSEEK_API_KEY",
+      scope: "server" as const,
+    },
+  ];
+}
+
+function getOpenRouterConfigFields() {
+  return [
+    {
+      type: "password" as const,
+      name: "API Key",
+      key: "apiKey",
+      description: "Your OpenRouter API key (get one at openrouter.ai/keys)",
+      required: true,
+      placeholder: "sk-or-...",
+      env: "OPENROUTER_API_KEY",
+      scope: "server" as const,
+    },
+    {
+      type: "string" as const,
+      name: "Base URL",
+      key: "baseURL",
+      description: "The base URL for the OpenRouter API",
+      required: true,
+      placeholder: "https://openrouter.ai/api/v1",
+      default: "https://openrouter.ai/api/v1",
+      env: "OPENROUTER_BASE_URL",
       scope: "server" as const,
     },
   ];

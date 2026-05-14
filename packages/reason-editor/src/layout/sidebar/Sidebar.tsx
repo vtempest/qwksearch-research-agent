@@ -1,13 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
+import { lazy, Suspense, useState, useRef, useEffect } from 'react';
 import { DocumentTreeHandle } from '../../filetree/filetree';
 import { OutlineViewHandle } from '../../search/OutlineView';
 import { Sheet, SheetContent } from '../../ui/sheet';
 import { getFileSources } from '../../lib/file-sources/sources';
 import { AnyFileSource } from '../../types/fileSource';
-import { FileManagerModal } from '../../modals/FileManagerModal';
 import { SidebarToolbar } from './SidebarToolbar';
 import { SidebarContent } from './SidebarContent';
 import type { SidebarProps } from './types';
+
+const FileManagerModal = lazy(() =>
+  import('../../modals/FileManagerModal').then((m) => ({ default: m.FileManagerModal })),
+);
 
 export const Sidebar = ({
   documents,
@@ -58,7 +61,7 @@ export const Sidebar = ({
   });
 
   // File manager modal state
-  const [isFileManagerOpen, setIsFileManagerOpen] = useState(true);
+  const [isFileManagerOpen, setIsFileManagerOpen] = useState(false);
 
   // Update active source when activeFileSourceId changes
   useEffect(() => {
@@ -165,7 +168,11 @@ export const Sidebar = ({
                 headings={headings}
               />
             </div>
-            <FileManagerModal open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen} documents={activeDocuments} onSelectDocument={onSelect} />
+            {isFileManagerOpen && (
+              <Suspense fallback={null}>
+                <FileManagerModal open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen} documents={activeDocuments} onSelectDocument={onSelect} />
+              </Suspense>
+            )}
           </aside>
         </SheetContent>
       </Sheet>

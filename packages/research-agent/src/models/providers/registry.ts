@@ -10,6 +10,7 @@ import GeminiProvider from "./gemini";
 import GroqProvider from "./groq";
 import DeepSeekProvider from "./deepseek";
 import NvidiaProvider from "./nvidia";
+import OpenRouterProvider from "./openrouter";
 
 // Direct export of providers - no lazy loading needed with proper import structure
 export const providers: Record<string, ProviderConstructor<any>> = {
@@ -20,4 +21,5 @@ export const providers: Record<string, ProviderConstructor<any>> = {
   groq: GroqProvider,
   deepseek: DeepSeekProvider,
   nvidia: NvidiaProvider,
+  openrouter: OpenRouterProvider,
 };

@@ -149,6 +149,41 @@ const NAV_ITEMS = [
 
 function SettingsMenu({ side, onOpenSettings }: { side: "bottom" | "top"; onOpenSettings: () => void }) {
   const themeState = useThemeState()
+  const isMobile = useIsMobile()
+  const [themeExpanded, setThemeExpanded] = useState(false)
+
+  const themeList = (
+    <>
+      <DropdownMenuItem onSelect={(e) => { e.preventDefault(); themeState.toggleLightDark() }}>
+        {themeState.isDark ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
+        {themeState.isDark ? "Switch to Light" : "Switch to Dark"}
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      {themeNames.map((name) => {
+        const colors = themeColors[name]
+        return (
+          <DropdownMenuItem
+            key={name}
+            onClick={() => themeState.handleThemeChange(name)}
+            onMouseEnter={() => themeState.handleThemePreview(name)}
+            onMouseLeave={() => themeState.handlePreviewEnd()}
+            className={cn("cursor-pointer", themeState.colorTheme === name && "bg-accent")}
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full border border-black/10" style={{ backgroundColor: colors.primary }} />
+                  <div className="w-3 h-3 rounded-full border border-black/10" style={{ backgroundColor: colors.secondary }} />
+                </div>
+                <span>{formatThemeName(name)}</span>
+              </div>
+              {themeState.colorTheme === name && <span className="text-xs">✓</span>}
+            </div>
+          </DropdownMenuItem>
+        )
+      })}
+    </>
+  )
 
   return (
     <DropdownMenuContent side={side} align="end" className="w-48">
@@ -156,42 +191,36 @@ function SettingsMenu({ side, onOpenSettings }: { side: "bottom" | "top"; onOpen
         {themeState.isDark ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
         {themeState.isDark ? "Dark Mode" : "Light Mode"}
       </DropdownMenuItem>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger>
-          <Palette className="mr-2 h-4 w-4" />
-          Theme
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent className="w-56 max-h-[min(400px,70vh)] overflow-y-auto" collisionPadding={8} avoidCollisions>
-          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); themeState.toggleLightDark() }}>
-            {themeState.isDark ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
-            {themeState.isDark ? "Switch to Light" : "Switch to Dark"}
+
+      {isMobile ? (
+        <>
+          <DropdownMenuItem
+            onSelect={(e) => { e.preventDefault(); setThemeExpanded(v => !v) }}
+            className="justify-between"
+          >
+            <span className="flex items-center">
+              <Palette className="mr-2 h-4 w-4" />
+              Theme
+            </span>
+            <ChevronRight className={cn("h-4 w-4 transition-transform", themeExpanded && "rotate-90")} />
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {themeNames.map((name) => {
-            const colors = themeColors[name]
-            return (
-              <DropdownMenuItem
-                key={name}
-                onClick={() => themeState.handleThemeChange(name)}
-                onMouseEnter={() => themeState.handleThemePreview(name)}
-                onMouseLeave={() => themeState.handlePreviewEnd()}
-                className={cn("cursor-pointer", themeState.colorTheme === name && "bg-accent")}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full border border-black/10" style={{ backgroundColor: colors.primary }} />
-                      <div className="w-3 h-3 rounded-full border border-black/10" style={{ backgroundColor: colors.secondary }} />
-                    </div>
-                    <span>{formatThemeName(name)}</span>
-                  </div>
-                  {themeState.colorTheme === name && <span className="text-xs">✓</span>}
-                </div>
-              </DropdownMenuItem>
-            )
-          })}
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
+          {themeExpanded && (
+            <div className="max-h-[40vh] overflow-y-auto border-l-2 border-border ml-2 pl-1">
+              {themeList}
+            </div>
+          )}
+        </>
+      ) : (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Palette className="mr-2 h-4 w-4" />
+            Theme
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-56 max-h-[min(400px,70vh)] overflow-y-auto" collisionPadding={8} avoidCollisions>
+            {themeList}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      )}
       <DropdownMenuSeparator />
       <DropdownMenuItem onSelect={onOpenSettings}>
         <Settings className="mr-2 h-4 w-4" />

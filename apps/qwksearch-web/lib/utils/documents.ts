@@ -17,8 +17,6 @@ function htmlToText(html: string): string {
     .trim();
 }
 import { Document } from '@langchain/core/documents';
-// @ts-ignore
-// const pdfParse = require('pdf-parse');
 
 export const getDocumentsFromLinks = async ({ links }: { links: string[] }) => {
   const splitter = new RecursiveCharacterTextSplitter();
@@ -36,32 +34,6 @@ export const getDocumentsFromLinks = async ({ links }: { links: string[] }) => {
         const res = await axios.get(link, {
           responseType: 'arraybuffer',
         });
-
-        const isPdf = res.headers['content-type'] === 'application/pdf';
-
-        // if (isPdf) {
-        //   const pdfText = await pdfParse(res.data);
-        //   const parsedText = pdfText.text
-        //     .replace(/(\r\n|\n|\r)/gm, ' ')
-        //     .replace(/\s+/g, ' ')
-        //     .trim();
-
-        //   const splittedText = await splitter.splitText(parsedText);
-        //   const title = 'PDF Document';
-
-        //   const linkDocs = splittedText.map((text) => {
-        //     return new Document({
-        //       pageContent: text,
-        //       metadata: {
-        //         title: title,
-        //         url: link,
-        //       },
-        //     });
-        //   });
-
-        //   docs.push(...linkDocs);
-        //   return;
-        // }
 
         const parsedText = htmlToText(res.data.toString('utf8'))
           .replace(/(\r\n|\n|\r)/gm, ' ')

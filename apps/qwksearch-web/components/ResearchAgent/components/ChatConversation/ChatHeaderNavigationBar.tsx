@@ -3,7 +3,7 @@ import { Message } from './ChatWindow';
 import { useEffect, useState } from 'react';
 import DeleteChat from '../MessageActions/DeleteChatSessionButton';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import jsPDF from 'jspdf';
+import { loadJsPDF } from '@/lib/utils/cdn-loader';
 import { useChat, Section } from '../hooks/useChat';
 import { useExtractPanel } from '../ArticleReader/ExtractPanelContext';
 
@@ -82,7 +82,8 @@ const exportAsMarkdown = (sections: Section[], title: string) => {
  * @param sections - The array of chat sections to export
  * @param title - The title for the PDF header and filename
  */
-const exportAsPDF = (sections: Section[], title: string) => {
+const exportAsPDF = async (sections: Section[], title: string) => {
+  const jsPDF = await loadJsPDF();
   const doc = new jsPDF();
   const date = new Date(
     sections[0]?.userMessage?.createdAt || Date.now(),

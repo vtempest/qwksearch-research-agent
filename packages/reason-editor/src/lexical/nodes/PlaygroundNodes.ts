@@ -19,7 +19,6 @@ import { CollapsibleTitleNode } from "../plugins/CollapsiblePlugin/CollapsibleTi
 import { AutocompleteNode } from "./AutocompleteNode";
 import { DateTimeNode } from "./DateTimeNode/DateTimeNode";
 import { EmojiNode } from "./EmojiNode";
-import { EquationNode } from "./EquationNode";
 import { ImageNode } from "./ImageNode";
 import { KeywordNode } from "./KeywordNode";
 import { LayoutContainerNode } from "./LayoutContainerNode";
@@ -52,7 +51,6 @@ const PlaygroundNodes: Array<Klass<LexicalNode>> = [
   ImageNode,
   MentionNode,
   EmojiNode,
-  EquationNode,
   AutocompleteNode,
   KeywordNode,
   HorizontalRuleNode,

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Upload, CloudIcon, FolderOpen, Loader2, Clock, Settings } from 'lucide-react';
+import { Upload, CloudIcon, FolderOpen, Loader2, Clock, SlidersHorizontal, Paperclip } from 'lucide-react';
 import grab from 'grab-url';
 import {
   DropdownMenu,
@@ -250,7 +250,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
               type="button"
               aria-label="Search options"
             >
-              <Settings className="w-5 h-5" />
+              <SlidersHorizontal className="w-5 h-5" />
             </button>
           </DropdownMenuTrigger>
 
@@ -369,6 +369,21 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
 
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#1F1E1D] dark:bg-[#EEEEEC] text-[11px] font-medium rounded-[6px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-sm tracking-wide">
           <span className="text-[#ECECEC] dark:text-[#1F1E1D]">Search options</span>
+        </div>
+      </div>
+
+      <div className="relative flex shrink min-w-8 !shrink-0 group">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={handleLocalFileUpload}
+          aria-label="Attach files"
+          className="inline-flex items-center justify-center relative shrink-0 transition-colors duration-200 h-8 w-8 rounded-lg active:scale-95 text-text-400 hover:text-text-200 hover:bg-bg-200 disabled:opacity-50 disabled:cursor-not-allowed group-active:scale-95"
+        >
+          <Paperclip className="w-5 h-5" />
+        </button>
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#1F1E1D] dark:bg-[#EEEEEC] text-[11px] font-medium rounded-[6px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-sm tracking-wide">
+          <span className="text-[#ECECEC] dark:text-[#1F1E1D]">Attach files</span>
         </div>
       </div>
 

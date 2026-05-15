@@ -39,7 +39,6 @@ import useModal from '../../hooks/useModal';
 import { EmbedConfigs } from '../AutoEmbedPlugin';
 import { INSERT_COLLAPSIBLE_COMMAND } from '../CollapsiblePlugin';
 import { INSERT_DATETIME_COMMAND } from '../DateTimePlugin';
-import { InsertEquationDialog } from '../EquationsPlugin';
 import { InsertImageDialog } from '../ImagesPlugin';
 import InsertLayoutDialog from '../LayoutPlugin/InsertLayoutDialog';
 import { INSERT_PAGE_BREAK } from '../PageBreakPlugin';
@@ -288,14 +287,6 @@ function getBaseOptions(editor: LexicalEditor, showModal: ShowModal) {
     //     editor.dispatchCommand(INSERT_DATETIME_COMMAND, { dateTime });
     //   },
     // }),
-    new ComponentPickerOption('Equation', {
-      icon: <Icon name="equation" />,
-      keywords: ['equation', 'latex', 'math'],
-      onSelect: () =>
-        showModal('Insert Equation', (onClose) => (
-          <InsertEquationDialog activeEditor={editor} onClose={onClose} />
-        )),
-    }),
     new ComponentPickerOption('Diagram', {
       icon: <Icon name="diagram-2" />,
       keywords: ['diagram', 'mermaid', 'flowchart', 'chart', 'graph'],

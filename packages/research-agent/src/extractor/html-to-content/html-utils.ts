@@ -3,53 +3,6 @@
  * @module research/extractor/html-to-content/html-utils
  * @description Research library module.
  */
-import katex from "katex";
-
-/**
- * Convert LaTex &lt;math&gt; equations found inside HTML
- * into easy-to-read SVG and HTML with [KaTex.js](https://katex.org).
- * @param {string} html html with  math Latex
- * @return {string} html with SVG of equations
- * @category HTML Utilities
- */
-export function convertMathLaTexToImage(html) {
-  try {
-    const replacedHtml = html.replace(
-      /<math>(.*?)<\/math>|\[document.*?\[\/document>/gs,
-      (match, p1) => {
-        const curlyBracesContent = p1.match(/{([^}]*)}(?!.*})/) ?? [];
-        const documentClassContent =
-          p1.match(/\[document.*?\[\/document>/gs) ?? [];
-
-        if (!curlyBracesContent && !documentClassContent) return match;
-
-        var equationFormula = curlyBracesContent[0] ?? documentClassContent[0];
-
-        equationFormula = equationFormula
-          ?.replace(/\\/g, "\\")
-          .replace(/\[documentclass.*?\[/g, "")
-          .replace(/\[\/document>/g, "")
-          .replace(/\[.+\]/g, "");
-
-        var htmlEquation = katex.renderToString(equationFormula, {
-          throwOnError: false,
-          output: "html",
-          displayMode: false,
-          strict: false,
-        });
-
-        return htmlEquation;
-      }
-    );
-
-    return replacedHtml;
-  } catch (e) {
-    console.log(e);
-    return html;
-  }
-  //TODO error on wikipedia
-}
-
 /**
  * Converts URL-safe escaped HTML codes like &"'`&rsquo; & to standard HTML or in reverse.
  * @param {string} str - The string to process.

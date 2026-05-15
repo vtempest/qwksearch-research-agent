@@ -19,6 +19,14 @@ export const authClient = createAuthClient({
   plugins: [
     oneTapClient({
       clientId: NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+      // better-auth's fedCM flag only covers sign-out; use_fedcm_for_prompt is required to skip the legacy /gsi/status XHR (CORS-blocks under credentials).
+      additionalOptions: {
+        use_fedcm_for_prompt: true,
+        itp_support: true,
+      },
+      promptOptions: {
+        fedCM: true,
+      },
     }),
     magicLinkClient(),
     cloudflareClient(),

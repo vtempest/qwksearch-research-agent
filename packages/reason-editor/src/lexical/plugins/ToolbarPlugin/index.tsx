@@ -88,7 +88,6 @@ import {
   TOGGLE_COMMENTS_PANEL_COMMAND
 } from '../CommentPlugin';
 import { INSERT_DATETIME_COMMAND } from '../DateTimePlugin';
-import { InsertEquationDialog } from '../EquationsPlugin';
 import { useAutoHighlight } from '../FloatingTextFormatToolbarPlugin/context/AutoHighlightContext';
 import { InsertImageDialog } from '../ImagesPlugin';
 import InsertLayoutDialog from '../LayoutPlugin/InsertLayoutDialog';
@@ -1457,19 +1456,6 @@ export default function ToolbarPlugin({
                   <span className="text">Columns</span>
                 </DropDownItem>
 
-                <DropDownItem
-                  onClick={() => {
-                    showModal('Insert Equation', (onClose) => (
-                      <InsertEquationDialog
-                        activeEditor={activeEditor}
-                        onClose={onClose}
-                      />
-                    ));
-                  }}
-                  className="item">
-                  <Icon name="equation" />
-                  <span className="text">Equation</span>
-                </DropDownItem>
                 <DropDownItem
                   onClick={() => {
                     editor.update(() => {

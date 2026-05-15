@@ -1,7 +1,6 @@
-import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Packer } from 'docx';
-import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import TurndownService from 'turndown';
+import { loadDocx, loadJsPDF } from '@/lib/utils/cdn-loader';
 
 /**
  * Convert HTML content to Markdown
@@ -19,16 +18,16 @@ export async function exportAsMarkdown(title: string, htmlContent: string): Prom
 }
 
 /**
- * Export content as DOCX using docx library
+ * Export content as DOCX using docx library (loaded from CDN)
  */
 export async function exportAsDocx(title: string, htmlContent: string): Promise<void> {
-  // Parse HTML and convert to docx elements
+  const { Document, Paragraph, TextRun, HeadingLevel, Packer } = await loadDocx();
+
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlContent, 'text/html');
 
-  const paragraphs: Paragraph[] = [];
+  const paragraphs: any[] = [];
 
-  // Add title
   paragraphs.push(
     new Paragraph({
       text: title,
@@ -37,7 +36,6 @@ export async function exportAsDocx(title: string, htmlContent: string): Promise<
     })
   );
 
-  // Convert HTML elements to docx paragraphs
   const processNode = (node: Node): void => {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent?.trim();
@@ -78,7 +76,7 @@ export async function exportAsDocx(title: string, htmlContent: string): Promise<
           );
           break;
         case 'p':
-          const children: TextRun[] = [];
+          const children: any[] = [];
           const processTextNode = (n: Node) => {
             if (n.nodeType === Node.TEXT_NODE) {
               children.push(new TextRun(n.textContent || ''));
@@ -114,7 +112,7 @@ export async function exportAsDocx(title: string, htmlContent: string): Promise<
           break;
         case 'ul':
         case 'ol':
-          element.querySelectorAll('li').forEach((li, index) => {
+          element.querySelectorAll('li').forEach((li) => {
             paragraphs.push(
               new Paragraph({
                 text: li.textContent || '',
@@ -138,7 +136,6 @@ export async function exportAsDocx(title: string, htmlContent: string): Promise<
           );
           break;
         default:
-          // Process child nodes for other elements
           element.childNodes.forEach(processNode);
       }
     }
@@ -146,7 +143,6 @@ export async function exportAsDocx(title: string, htmlContent: string): Promise<
 
   doc.body.childNodes.forEach(processNode);
 
-  // Create document
   const docxDocument = new Document({
     sections: [
       {
@@ -156,7 +152,6 @@ export async function exportAsDocx(title: string, htmlContent: string): Promise<
     ],
   });
 
-  // Generate and download
   const blob = await Packer.toBlob(docxDocument);
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -190,6 +185,7 @@ export async function exportAsPdf(title: string, htmlContent: string): Promise<v
   document.body.appendChild(container);
 
   try {
+    const jsPDF = await loadJsPDF();
     // Convert to canvas
     const canvas = await html2canvas(container, {
       scale: 2,

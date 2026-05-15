@@ -4,7 +4,6 @@ import { cn } from '../../lib/utils';
 import React, { useEffect, useState } from 'react';
 import hljs from 'highlight.js';
 import { useTheme } from 'next-themes';
-import { MermaidRenderer } from './mermaid-renderer';
 
 export type CodeBlockProps = {
   children?: React.ReactNode;
@@ -36,21 +35,14 @@ function CodeBlockCode({
 }: CodeBlockCodeProps) {
   const { resolvedTheme } = useTheme();
   const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
-  const [mermaidFailed, setMermaidFailed] = useState(false);
 
-  // Regular syntax highlighting effect
   useEffect(() => {
-    // Skip syntax highlighting for successful mermaid renders
-    if (language === 'mermaid' && !mermaidFailed) {
-      return;
-    }
-
     function highlight() {
       if (!code || typeof code !== 'string') {
         setHighlightedHtml(null);
         return;
       }
-      
+
       try {
         const lang = (language && hljs.getLanguage(language)) ? language : 'plaintext';
         const highlighted = hljs.highlight(code, { language: lang }).value;
@@ -60,21 +52,10 @@ function CodeBlockCode({
       }
     }
     highlight();
-  }, [code, language, resolvedTheme, mermaidFailed]);
+  }, [code, language, resolvedTheme]);
 
   const classNames = cn('[&_pre]:!bg-background/95 [&_pre]:rounded-2xl [&_pre]:p-4 [&_pre]:!overflow-x-auto [&_pre]:!w-px [&_pre]:!flex-grow [&_pre]:!min-w-0 [&_pre]:!box-border [&_.shiki]:!overflow-x-auto [&_.shiki]:!w-px [&_.shiki]:!flex-grow [&_.shiki]:!min-w-0 [&_code]:!min-w-0 [&_code]:!whitespace-pre', 'w-px flex-grow min-w-0 overflow-hidden flex w-full', className);
 
-  // Handle Mermaid rendering
-  if (language === 'mermaid' && !mermaidFailed) {
-    return (
-      <MermaidRenderer
-        chart={code}
-        className={className}
-      />
-    );
-  }
-
-  // Regular code rendering (including failed Mermaid)
   return highlightedHtml ? (
     <div
       className={classNames}

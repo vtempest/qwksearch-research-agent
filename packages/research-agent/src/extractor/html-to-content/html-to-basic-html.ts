@@ -6,7 +6,6 @@
 import {
   convertURLSafeHTMLToHTML,
   convertURLToAbsoluteURL,
-  convertMathLaTexToImage,
   convertMarkdownToHTML,
 } from "./html-utils";
 
@@ -42,7 +41,6 @@ export function convertHTMLToBasicHTML(html, options = {}) {
     formatting = true,
     url = "",
     openLinksNewWindow = false,
-    mathLatex = true,
     allowTags = "br,p,u,b,i,em,strong,h1,h2,h3,h4,h5,h6,blockquote,code,\
       ul,ol,li,dd,dl,table,th,tr,td,thead,tbody,sub,sup,math,iframe",
     allowedAttributes = "href,src,type,width,height,id,data,target",
@@ -123,8 +121,6 @@ export function convertHTMLToBasicHTML(html, options = {}) {
   //   /(["'])(?:(?!(?:\1|<)).)*?(?:<(?:(?!["'<>]).)*?>)?(?:(?!(?:\1|<)).)*?\1/gis;
   // if (reHTMLInsideDataAttr.test(html))
   //   html = html.replaceAll(reHTMLInsideDataAttr, "");
-
-  if (mathLatex) basicHtml = convertMathLaTexToImage(basicHtml);
 
   return basicHtml;
 }

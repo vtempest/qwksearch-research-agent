@@ -1,10 +1,15 @@
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+import bundleAnalyzer from "@next/bundle-analyzer";
 import path from "path";
 import { fileURLToPath } from "url";
 
 if (process.env.NODE_ENV === "development") {
   initOpenNextCloudflareForDev();
 }
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,7 +28,6 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   serverExternalPackages: [
-    "pdf-parse",
     "@libsql/isomorphic-ws",
     // Client-only packages pulled in via reason-editor (transpilePackages) — never run server-side
     "prettier",
@@ -82,4 +86,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

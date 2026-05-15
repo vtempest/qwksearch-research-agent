@@ -8,9 +8,6 @@ import Link from "next/link";
 import { Streamdown } from "streamdown";
 import { Check, Copy } from "lucide-react";
 import { cn } from "../../../lib/utils";
-// Mermaid commented out for now
-// import { MermaidRenderer } from "../../ui/mermaid-renderer";
-// import { extractMermaidDiagrams, isMermaidCode } from '@/lib/utils/mermaid';
 import { autoLinkUrls } from "../../../lib/utils/url-autolink";
 
 // Helper to check if a URL is internal (same origin)
@@ -263,18 +260,9 @@ export const UnifiedMarkdown = React.memo<UnifiedMarkdownProps>(
             // CODE - Clean, readable code styling with copy button
             // ═══════════════════════════════════════════════════════════════
             code: ({ children, className: codeClassName }) => {
-              const match = /language-(\w+)/.exec(codeClassName || "");
-              const language = match ? match[1] : "";
-              const code = String(children).replace(/\n$/, "");
               const isBlock = codeClassName?.includes("language-");
 
               if (isBlock) {
-                // Mermaid diagrams commented out
-                // if (isMermaidCode(language, code)) {
-                //   return <MermaidRenderer chart={code} className="my-5" />;
-                // }
-
-                // Block code inside pre - inherit styles
                 return (
                   <code className="text-[13px] leading-relaxed text-inherit">
                     {children}

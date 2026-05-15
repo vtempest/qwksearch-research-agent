@@ -1,5 +1,4 @@
-import { jsPDF } from "jspdf";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { loadDocx, loadJsPDF } from "./cdn-loader";
 
 export type ExportFormat = "pdf" | "docx" | "html" | "markdown";
 
@@ -36,9 +35,10 @@ export async function exportDocument({
 }
 
 /**
- * Export to PDF using jsPDF
+ * Export to PDF using jsPDF (loaded from CDN)
  */
 async function exportToPDF(htmlContent: string, fileName: string): Promise<void> {
+  const jsPDF = await loadJsPDF();
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -58,15 +58,17 @@ async function exportToPDF(htmlContent: string, fileName: string): Promise<void>
 }
 
 /**
- * Export to DOCX using docx library
+ * Export to DOCX using docx library (loaded from CDN)
  */
 async function exportToDocx(htmlContent: string, fileName: string): Promise<void> {
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await loadDocx();
+
   // Create a temporary div to parse HTML
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = htmlContent;
 
   // Convert HTML to docx paragraphs (simplified version)
-  const paragraphs: Paragraph[] = [];
+  const paragraphs: any[] = [];
 
   const processNode = (node: Node) => {
     if (node.nodeType === Node.TEXT_NODE) {

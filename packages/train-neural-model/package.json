@@ -14,5 +14,9 @@
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
     "usearch": "^2.17.1",
     "xgboost_node": "^0.4.0"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1",
+    "vite-plugin-dts": "^4.5.4"
   }
 }

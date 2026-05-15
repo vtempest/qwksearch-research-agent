@@ -6,6 +6,7 @@ import {
   UIConfigField,
 } from '../../../../lib/config/types';
 import MCPServerCard from './MCPServerCard';
+import ComposioConnectors from './ComposioConnectors';
 
 const MCPServers = ({
   fields,
@@ -70,6 +71,8 @@ const MCPServers = ({
           ))
         )}
       </div>
+      <div className="border-t border-light-200 dark:border-dark-200 mx-6" />
+      <ComposioConnectors />
     </div>
   );
 };

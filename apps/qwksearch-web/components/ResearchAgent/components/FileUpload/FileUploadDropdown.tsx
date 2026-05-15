@@ -5,7 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Upload, CloudIcon, FolderOpen, Loader2, Clock, SlidersHorizontal, Paperclip } from 'lucide-react';
+import { Upload, CloudIcon, FolderOpen, Loader2, Clock, SlidersHorizontal, Paperclip, History, Settings } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import grab from 'grab-url';
 import {
   DropdownMenu,
@@ -52,6 +53,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
   onFileSelect,
   disabled = false,
 }) => {
+  const router = useRouter();
   const { category, setCategory } = useChat();
   const selectedCodes = category ? category.split(',').filter(Boolean) : ['general'];
   const primaryCategory = categories.find((cat) => cat.code === selectedCodes[0]) || categories[0];
@@ -364,6 +366,18 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
                 )}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem onSelect={() => router.push('/library')} className="gap-2">
+              <History className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+              <span>History</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onSelect={() => router.push('/settings')} className="gap-2">
+              <Settings className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+              <span>Settings</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 

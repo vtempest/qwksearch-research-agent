@@ -6,11 +6,12 @@ import { NEXT_PUBLIC_GOOGLE_CLIENT_ID } from '@/lib/config/site';
 
 export default function GoogleOneTap() {
   const { isAuthenticated, isLoading } = useSession();
-  const triggeredRef = useRef(false);
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (isLoading || isAuthenticated || triggeredRef.current) return;
-    triggeredRef.current = true;
+    if (isLoading || isAuthenticated || startedRef.current) return;
+    if (!NEXT_PUBLIC_GOOGLE_CLIENT_ID) return;
+    startedRef.current = true;
 
     const initOneTap = () => {
       const g = window.google;

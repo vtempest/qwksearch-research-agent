@@ -191,11 +191,11 @@ export function EmojiPickerDialog({
 }): JSX.Element {
   const [editor] = useLexicalComposerContext();
 
-  // Dynamically import EmojiPicker to avoid SSR issues
+  // Dynamically import EmojiPicker from CDN to avoid SSR issues and skip the npm package
   const [EmojiPicker, setEmojiPicker] = useState<any>(null);
 
   useEffect(() => {
-    import('emoji-picker-react').then((mod) => {
+    import(/* @vite-ignore */ 'https://esm.sh/emoji-picker-react').then((mod) => {
       setEmojiPicker(() => mod.default);
     });
   }, []);

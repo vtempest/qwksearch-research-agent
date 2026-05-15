@@ -2,7 +2,7 @@
 
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-// import { ReasonDocs } from "reason-editor"
+import { ReasonDocs } from "reason-editor"
 import { useState, useEffect } from "react"
 
 export default function Page() {
@@ -23,7 +23,7 @@ export default function Page() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <div className="h-screen w-screen">
-          {/* <ReasonDocs /> */}
+          <ReasonDocs />
         </div>
       </TooltipProvider>
     </QueryClientProvider>

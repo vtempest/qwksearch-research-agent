@@ -1,20 +1,61 @@
-/**
- * React component that renders ChatInputBox within the ResearchAgent area of ResearchAgent.
- */
+"use client"
+
 import React, { useState, useRef, useEffect } from "react";
+import { Lightbulb, Globe } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { Icons } from "./MessageInputIconSet";
 import { FilePreviewCard } from "../FileUpload/FilePreviewCard";
 import { PastedContentCard } from "./PastedContentCard";
 import { useChat } from '@/components/ResearchAgent/hooks/useChat';
 import { useSpeechInput } from '@/components/ResearchAgent/hooks/voice/useSpeechToTranscript';
 import { useFileHandling } from '../FileUpload/useFileHandling';
-import { ActionBar } from './ActionBar';
+import FileUploadDropdown from '../FileUpload/FileUploadDropdown';
 import { LiveWaveform } from '@/components/ui/live-waveform';
+
+const PLACEHOLDERS = [
+  "What are you curious to research?",
+  "Search the latest news...",
+  "Analyze a document or URL...",
+  "Find academic research on...",
+  "Summarize this article",
+  "Compare and contrast...",
+];
+
+const placeholderContainerVariants = {
+  initial: {},
+  animate: { transition: { staggerChildren: 0.025 } },
+  exit: { transition: { staggerChildren: 0.015, staggerDirection: -1 } },
+};
+
+const letterVariants = {
+  initial: { opacity: 0, filter: "blur(12px)", y: 10 },
+  animate: {
+    opacity: 1,
+    filter: "blur(0px)",
+    y: 0,
+    transition: {
+      opacity: { duration: 0.25 },
+      filter: { duration: 0.4 },
+      y: { type: "spring" as const, stiffness: 80, damping: 20 },
+    },
+  },
+  exit: {
+    opacity: 0,
+    filter: "blur(12px)",
+    y: -10,
+    transition: {
+      opacity: { duration: 0.2 },
+      filter: { duration: 0.3 },
+      y: { type: "spring" as const, stiffness: 80, damping: 20 },
+    },
+  },
+};
 
 const ChatInputBox = () => {
     const { loading, sendMessage, stopStreaming, files: contextFiles, fileIds: contextFileIds, setFiles: setContextFiles, setFileIds: setContextFileIds } = useChat();
     const [message, setMessage] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
 
     const {
         files, setFiles,
@@ -53,7 +94,34 @@ const ChatInputBox = () => {
         }
     );
 
-    // Auto-resize textarea
+    const [placeholderIndex, setPlaceholderIndex] = useState(0);
+    const [showPlaceholder, setShowPlaceholder] = useState(true);
+    const [isActive, setIsActive] = useState(false);
+    const [thinkActive, setThinkActive] = useState(false);
+    const [deepSearchActive, setDeepSearchActive] = useState(false);
+
+    useEffect(() => {
+        if (isActive || message) return;
+        const interval = setInterval(() => {
+            setShowPlaceholder(false);
+            setTimeout(() => {
+                setPlaceholderIndex((prev) => (prev + 1) % PLACEHOLDERS.length);
+                setShowPlaceholder(true);
+            }, 400);
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [isActive, message]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+                if (!message) setIsActive(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [message]);
+
     useEffect(() => {
         if (textareaRef.current) {
             textareaRef.current.style.height = "auto";
@@ -76,6 +144,7 @@ const ChatInputBox = () => {
     };
 
     const hasContent = !!(message.trim() || files.length > 0 || pastedContent.length > 0);
+    const showExpanded = isActive || !!message;
 
     return (
         <div
@@ -84,33 +153,40 @@ const ChatInputBox = () => {
             onDragLeave={onDragLeave}
             onDrop={onDrop}
         >
-            {/* Main Container */}
-            <div className="!box-content flex flex-col mx-2 md:mx-0 items-stretch transition-all duration-200 relative z-10 rounded-2xl cursor-text border border-bg-300 dark:border-transparent shadow-[0_0_15px_rgba(0,0,0,0.08)] hover:shadow-[0_0_20px_rgba(0,0,0,0.12)] focus-within:shadow-[0_0_25px_rgba(0,0,0,0.15)] bg-white dark:bg-[#30302E] font-sans antialiased">
+            <motion.div
+                ref={wrapperRef}
+                className="!box-content flex flex-col mx-2 md:mx-0 items-stretch relative z-10 rounded-[28px] bg-white dark:bg-[#30302E] border border-bg-300 dark:border-transparent overflow-hidden cursor-text font-sans antialiased"
+                animate={{
+                    boxShadow: showExpanded
+                        ? "0 8px 32px 0 rgba(0,0,0,0.16)"
+                        : "0 2px 8px 0 rgba(0,0,0,0.08)",
+                }}
+                transition={{ type: "spring", stiffness: 120, damping: 18 }}
+                onClick={() => setIsActive(true)}
+            >
+                {/* Attachments */}
+                {(files.length > 0 || pastedContent.length > 0) && (
+                    <div className="flex gap-3 overflow-x-auto custom-scrollbar px-3 pt-3 pb-1">
+                        {pastedContent.map(content => (
+                            <PastedContentCard
+                                key={content.id}
+                                content={content}
+                                onRemove={id => setPastedContent(prev => prev.filter(c => c.id !== id))}
+                            />
+                        ))}
+                        {files.map(file => (
+                            <FilePreviewCard
+                                key={file.id}
+                                file={file}
+                                onRemove={id => setFiles(prev => prev.filter(f => f.id !== id))}
+                            />
+                        ))}
+                    </div>
+                )}
 
-                <div className="flex flex-col px-3 pt-3 gap-2 pb-2">
-
-                    {/* 1. Artifacts (Files & Pastes) */}
-                    {(files.length > 0 || pastedContent.length > 0) && (
-                        <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-2 px-1">
-                            {pastedContent.map(content => (
-                                <PastedContentCard
-                                    key={content.id}
-                                    content={content}
-                                    onRemove={id => setPastedContent(prev => prev.filter(c => c.id !== id))}
-                                />
-                            ))}
-                            {files.map(file => (
-                                <FilePreviewCard
-                                    key={file.id}
-                                    file={file}
-                                    onRemove={id => setFiles(prev => prev.filter(f => f.id !== id))}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    {/* 2. Waveform (visible when listening) */}
-                    {isListening && (
+                {/* Waveform */}
+                {isListening && (
+                    <div className="px-3 pt-2">
                         <LiveWaveform
                             active={isListening}
                             mode="static"
@@ -122,43 +198,170 @@ const ChatInputBox = () => {
                             sensitivity={1.2}
                             className="w-full rounded-lg"
                         />
-                    )}
+                    </div>
+                )}
 
-                    {/* 3. Input Area */}
-                    <div className="relative mb-1">
-                        <div className="max-h-96 w-full overflow-y-auto custom-scrollbar font-sans break-words transition-opacity duration-200 min-h-[2.5rem] pl-1">
+                {/* Input Row */}
+                <div className="flex items-center gap-2 p-3">
+                    {/* Settings dropdown + Paperclip (from FileUploadDropdown) */}
+                    <FileUploadDropdown
+                        onFileSelect={handleFiles}
+                        disabled={loading}
+                    />
+
+                    {/* Textarea with animated placeholder */}
+                    <div className="relative flex-1">
+                        <div className="max-h-96 w-full overflow-y-auto custom-scrollbar">
                             <textarea
                                 ref={textareaRef}
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 onPaste={handlePaste}
                                 onKeyDown={handleKeyDown}
-                                placeholder="What are you curious to research?"
-                                className="w-full bg-transparent border-0 outline-none text-text-100 text-[16px] placeholder:text-text-400 resize-none overflow-hidden py-0 leading-relaxed block font-normal antialiased"
+                                onFocus={() => setIsActive(true)}
+                                className="w-full bg-transparent border-0 outline-none text-text-100 text-[16px] resize-none overflow-hidden py-1 leading-relaxed block font-normal antialiased"
                                 rows={1}
                                 autoFocus
-                                style={{ minHeight: '1.5em' }}
+                                style={{ minHeight: "1.5em" }}
                             />
+                        </div>
+                        {/* Animated placeholder overlay */}
+                        <div className="absolute left-0 top-0 w-full h-full pointer-events-none flex items-center">
+                            <AnimatePresence mode="wait">
+                                {showPlaceholder && !isActive && !message && (
+                                    <motion.span
+                                        key={placeholderIndex}
+                                        className="absolute left-0 top-1/2 -translate-y-1/2 text-text-400 select-none pointer-events-none text-[16px] font-normal"
+                                        style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                                        variants={placeholderContainerVariants}
+                                        initial="initial"
+                                        animate="animate"
+                                        exit="exit"
+                                    >
+                                        {PLACEHOLDERS[placeholderIndex].split("").map((char, i) => (
+                                            <motion.span key={i} variants={letterVariants} style={{ display: "inline-block" }}>
+                                                {char === " " ? " " : char}
+                                            </motion.span>
+                                        ))}
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </div>
 
-                    {/* 4. Action Bar */}
-                    <ActionBar
-                        loading={loading}
-                        isListening={isListening}
-                        isSpeechSupported={isSpeechSupported}
-                        toggleSpeech={toggleSpeech}
-                        handleFiles={handleFiles}
-                        hasContent={hasContent}
-                        handleSend={handleSend}
-                        onStop={stopStreaming}
-                    />
+                    {/* Mic */}
+                    {isSpeechSupported && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); toggleSpeech(); }}
+                            disabled={loading}
+                            className={`transition-all duration-200 h-8 w-8 flex items-center justify-center rounded-full active:scale-95
+                                ${isListening
+                                    ? 'text-red-500 bg-red-500/10 animate-pulse'
+                                    : 'text-text-400 hover:text-text-200 hover:bg-bg-200'}
+                            `}
+                            aria-label={isListening ? "Stop listening" : "Voice input"}
+                        >
+                            <Icons.Mic className="w-5 h-5" />
+                        </button>
+                    )}
+
+                    {/* Send / Stop */}
+                    {loading ? (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); stopStreaming(); }}
+                            className="inline-flex items-center justify-center shrink-0 transition-colors h-8 w-8 rounded-full active:scale-95 bg-red-500 text-white hover:bg-red-600 shadow-md"
+                            type="button"
+                            aria-label="Stop generating"
+                        >
+                            <Icons.Stop className="w-3.5 h-3.5 fill-current" />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleSend(); }}
+                            disabled={!hasContent}
+                            className={`inline-flex items-center justify-center shrink-0 transition-all duration-200 h-8 w-8 rounded-full active:scale-95
+                                ${hasContent
+                                    ? 'bg-accent text-bg-0 hover:bg-accent-hover shadow-md'
+                                    : 'bg-bg-300 text-text-400 cursor-default opacity-50'}
+                            `}
+                            type="button"
+                            aria-label="Send message"
+                        >
+                            <Icons.ArrowUp className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
-            </div>
+
+                {/* Expanded Controls (Think + Deep Search) */}
+                <motion.div
+                    className="w-full flex justify-start px-4 items-center text-sm overflow-hidden"
+                    variants={{
+                        hidden: {
+                            opacity: 0,
+                            y: 16,
+                            height: 0,
+                            marginBottom: 0,
+                            pointerEvents: "none" as const,
+                            transition: { duration: 0.2 },
+                        },
+                        visible: {
+                            opacity: 1,
+                            y: 0,
+                            height: "auto",
+                            marginBottom: 10,
+                            pointerEvents: "auto" as const,
+                            transition: { duration: 0.3, delay: 0.08 },
+                        },
+                    }}
+                    initial="hidden"
+                    animate={showExpanded ? "visible" : "hidden"}
+                >
+                    <div className="flex gap-3 items-center">
+                        {/* Think toggle */}
+                        <button
+                            className={`flex items-center gap-1 px-4 py-2 rounded-full transition-all font-medium group ${
+                                thinkActive
+                                    ? "bg-blue-600/10 outline outline-blue-600/60 text-blue-950 dark:text-blue-300"
+                                    : "bg-bg-200 text-text-300 hover:bg-bg-300"
+                            }`}
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setThinkActive(a => !a); }}
+                        >
+                            <Lightbulb className="group-hover:fill-yellow-300 transition-all" size={18} />
+                            Think
+                        </button>
+
+                        {/* Deep Search toggle */}
+                        <motion.button
+                            className={`flex items-center px-4 gap-1 py-2 rounded-full transition font-medium whitespace-nowrap overflow-hidden justify-start ${
+                                deepSearchActive
+                                    ? "bg-blue-600/10 outline outline-blue-600/60 text-blue-950 dark:text-blue-300"
+                                    : "bg-bg-200 text-text-300 hover:bg-bg-300"
+                            }`}
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setDeepSearchActive(a => !a); }}
+                            initial={false}
+                            animate={{
+                                width: deepSearchActive ? 130 : 36,
+                                paddingLeft: deepSearchActive ? 8 : 9,
+                            }}
+                        >
+                            <div className="flex-1"><Globe size={18} /></div>
+                            <motion.span
+                                className="pb-[2px]"
+                                initial={false}
+                                animate={{ opacity: deepSearchActive ? 1 : 0 }}
+                            >
+                                Deep Search
+                            </motion.span>
+                        </motion.button>
+                    </div>
+                </motion.div>
+            </motion.div>
 
             {/* Drag Overlay */}
             {isDragging && (
-                <div className="absolute inset-0 bg-bg-200/90 border-2 border-dashed border-accent rounded-2xl z-50 flex flex-col items-center justify-center backdrop-blur-sm pointer-events-none">
+                <div className="absolute inset-0 bg-bg-200/90 border-2 border-dashed border-accent rounded-[28px] z-50 flex flex-col items-center justify-center backdrop-blur-sm pointer-events-none">
                     <Icons.Archive className="w-10 h-10 text-accent mb-2 animate-bounce" />
                     <p className="text-accent font-medium">Drop files to upload</p>
                 </div>

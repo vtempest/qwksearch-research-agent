@@ -1,6 +1,6 @@
 /**
  * @fileoverview Document upload dialog for importing documents from Google Docs or local files
- * Supports DOCX, MD, and PDF file formats
+ * Supports MD and PDF file formats
  */
 
 import { LexicalEditor } from 'lexical';
@@ -40,14 +40,11 @@ export function DocumentUploadDialog({
         case 'md':
           htmlContent = await convertMarkdownToHtml(file);
           break;
-        case 'docx':
-          htmlContent = await convertDocxToHtml(file);
-          break;
         case 'pdf':
           htmlContent = await convertPdfToHtml(file);
           break;
         default:
-          throw new Error('Unsupported file format. Please upload DOCX, MD, or PDF files.');
+          throw new Error('Unsupported file format. Please upload MD or PDF files.');
       }
 
       // Insert the HTML content into the editor
@@ -128,12 +125,12 @@ export function DocumentUploadDialog({
             <span className="font-medium">Upload from Computer</span>
           </div>
           <div className="text-sm text-gray-600">
-            Supported formats: DOCX, Markdown (.md), PDF
+            Supported formats: Markdown (.md), PDF
           </div>
           <label className="relative cursor-pointer">
             <input
               type="file"
-              accept=".docx,.md,.pdf"
+              accept=".md,.pdf"
               onChange={handleFileUpload}
               disabled={isLoading}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -175,15 +172,6 @@ async function convertMarkdownToHtml(file: File): Promise<string> {
   return html;
 }
 
-/**
- * Convert DOCX file to HTML using mammoth
- */
-async function convertDocxToHtml(file: File): Promise<string> {
-  const mammoth = await import('mammoth');
-  const arrayBuffer = await file.arrayBuffer();
-  const result = await mammoth.convertToHtml({ arrayBuffer });
-  return result.value;
-}
 
 /**
  * Convert PDF file to HTML (basic text extraction)

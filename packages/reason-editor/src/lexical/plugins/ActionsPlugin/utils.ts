@@ -19,7 +19,7 @@ import {
   $createTextNode,
   $getRoot,
 } from 'lexical';
-import mammoth from 'mammoth';
+
 import grab from 'grab-url';
 import { PLAYGROUND_TRANSFORMERS } from '../MarkdownTransformers';
 
@@ -77,38 +77,6 @@ export async function shareDoc(doc: SerializedDocument): Promise<void> {
   await window.navigator.clipboard.writeText(newUrl);
 }
 
-/**
- * Imports a .docx file into the editor.
- */
-export async function importDocxFile(editor: LexicalEditor, file: File): Promise<void> {
-  const arrayBuffer = await file.arrayBuffer();
-  const result = await mammoth.convertToHtml({ arrayBuffer });
-  const html = result.value;
-
-  editor.update(() => {
-    const root = $getRoot();
-    root.clear();
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const textContent = doc.body.textContent || '';
-
-    const lines = textContent.split('\n').filter(line => line.trim());
-
-    if (lines.length === 0) {
-      const paragraph = $createParagraphNode();
-      root.append(paragraph);
-    } else {
-      lines.forEach(line => {
-        if (line.trim()) {
-          const paragraph = $createParagraphNode();
-          paragraph.append($createTextNode(line));
-          root.append(paragraph);
-        }
-      });
-    }
-  });
-}
 
 /**
  * Imports a markdown file into the editor.
@@ -188,7 +156,7 @@ export async function importCustomFile(
 ): Promise<void> {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.docx,.md,.markdown,.json,.html,.htm,.txt';
+  input.accept = '.md,.markdown,.json,.html,.htm,.txt';
 
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement;
@@ -197,9 +165,7 @@ export async function importCustomFile(
 
     const fileName = file.name.toLowerCase();
 
-    if (fileName.endsWith('.docx')) {
-      await importDocxFile(editor, file);
-    } else if (fileName.endsWith('.md') || fileName.endsWith('.markdown')) {
+    if (fileName.endsWith('.md') || fileName.endsWith('.markdown')) {
       await importMarkdownFile(editor, file, shouldPreserveNewLines);
     } else if (fileName.endsWith('.json')) {
       await importJsonFile(editor, file);

@@ -1,7 +1,6 @@
 import { createAuthClient } from "better-auth/react";
 import { magicLinkClient, anonymousClient } from "better-auth/client/plugins";
 import { cloudflareClient } from "better-auth-cloudflare/client";
-import { sentinelClient } from "@better-auth/infra/client";
 import { NEXT_PUBLIC_BASE_URL } from "../config/site";
 
 const getBaseURL = () => {
@@ -17,6 +16,5 @@ export const authClient = createAuthClient({
     magicLinkClient(),
     cloudflareClient(),
     anonymousClient(),
-    sentinelClient(),
   ],
 });

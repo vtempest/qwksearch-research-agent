@@ -17,8 +17,8 @@ import { messages as messagesSchema } from "@/lib/database/schema";
  * @property {string | Document[]}    data - The payload; text chunk or source list.
  */
 interface StreamEvent {
-  type: "response" | "sources";
-  data: string | Document[];
+  type: "response" | "sources" | "searching";
+  data: string | Document[] | { query: string; category?: string; status: string };
 }
 
 /**
@@ -164,11 +164,22 @@ export const handleEmitterEvents = async (
   });
 
   stream.on("error", async (data: string) => {
-    const parsedData = JSON.parse(data);
-    await writeSSE({
-      type: "error",
-      data: parsedData.data,
-    });
-    await writer.close();
+    let errorText: string;
+    try {
+      errorText = JSON.parse(data)?.data ?? data;
+    } catch {
+      errorText = data;
+    }
+    console.error("[handleEmitterEvents] forwarding error to client:", errorText);
+    try {
+      await writeSSE({ type: "error", data: errorText });
+    } catch (err) {
+      console.error("[handleEmitterEvents] failed to write error SSE:", err);
+    }
+    try {
+      await writer.close();
+    } catch {
+      // Writer may already be closed if a prior frame errored.
+    }
   });
 };

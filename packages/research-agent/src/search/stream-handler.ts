@@ -16,43 +16,66 @@ export async function handleStream(
   let emittedSources = false;
   let responseChunkCount = 0;
   let lastSources: Document[] = [];
+  let chainEnded = false;
 
-  for await (const event of stream) {
-    if (event.event === "on_chain_end" && event.name === "FinalSourceRetriever") {
-      lastSources = normalizeSourcesOutput(event.data.output, query);
-      emittedSources = true;
-      emitter.emit("data", JSON.stringify({ type: "sources", data: lastSources }));
-    }
+  console.log("[handleStream] starting stream consumption for query:", query.slice(0, 80));
 
-    if (event.event === "on_chain_stream" && event.name === "FinalResponseGenerator") {
-      responseChunkCount += 1;
-      emitter.emit("data", JSON.stringify({ type: "response", data: event.data.chunk }));
-    }
-
-    if (event.event === "on_chain_end" && event.name === "FinalResponseGenerator") {
-      if (!emittedSources) {
-        lastSources = buildFallbackDocs(query);
+  try {
+    for await (const event of stream) {
+      if (event.event === "on_chain_end" && event.name === "FinalSourceRetriever") {
+        lastSources = normalizeSourcesOutput(event.data.output, query);
+        emittedSources = true;
+        console.log("[handleStream] emitting sources:", lastSources.length);
         emitter.emit("data", JSON.stringify({ type: "sources", data: lastSources }));
       }
 
-      if (responseChunkCount === 0) {
-        const fallbackUrls = (
-          lastSources.length > 0
-            ? lastSources
-                .map((doc) => doc.metadata?.url)
-                .filter((url): url is string => typeof url === "string")
-            : buildFallbackDocs(query).map((doc) => doc.metadata.url)
-        ).slice(0, 5);
-
-        const fallbackMessage = [
-          "I couldn't generate a full answer, but I ran a web search and found these source URLs:",
-          ...fallbackUrls.map((url) => `- ${url}`),
-        ].join("\n");
-
-        emitter.emit("data", JSON.stringify({ type: "response", data: fallbackMessage }));
+      if (event.event === "on_chain_stream" && event.name === "FinalResponseGenerator") {
+        responseChunkCount += 1;
+        emitter.emit("data", JSON.stringify({ type: "response", data: event.data.chunk }));
       }
 
-      emitter.emit("end");
+      if (event.event === "on_chain_end" && event.name === "FinalResponseGenerator") {
+        chainEnded = true;
+        console.log("[handleStream] FinalResponseGenerator ended, chunks:", responseChunkCount);
+        if (!emittedSources) {
+          lastSources = buildFallbackDocs(query);
+          emitter.emit("data", JSON.stringify({ type: "sources", data: lastSources }));
+        }
+
+        if (responseChunkCount === 0) {
+          const fallbackUrls = (
+            lastSources.length > 0
+              ? lastSources
+                  .map((doc) => doc.metadata?.url)
+                  .filter((url): url is string => typeof url === "string")
+              : buildFallbackDocs(query).map((doc) => doc.metadata.url)
+          ).slice(0, 5);
+
+          const fallbackMessage = [
+            "I couldn't generate a full answer, but I ran a web search and found these source URLs:",
+            ...fallbackUrls.map((url) => `- ${url}`),
+          ].join("\n");
+
+          emitter.emit("data", JSON.stringify({ type: "response", data: fallbackMessage }));
+        }
+
+        emitter.emit("end");
+      }
     }
+
+    // If the stream completed without firing FinalResponseGenerator's on_chain_end
+    // (e.g. the chain errored before reaching the response stage), close the
+    // emitter so the HTTP response doesn't hang forever.
+    if (!chainEnded) {
+      console.error("[handleStream] stream ended without FinalResponseGenerator on_chain_end");
+      emitter.emit(
+        "error",
+        JSON.stringify({ data: "Response chain ended unexpectedly with no answer." }),
+      );
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[handleStream] caught error from LangChain stream:", message, err);
+    emitter.emit("error", JSON.stringify({ data: message }));
   }
 }

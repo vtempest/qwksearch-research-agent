@@ -111,16 +111,31 @@ const getClientIP = (req: Request): string => {
  * ```
  */
 export const handleChatRequest = async (req: Request): Promise<Response> => {
+  const t0 = Date.now();
+  console.log("[POST /api/agent/chat] request received");
   try {
     const db = getDB();
     const userId = await getUserId();
+    console.log("[POST /api/agent/chat] userId:", userId ?? "(guest)");
 
     /** @type {Body} Raw request body before validation. */
     const reqBody = (await req.json()) as Body;
+    console.log(
+      "[POST /api/agent/chat] body shape:",
+      JSON.stringify({
+        focusMode: reqBody?.focusMode,
+        chatModel: reqBody?.chatModel,
+        category: reqBody?.category,
+        optimizationMode: reqBody?.optimizationMode,
+        historyLen: Array.isArray(reqBody?.history) ? reqBody.history.length : undefined,
+        contentLen: reqBody?.message?.content?.length,
+      }),
+    );
 
     // --- Validate request body ---
     const parseBody = safeValidateBody(reqBody);
     if (!parseBody.success) {
+      console.warn("[POST /api/agent/chat] body validation failed:", parseBody.error);
       return Response.json(
         { message: "Invalid request body", error: parseBody.error },
         { status: 400 },
@@ -131,6 +146,7 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
     const { message } = body;
 
     if (message.content === "") {
+      console.warn("[POST /api/agent/chat] empty message content");
       return Response.json(
         { message: "Please provide a message to process" },
         { status: 400 },
@@ -139,10 +155,17 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
 
     // --- Rate limit guests using env-based API keys ---
     const registry = new ModelRegistry();
+    console.log(
+      "[POST /api/agent/chat] ModelRegistry active providers:",
+      registry.activeProviders.map((p) => `${p.id}(${p.type})`),
+    );
 
     if (registry.isProviderEnvBased(body.chatModel.providerId)) {
       const ip = getClientIP(req);
       const rateLimit = checkGuestRateLimit(ip);
+      console.log(
+        `[POST /api/agent/chat] guest rate limit for ${ip}: allowed=${rateLimit.allowed} remaining=${rateLimit.remaining}/${rateLimit.limit}`,
+      );
 
       if (!rateLimit.allowed) {
         const resetDate = new Date(rateLimit.resetAt);
@@ -163,10 +186,21 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
     }
 
     // --- Load the requested LLM ---
-    const llm = await registry.loadChatModel(
-      body.chatModel.providerId,
-      body.chatModel.key,
-    );
+    let llm;
+    try {
+      llm = await registry.loadChatModel(
+        body.chatModel.providerId,
+        body.chatModel.key,
+      );
+      console.log("[POST /api/agent/chat] LLM loaded");
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[POST /api/agent/chat] loadChatModel failed:", errMsg);
+      return Response.json(
+        { message: `Failed to load LLM: ${errMsg}` },
+        { status: 500 },
+      );
+    }
 
     // --- Resolve message ID (use client-provided or generate one) ---
     const humanMessageId =
@@ -179,6 +213,10 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
     const handler = searchHandlers[body.focusMode];
 
     if (!handler) {
+      console.warn(
+        `[POST /api/agent/chat] unknown focusMode "${body.focusMode}"; valid:`,
+        Object.keys(searchHandlers),
+      );
       return Response.json(
         { message: "Invalid focus mode" },
         { status: 400 },
@@ -186,6 +224,9 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
     }
 
     // --- Execute search and begin streaming the LLM answer ---
+    console.log(
+      `[POST /api/agent/chat] starting searchAndAnswer focusMode=${body.focusMode} optimizationMode=${body.optimizationMode}`,
+    );
     const stream = await handler.searchAndAnswer(
       message.content,
       history,
@@ -198,6 +239,17 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
       body.thinkingTimeLimit,
     );
 
+    // Surface errors from the agent's EventEmitter that would otherwise crash
+    // the Node process as unhandled "error" events.
+    stream.on("error", (data: string) => {
+      try {
+        const parsed = JSON.parse(data);
+        console.error("[POST /api/agent/chat] agent emitter error:", parsed?.data ?? data);
+      } catch {
+        console.error("[POST /api/agent/chat] agent emitter error (raw):", data);
+      }
+    });
+
     // --- Set up the SSE response stream ---
     const responseStream = new TransformStream();
     const writer = responseStream.writable.getWriter();
@@ -207,7 +259,7 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
 
     // --- Persist chat session and human message (authenticated users only) ---
     console.log(
-      "[POST /api/chat] Awaiting handleHistorySave for chatId:",
+      "[POST /api/agent/chat] awaiting handleHistorySave for chatId:",
       message.chatId,
     );
     await handleHistorySave(
@@ -220,7 +272,7 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
       body.thinkingTimeLimit,
     );
     console.log(
-      "[POST /api/chat] handleHistorySave completed, returning stream response",
+      `[POST /api/agent/chat] history saved, returning stream (setup took ${Date.now() - t0}ms)`,
     );
 
     return new Response(responseStream.readable, {
@@ -238,9 +290,10 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.error("An error occurred while processing chat request:", err);
+    console.error("[POST /api/agent/chat] unhandled error:", err);
+    const detail = err instanceof Error ? err.message : String(err);
     return Response.json(
-      { message: "An error occurred while processing chat request" },
+      { message: `An error occurred while processing chat request: ${detail}` },
       { status: 500 },
     );
   }

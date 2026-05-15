@@ -35,3 +35,4 @@
 33. Markdown/file tree view inspiration: [ld246.com/guide/markdown](https://ld246.com/guide/markdown).
 34. Reuse Fumadocs multi-tree/root-toggle ideas for docs organization.
 35. Release on HN, YouTube, and Product Hunt.
+36. https://21st.dev/community/agents

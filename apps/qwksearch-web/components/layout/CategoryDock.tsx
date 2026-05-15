@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { UserCircle2, Moon, Sun, Palette, Settings } from "lucide-react"
+import { UserCircle2, Moon, Sun, Palette, Settings, ChevronRight } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"

@@ -82,29 +82,38 @@ class ModelRegistry {
   async loadChatModel(providerId: string, modelName: string) {
     let provider = this.activeProviders.find((p) => p.id === providerId);
 
-    // Fallback to any available provider if the requested one doesn't exist
-    // This handles guest users who may have a stale providerId in localStorage
+    // Fallback to any available provider if the requested one doesn't exist.
+    // This handles guest users who may have a stale providerId in localStorage.
     if (!provider && this.activeProviders.length > 0) {
-      // Try to find a NVIDIA provider first (preferred for guest users)
-      provider = this.activeProviders.find((p) =>
-        p.name.toLowerCase().includes('nvidia'),
+      // Prefer NVIDIA, then Groq, then anything else. The earlier version of
+      // this code unconditionally reassigned `provider` for each name, which
+      // erased an earlier match if a later one didn't exist.
+      provider =
+        this.activeProviders.find((p) =>
+          p.name.toLowerCase().includes('nvidia'),
+        ) ??
+        this.activeProviders.find((p) =>
+          p.name.toLowerCase().includes('groq'),
+        ) ??
+        this.activeProviders[0];
+
+      console.log(
+        `[ModelRegistry.loadChatModel] requested provider "${providerId}" not found, falling back to "${provider.id}" (${provider.name})`,
       );
-      // Then try Groq
-      provider = this.activeProviders.find((p) =>
-        p.name.toLowerCase().includes('groq'),
-      );
-      // Otherwise use the first available provider
-      if (!provider) {
-        provider = this.activeProviders[0];
-      }
     }
 
     if (!provider) {
+      console.error(
+        '[ModelRegistry.loadChatModel] no providers configured; activeProviders is empty',
+      );
       throw new Error(
         'No model providers configured. Please add a provider in settings or set NVIDIA_API_KEY environment variable.',
       );
     }
 
+    console.log(
+      `[ModelRegistry.loadChatModel] loading model "${modelName}" from provider "${provider.id}" (${provider.type})`,
+    );
     const model = await provider.provider.loadChatModel(modelName);
 
     return model;

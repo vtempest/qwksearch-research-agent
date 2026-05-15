@@ -28,12 +28,35 @@ import {
   isHTMLElement,
   NodeKey,
 } from 'lexical';
+import { debounce } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 
 import { getThemeSelector } from '../../utils/getThemeSelector';
-import { useDebounce } from '../CodeActionMenuPlugin/utils';
+
+function useDebounce<T extends (...args: never[]) => void>(
+  fn: T,
+  ms: number,
+  maxWait?: number,
+) {
+  const funcRef = useRef<T | null>(null);
+  funcRef.current = fn;
+
+  return useMemo(
+    () =>
+      debounce(
+        (...args: Parameters<T>) => {
+          if (funcRef.current) {
+            funcRef.current(...args);
+          }
+        },
+        ms,
+        { maxWait },
+      ),
+    [ms, maxWait],
+  );
+}
 
 const BUTTON_WIDTH_PX = 20;
 

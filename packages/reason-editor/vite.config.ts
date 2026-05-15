@@ -1,12 +1,8 @@
-import babel from "@rollup/plugin-babel";
 import commonjs from "@rollup/plugin-commonjs";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-
-const require = createRequire(import.meta.url);
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode, command }) => {
@@ -84,18 +80,6 @@ export default defineConfig(({ mode, command }) => {
     },
     plugins: [
       tailwindcss(),
-      babel({
-        babelHelpers: "bundled",
-        babelrc: false,
-        configFile: false,
-        exclude: "**/node_modules/**",
-        extensions: ["jsx", "js", "ts", "tsx", "mjs"],
-        plugins: [
-          "@babel/plugin-transform-flow-strip-types",
-          ...(mode !== "production" ? [] : []),
-        ],
-        presets: [["@babel/preset-react", { runtime: "automatic" }]],
-      }),
       react(),
       // ...viteCopyExcalidrawAssets(),
       // viteCopyEsm(),

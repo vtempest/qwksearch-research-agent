@@ -15,7 +15,7 @@ import { ListNode, ListItemNode } from '@lexical/list';
 import { LinkNode } from '@lexical/link';
 import { MarkNode, $isMarkNode, $unwrapMarkNode, $wrapSelectionInMarkNode } from '@lexical/mark';
 import { TableNode, TableCellNode, TableRowNode } from '@lexical/table';
-import { CodeNode, CodeHighlightNode } from '@lexical/code';
+import { CodeNode } from '@lexical/code';
 import {
   $getRoot,
   $getSelection,
@@ -205,7 +205,6 @@ const LexicalArticleViewer: React.FC<LexicalArticleViewerProps> = ({
       TableCellNode,
       TableRowNode,
       CodeNode,
-      CodeHighlightNode,
     ],
     editable: false,
   };

@@ -626,14 +626,6 @@ i.success {
   background-image: url(../icons/success.svg);
 }
 
-i.prettier {
-  background-image: url(../icons/prettier.svg);
-}
-
-i.prettier-error {
-  background-image: url(../icons/prettier-error.svg);
-}
-
 i.page-break,
 .icon.page-break {
   background-image: url(../icons/scissors.svg);

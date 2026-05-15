@@ -12,7 +12,6 @@ import {
   getDOMSelection,
   $addUpdateTag,
 } from 'lexical';
-import { $isCodeHighlightNode } from '@lexical/code';
 import { $isLinkNode } from '@lexical/link';
 import { mergeRegister } from '@lexical/utils';
 import { getSelectedNode } from '../../../utils/getSelectedNode';
@@ -250,10 +249,7 @@ export function useFloatingTextFormatToolbar(
       });
       setIsHighlighted(hasHighlight);
 
-      if (
-        !$isCodeHighlightNode(selection.anchor.getNode()) &&
-        selection.getTextContent() !== ''
-      ) {
+      if (selection.getTextContent() !== '') {
         setIsText($isTextNode(node) || $isParagraphNode(node));
       } else {
         setIsText(false);

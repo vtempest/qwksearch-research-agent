@@ -64,8 +64,6 @@ import pastePlain from '../icons/paste-plain.svg';
 import plug from '../icons/plug.svg';
 import plusSlashMinus from '../icons/plus-slash-minus.svg';
 import plus from '../icons/plus.svg';
-import prettierError from '../icons/prettier-error.svg';
-import prettier from '../icons/prettier.svg';
 import scissors from '../icons/scissors.svg';
 import send from '../icons/send.svg';
 import squareCheck from '../icons/square-check.svg';
@@ -192,8 +190,6 @@ const icons: Record<string, string> = {
   'plus': resolveSrc(plus),
   'user-plus': resolveSrc(userPlus),
   'emphasis': resolveSrc(emphasis),
-  'prettier-error': resolveSrc(prettierError),
-  'prettier': resolveSrc(prettier),
   'scissors': resolveSrc(scissors),
   'send': resolveSrc(send),
   'square-check': resolveSrc(squareCheck),

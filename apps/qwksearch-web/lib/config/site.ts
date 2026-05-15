@@ -28,7 +28,7 @@ import iconNewsTitle from "@/components/icons/icon-news-title.svg";
 
 export const /** App Name in title case */
   APP_NAME: string = "QwkSearch",
-  NEXT_PUBLIC_BASE_URL = "http://QwkSearch.com",
+  NEXT_PUBLIC_BASE_URL = "https://qwksearch.com",
   NEXT_PUBLIC_GOOGLE_CLIENT_ID =
     "644604561446-niuns88krqdrs260kptpf1ti10ecrfls.apps.googleusercontent.com",
   /** App Email for support */

@@ -2,14 +2,14 @@ export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
 import './globals.css';
-import '@/components/theme/themes.css';
+import 'shadcn-theme-menu/themes.css';
 import { cookies } from "next/headers"
 import { cn } from '@/lib/utils';
 import { Toaster } from 'sonner';
 import { ChatProvider } from '@/components/ResearchAgent/hooks/useChat';
 import GoogleOneTap from '@/components/layout/GoogleOneTap';
 import { SessionProvider } from '@/components/ResearchAgent/hooks/useSession';
-import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ThemeProvider } from "shadcn-theme-menu";
 import { FontProvider } from "@/components/theme/font-provider";
 import { ExtractPanelProvider } from '@/components/ResearchAgent/components/ArticleReader/ExtractPanelContext';
 import { APP_NAME } from '@/lib/config/site';

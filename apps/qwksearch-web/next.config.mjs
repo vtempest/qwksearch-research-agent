@@ -34,7 +34,7 @@ const nextConfig = {
     "@huggingface/transformers",
     "onnxruntime-web",
   ],
-  transpilePackages: ["reason-editor", "quantum-sphere-loading-icon"],
+  transpilePackages: ["reason-editor", "quantum-sphere-loading-icon", "shadcn-theme-menu"],
 
   webpack: (config) => {
     // Resolve reason-editor from source, not dist

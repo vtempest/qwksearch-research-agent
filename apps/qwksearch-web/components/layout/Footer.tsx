@@ -25,7 +25,6 @@ export default function Footer({
     listFooterLinks = [],
     optionShowIcons = true,
     optionBackgroundColor = "bg-black/40",
-    optionColumns = 3,
 }: FooterProps) {
     return (
         <div

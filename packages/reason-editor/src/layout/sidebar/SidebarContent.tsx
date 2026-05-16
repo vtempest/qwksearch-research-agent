@@ -12,6 +12,8 @@ import type { ViewMode } from './types';
 import type { TableOfContentsEntry } from '@lexical/react/LexicalTableOfContentsPlugin';
 import { SplitPane, Pane } from 'react-split-pane';
 import { usePersistence } from 'react-split-pane/persistence';
+import { X, FileText } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import '../../styles/split-pane.css';
 
 type DocumentTreeHandle = { collapseAll: () => void; edit: (nodeId: string) => void; expandAll: () => void };
@@ -54,6 +56,14 @@ interface SidebarContentProps {
   treeRef: RefObject<DocumentTreeHandle | null>;
   /** Ref forwarded to the `OutlineView` component for imperative control. */
   outlineRef: RefObject<OutlineViewHandle | null>;
+  /** Currently open tab IDs shown in the top pane. */
+  openTabs?: string[];
+  /** ID of the currently active tab. */
+  activeTab?: string | null;
+  /** Switches to a tab. */
+  onTabChange?: (id: string) => void;
+  /** Closes a tab. */
+  onTabClose?: (id: string) => void;
 }
 
 /**
@@ -79,6 +89,10 @@ export const SidebarContent = ({
   onOpenChange,
   treeRef,
   outlineRef,
+  openTabs = [],
+  activeTab,
+  onTabChange,
+  onTabClose,
 }: SidebarContentProps) => {
   // Track copied document for copy/paste operations
   const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
@@ -146,12 +160,53 @@ export const SidebarContent = ({
   // Use persistence hook for resizable panels
   const [panelSizes, setPanelSizes] = usePersistence({ key: 'sidebar-panels' });
 
-  // Always show both FileTree and Outline in resizable split view
   return (
     <div className="h-full">
       <SplitPane direction="vertical" onResize={setPanelSizes}>
+        {/* Open files list */}
+        <Pane size={panelSizes?.[0] || '35%'} minSize="0px">
+          <div className="h-full overflow-auto">
+            <div className="px-1 py-1">
+              <p className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Open Files</p>
+              {openTabs.length === 0 ? (
+                <div className="px-2 py-3 text-xs text-muted-foreground">No open files</div>
+              ) : (
+                openTabs.map((tabId) => {
+                  const doc = activeDocuments.find(d => d.id === tabId);
+                  const title = doc?.title || 'Untitled';
+                  const isActive = tabId === activeTab;
+                  return (
+                    <div
+                      key={tabId}
+                      className={cn(
+                        'group flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors hover:bg-sidebar-accent',
+                        isActive && 'bg-sidebar-accent text-blue-600 font-medium'
+                      )}
+                      onClick={() => onTabChange?.(tabId)}
+                    >
+                      <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="flex-1 truncate text-sm">{title}</span>
+                      {onTabClose && (
+                        <button
+                          className="shrink-0 h-4 w-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onTabClose(tabId);
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </Pane>
+
         {/* File tree */}
-        <Pane size={panelSizes?.[0] || '50%'} minSize="0px">
+        <Pane minSize="0px">
           <div className="h-full overflow-auto">
             <FileTree
               ref={treeRef}
@@ -165,30 +220,16 @@ export const SidebarContent = ({
               onAddChild={(parentId) => onAdd(parentId, false)}
               onAddChildFolder={(parentId) => onAdd(parentId, true)}
               onAddSibling={(itemId) => {
-                // Find the parent of the item
                 const item = activeDocuments.find(d => d.id === itemId);
                 onAdd(item?.parentId || null, false);
               }}
               onAddSiblingFolder={(itemId) => {
-                // Find the parent of the item
                 const item = activeDocuments.find(d => d.id === itemId);
                 onAdd(item?.parentId || null, true);
               }}
               onCopy={handleCopy}
               onPaste={handlePaste}
               onManageTags={handleManageTags}
-            />
-          </div>
-        </Pane>
-
-        {/* Outline view */}
-        <Pane minSize="0px">
-          <div className="h-full overflow-auto">
-            <OutlineView
-              ref={outlineRef}
-              headings={headings}
-              searchQuery={searchQuery}
-              onNavigate={handleNavigate}
             />
           </div>
         </Pane>

@@ -2,9 +2,9 @@
 
 import {
   dragAndDropFeature,
-  expandAllFeature,
   hotkeysCoreFeature,
   keyboardDragAndDropFeature,
+  renamingFeature,
   selectionFeature,
   syncDataLoaderFeature,
   type TreeState,
@@ -18,7 +18,8 @@ import type { Document } from "../documents/DocumentTree";
 export type DocumentTreeHandle = {
   collapseAll: () => void;
   edit: (nodeId: string) => void;
-  expandAll: () => void
+  expandAll: () => void;
+  cancelExpand: () => void;
 };
 import { Tree, TreeDragLine, TreeItem, TreeItemLabel } from "../ui/tree";
 import {
@@ -116,9 +117,9 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
       expandedItems,
       selectedItems: activeId ? [activeId] : [],
     });
-    const [editingItemId, setEditingItemId] = useState<string | null>(null);
     const [copiedNodeId, setCopiedNodeId] = useState<string | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    const expandCancelToken = { current: false };
 
     const tree = useTree<FileTreeItem>({
       canReorder: true,
@@ -148,10 +149,15 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
         syncDataLoaderFeature,
         selectionFeature,
         hotkeysCoreFeature,
+        renamingFeature,
         dragAndDropFeature,
         keyboardDragAndDropFeature,
       ],
       getItemName: (item) => item.getItemData().name,
+      onRename: (item, value) => {
+        const newTitle = value.trim() || 'Untitled';
+        onRename?.(item.getId(), newTitle);
+      },
       indent: INDENT,
       isItemFolder: (item) => item.getItemData()?.isFolder ?? false,
       onDrop: (draggedItems, target) => {
@@ -212,23 +218,22 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
 
     useImperativeHandle(ref, () => ({
       collapseAll: () => {
+        expandCancelToken.current = true;
         tree.collapseAll();
       },
       edit: (nodeId: string) => {
         if (onRename) {
-          setEditingItemId(nodeId);
+          tree.getItemInstance(nodeId).startRenaming();
         }
       },
       expandAll: () => {
-        tree.expandAll();
+        expandCancelToken.current = false;
+        tree.expandAll(expandCancelToken);
+      },
+      cancelExpand: () => {
+        expandCancelToken.current = true;
       },
     }));
-
-    const submitRename = (itemId: string, nextTitle: string) => {
-      const newTitle = nextTitle.trim() || "Untitled";
-      onRename?.(itemId, newTitle);
-      setEditingItemId(null);
-    };
 
     const handleDeleteConfirm = () => {
       if (deleteConfirmId && onDelete) {
@@ -265,7 +270,7 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
                     onAddChildFolder={onAddChildFolder}
                     onAddSibling={onAddSibling}
                     onAddSiblingFolder={onAddSiblingFolder}
-                    onRename={onRename ? () => setEditingItemId(itemId) : undefined}
+                    onRename={onRename ? () => item.startRenaming() : undefined}
                     onDuplicate={onDuplicate}
                     onCopy={onCopy ? (id) => {
                       setCopiedNodeId(id);
@@ -280,49 +285,36 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
                     onDelete={onDelete ? () => setDeleteConfirmId(itemId) : undefined}
                     onManageTags={onManageTags}
                   >
-                    <TreeItemLabel
-                      className={cn(
-                        "w-full text-left",
-                        activeId === itemId && "bg-accent text-accent-foreground",
-                      )}
-                      onClick={() => {
-                        if (!editingItemId) {
-                          onSelect(itemId);
-                        }
-                      }}
-                    >
-                      <span className="flex items-center gap-2 w-full">
-                        {item.isFolder() &&
-                          (item.isExpanded() ? (
-                            <FolderOpenIcon className="pointer-events-none size-4 text-muted-foreground" />
-                          ) : (
-                            <FolderIcon className="pointer-events-none size-4 text-muted-foreground" />
-                          ))}
-
-                        {editingItemId === itemId && onRename ? (
-                          <input
-                            autoFocus
-                            className="flex-1 rounded border bg-background px-1 text-sm outline-none focus:ring-2 focus:ring-ring"
-                            defaultValue={item.getItemName()}
-                            onBlur={(e) => submitRename(itemId, e.currentTarget.value)}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                            onKeyDown={(e) => {
-                              e.stopPropagation();
-                              if (e.key === "Enter") {
-                                submitRename(itemId, e.currentTarget.value);
-                              }
-                              if (e.key === "Escape") {
-                                setEditingItemId(null);
-                              }
-                            }}
-                          />
-                        ) : (
-                          <span className="flex-1 truncate">{item.getItemName()}</span>
+                    {item.isRenaming() ? (
+                      <TreeItemLabel
+                        className="w-full text-left"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          {...item.getRenameInputProps()}
+                          className="flex-1 w-full rounded border bg-background px-1 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      </TreeItemLabel>
+                    ) : (
+                      <TreeItemLabel
+                        className={cn(
+                          "w-full text-left",
+                          activeId === itemId && "bg-accent text-accent-foreground",
                         )}
-                      </span>
-                    </TreeItemLabel>
+                        onClick={() => onSelect(itemId)}
+                        onDoubleClick={() => onRename && item.startRenaming()}
+                      >
+                        <span className="flex items-center gap-2 w-full">
+                          {item.isFolder() &&
+                            (item.isExpanded() ? (
+                              <FolderOpenIcon className="pointer-events-none size-4 text-muted-foreground" />
+                            ) : (
+                              <FolderIcon className="pointer-events-none size-4 text-muted-foreground" />
+                            ))}
+                          <span className="flex-1 truncate">{item.getItemName()}</span>
+                        </span>
+                      </TreeItemLabel>
+                    )}
                   </FileTreeContextMenu>
                 </TreeItem>
               );

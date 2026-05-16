@@ -6,7 +6,6 @@ import { getFileSources } from '../../lib/file-sources/sources';
 import { AnyFileSource } from '../../types/fileSource';
 import { FileManagerModal } from '../../modals/FileManagerModal';
 import { SidebarToolbar } from './SidebarToolbar';
-import { SidebarFooter } from './SidebarFooter';
 import { SidebarContent } from './SidebarContent';
 import type { SidebarProps } from './types';
 
@@ -37,6 +36,10 @@ export const Sidebar = ({
   activeFileSourceId = 'local-default',
   onFileSourceChange,
   headings = [],
+  openTabs = [],
+  activeTab,
+  onTabChange,
+  onTabClose,
 }: SidebarProps) => {
   const deletedDocs = documents.filter(doc => doc.isDeleted);
 
@@ -84,6 +87,7 @@ export const Sidebar = ({
       if (newState) {
         treeRef.current.expandAll();
       } else {
+        treeRef.current.cancelExpand?.();
         treeRef.current.collapseAll();
       }
     }
@@ -138,6 +142,18 @@ export const Sidebar = ({
               onToggleOutlineExpanded={handleToggleOutlineExpanded}
               treeRef={treeRef}
               outlineRef={outlineRef}
+              deletedDocs={deletedDocs}
+              onRestore={onRestore}
+              showRightOutline={showRightOutline}
+              onToggleRightOutline={onToggleRightOutline}
+              onViewModeChange={onViewModeChange}
+              onSettingsClick={onSettingsClick}
+              isMobile={isMobile}
+              openTabs={openTabs}
+              activeTab={activeTab}
+              onTabChange={onTabChange}
+              onTabClose={onTabClose}
+              documents={documents}
             />
             <div className="flex-1 min-h-0 overflow-hidden">
               <SidebarContent
@@ -159,18 +175,12 @@ export const Sidebar = ({
                 treeRef={treeRef}
                 outlineRef={outlineRef}
                 headings={headings}
+                openTabs={openTabs}
+                activeTab={activeTab}
+                onTabChange={onTabChange}
+                onTabClose={onTabClose}
               />
             </div>
-            <SidebarFooter
-              viewMode={viewMode}
-              showRightOutline={showRightOutline}
-              isMobile={isMobile}
-              deletedDocs={deletedDocs}
-              onRestore={onRestore}
-              onSettingsClick={onSettingsClick}
-              onViewModeChange={onViewModeChange}
-              onToggleRightOutline={onToggleRightOutline}
-            />
             <FileManagerModal open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen} documents={activeDocuments} onSelectDocument={onSelect} />
           </aside>
         </SheetContent>
@@ -198,6 +208,18 @@ export const Sidebar = ({
         onToggleOutlineExpanded={handleToggleOutlineExpanded}
         treeRef={treeRef}
         outlineRef={outlineRef}
+        deletedDocs={deletedDocs}
+        onRestore={onRestore}
+        showRightOutline={showRightOutline}
+        onToggleRightOutline={onToggleRightOutline}
+        onViewModeChange={onViewModeChange}
+        onSettingsClick={onSettingsClick}
+        isMobile={isMobile}
+        openTabs={openTabs}
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        onTabClose={onTabClose}
+        documents={documents}
       />
       <div className="flex-1 min-h-0 overflow-hidden">
         <SidebarContent
@@ -219,18 +241,12 @@ export const Sidebar = ({
           treeRef={treeRef}
           outlineRef={outlineRef}
           headings={headings}
+          openTabs={openTabs}
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          onTabClose={onTabClose}
         />
       </div>
-      <SidebarFooter
-        viewMode={viewMode}
-        showRightOutline={showRightOutline}
-        isMobile={isMobile}
-        deletedDocs={deletedDocs}
-        onRestore={onRestore}
-        onSettingsClick={onSettingsClick}
-        onViewModeChange={onViewModeChange}
-        onToggleRightOutline={onToggleRightOutline}
-      />
       <FileManagerModal open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen} documents={activeDocuments} onSelectDocument={onSelect} />
     </aside>
   );

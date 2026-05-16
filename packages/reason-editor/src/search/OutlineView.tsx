@@ -297,14 +297,17 @@ export const OutlineView = forwardRef<OutlineViewHandle, OutlineViewProps>(({ he
             <ContextMenuTrigger>
               <div
                 className={cn(
-                  'flex items-center gap-1 px-2 py-1.5 hover:bg-sidebar-accent rounded-md cursor-pointer transition-colors'
+                  'flex items-center gap-1 rounded-md cursor-pointer transition-colors hover:bg-sidebar-accent',
+                  item.level === 1 && 'py-1.5 mt-0.5',
+                  item.level === 2 && 'py-1',
+                  item.level >= 3 && 'py-0.5'
                 )}
-                style={{ paddingLeft: `${(item.level - 1) * 1 + 8}px` }}
+                style={{ paddingLeft: `${(item.level - 1) * 12 + 4}px`, paddingRight: '4px' }}
                 onClick={() => onNavigate?.(item.id)}
               >
                 <button
                   className={cn(
-                    'h-5 w-5 p-0 flex items-center justify-center hover:bg-transparent',
+                    'h-4 w-4 p-0 shrink-0 flex items-center justify-center hover:bg-transparent',
                     !hasChildren && 'invisible'
                   )}
                   onClick={(e) => {
@@ -322,15 +325,19 @@ export const OutlineView = forwardRef<OutlineViewHandle, OutlineViewProps>(({ he
 
                 <HashIcon
                   className={cn(
-                    'h-3 w-3 flex-shrink-0 text-muted-foreground',
-                    item.level === 1 && 'h-4 w-4'
+                    'shrink-0',
+                    item.level === 1 && 'h-3.5 w-3.5 text-blue-500',
+                    item.level === 2 && 'h-3 w-3 text-indigo-400',
+                    item.level >= 3 && 'h-2.5 w-2.5 text-muted-foreground'
                   )}
                 />
                 <span
                   className={cn(
-                    'flex-1 truncate text-sm',
-                    item.level === 1 && 'font-semibold',
-                    item.level === 2 && 'font-medium'
+                    'flex-1 truncate',
+                    item.level === 1 && 'text-sm font-semibold text-foreground',
+                    item.level === 2 && 'text-sm font-medium text-foreground/90',
+                    item.level === 3 && 'text-xs text-foreground/80',
+                    item.level >= 4 && 'text-xs text-muted-foreground'
                   )}
                 >
                   {item.text}

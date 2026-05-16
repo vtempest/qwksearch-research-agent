@@ -51,7 +51,7 @@ const ModelSelect = ({
           <img
             src="https://i.imgur.com/xMFZZxN.png"
             alt="Expanded view"
-            className="max-h-[150vh] max-w-[150vw] object-contain rounded-xl"
+            className="max-h-[80vh] max-w-[80vw] object-contain rounded-xl"
           />
         </div>
       )}

@@ -44,6 +44,11 @@ export interface SidebarProps {
   onFileSourceChange?: (sourceId: string) => void;
   // Headings for outline view
   headings?: TableOfContentsEntry[];
+  // Open tabs (for all-tabs dropdown and open files list)
+  openTabs?: string[];
+  activeTab?: string | null;
+  onTabChange?: (id: string) => void;
+  onTabClose?: (id: string) => void;
 }
 
 export type ViewMode = "tree" | "outline" | "split";

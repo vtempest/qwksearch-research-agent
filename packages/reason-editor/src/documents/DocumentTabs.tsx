@@ -12,13 +12,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '../ui/context-menu';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
-import { X, Plus, MoreHorizontal, Menu, Edit2, RotateCcw, SplitSquareVertical } from 'lucide-react';
+import { X, Plus, Menu, Edit2, RotateCcw, SplitSquareVertical } from 'lucide-react';
 import { Document } from './DocumentTree';
 import { cn } from '../lib/utils';
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -223,44 +217,6 @@ export const DocumentTabs = ({
               ))}
             </TabsList>
           </div>
-
-          {/* Overflow dropdown — always visible so users can navigate all tabs */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-10 w-8 p-0 rounded-none border-r border-border shrink-0"
-                title="All tabs"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 max-h-80 overflow-y-auto">
-              {openTabs.map((tabId) => (
-                <DropdownMenuItem
-                  key={tabId}
-                  className={cn(
-                    'flex items-center justify-between gap-2 cursor-pointer pr-1',
-                    tabId === activeTab && 'font-semibold text-blue-600'
-                  )}
-                  onSelect={() => onTabChange(tabId)}
-                >
-                  <span className="truncate flex-1 text-sm">{getDocumentTitle(tabId)}</span>
-                  <button
-                    className="shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-destructive/10 hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTabClose(tabId);
-                    }}
-                    title="Close tab"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           <Button
             variant="ghost"

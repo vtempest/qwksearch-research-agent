@@ -64,6 +64,10 @@ const Index = () => {
     onToggleRightOutline: () => state.setShowRightOutline(!state.showRightOutline),
     activeFileSourceId: state.activeFileSourceId,
     onFileSourceChange: state.handleFileSourceChange,
+    openTabs: state.openTabs,
+    activeTab: state.activeDocId,
+    onTabChange: state.handleTabChange,
+    onTabClose: state.handleTabClose,
   };
 
   const tabsProps = {

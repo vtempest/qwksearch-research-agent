@@ -1,7 +1,14 @@
 import { createAuthClient } from "better-auth/react";
-import { magicLinkClient, anonymousClient } from "better-auth/client/plugins";
+import {
+  oneTapClient,
+  magicLinkClient,
+  anonymousClient,
+} from "better-auth/client/plugins";
 import { cloudflareClient } from "better-auth-cloudflare/client";
-import { NEXT_PUBLIC_BASE_URL } from "../config/site";
+import {
+  NEXT_PUBLIC_BASE_URL,
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+} from "../config/site";
 
 const getBaseURL = () => {
   if (typeof window !== "undefined") {
@@ -13,6 +20,9 @@ const getBaseURL = () => {
 export const authClient = createAuthClient({
   baseURL: getBaseURL(),
   plugins: [
+    oneTapClient({
+      clientId: NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+    }),
     magicLinkClient(),
     cloudflareClient(),
     anonymousClient(),

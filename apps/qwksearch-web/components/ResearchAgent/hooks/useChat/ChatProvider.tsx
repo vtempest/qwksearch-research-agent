@@ -94,18 +94,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   /**
    * Load messages for existing chat or create new chat session.
    * - If chatId exists: loads messages from API (authenticated) or localStorage (guest)
-   * - If no chatId: generates a new chat ID
+   * - If no chatId: generates a new chat ID immediately (no auth needed)
    */
   useEffect(() => {
-    // Wait for session to load before determining auth state
-    if (isSessionLoading) return;
-
     if (
       state.chatId &&
       !state.newChatCreated &&
       !state.isMessagesLoaded &&
       state.messages.length === 0
     ) {
+      // Wait for session to resolve before loading an existing chat so we
+      // know whether to fetch from the API or localStorage.
+      if (isSessionLoading) return;
       loadMessages(
         state.chatId,
         isAuthenticated,
@@ -118,7 +118,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setters.setFileIds,
       );
     } else if (!state.chatId) {
-      // No chat ID - create a new chat session
+      // No chat ID — start a fresh session immediately without waiting for auth.
       setters.setNewChatCreated(true);
       setters.setIsMessagesLoaded(true);
       setters.setChatId(crypto.randomBytes(20).toString('hex'));

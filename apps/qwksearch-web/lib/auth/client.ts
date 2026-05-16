@@ -10,25 +10,14 @@ import {
   NEXT_PUBLIC_GOOGLE_CLIENT_ID,
 } from "../config/site";
 
-const getBaseURL = () => {
-  if (typeof window !== "undefined") {
-    return window.location.origin;
-  }
-  return NEXT_PUBLIC_BASE_URL;
-};
-
 export const authClient = createAuthClient({
-  baseURL: getBaseURL(),
+  baseURL: NEXT_PUBLIC_BASE_URL,
   plugins: [
     oneTapClient({
       clientId: NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       additionalOptions: {
         use_fedcm_for_prompt: true,
         itp_support: true,
-      },
-      promptOptions: {
-        baseDelay: 1000,
-        maxAttempts: 5,
       },
     }),
     magicLinkClient(),

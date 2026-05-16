@@ -1,77 +1,81 @@
-// @ts-nocheck
 /**
  * @module research/extractor/pdf-to-html/models/StashingStream
  * @description Research library module.
  */
 // Abstract stream which allows stash items temporarily
 export default class StashingStream {
-  constructor () {
+  constructor() {
     if (this.constructor === StashingStream) {
-      throw new TypeError('Can not construct abstract class.')
+      throw new TypeError("Can not construct abstract class.");
     }
-    this.results = []
-    this.stash = []
+    this.results = [];
+    this.stash = [];
   }
 
-  consumeAll (items) {
-    items.forEach(item => this.consume(item))
+  consumeAll(items) {
+    items.forEach((item) => this.consume(item));
   }
 
-  consume (item) {
+  consume(item) {
     if (this.shouldStash(item)) {
       if (!this.matchesStash(item)) {
-        this.flushStash()
+        this.flushStash();
       }
-      this.pushOnStash(item)
+      this.pushOnStash(item);
     } else {
       if (this.stash.length > 0) {
-        this.flushStash()
+        this.flushStash();
       }
-      this.results.push(item)
+      this.results.push(item);
     }
   }
 
-  pushOnStash (item) {
-    this.onPushOnStash(item)
-    this.stash.push(item)
+  pushOnStash(item) {
+    this.onPushOnStash(item);
+    this.stash.push(item);
   }
 
-  complete () {
+  complete() {
     if (this.stash.length > 0) {
-      this.flushStash()
+      this.flushStash();
     }
-    return this.results
+    return this.results;
   }
 
   // return true if the item matches the items of the stack
-  matchesStash (item) {
+  matchesStash(item) {
     if (this.stash.length === 0) {
-      return true
+      return true;
     }
-    const lastItem = this.stash[this.stash.length - 1]
-    return this.doMatchesStash(lastItem, item)
+    const lastItem = this.stash[this.stash.length - 1];
+    return this.doMatchesStash(lastItem, item);
   }
 
-  flushStash () {
+  flushStash() {
     if (this.stash.length > 0) {
-      this.doFlushStash(this.stash, this.results)
-      this.stash = []
+      this.doFlushStash(this.stash, this.results);
+      this.stash = [];
     }
   }
 
-  onPushOnStash (item) { // eslint-disable-line no-unused-vars
+  onPushOnStash(item) {
+    // eslint-disable-line no-unused-vars
     // sub-classes may override
   }
 
-  shouldStash (item) {
-    throw new TypeError(' Do not call abstract method foo from child.' + item)
+  shouldStash(item) {
+    throw new TypeError(" Do not call abstract method foo from child." + item);
   }
 
-  doMatchesStash (lastItem, item) {
-    throw new TypeError(' Do not call abstract method foo from child.' + lastItem + item)
+  doMatchesStash(lastItem, item) {
+    throw new TypeError(
+      " Do not call abstract method foo from child." + lastItem + item,
+    );
   }
 
-  doFlushStash (stash, results) {
-    throw new TypeError(' Do not call abstract method foo from child.' + stash + results)
+  doFlushStash(stash, results) {
+    throw new TypeError(
+      " Do not call abstract method foo from child." + stash + results,
+    );
   }
 }

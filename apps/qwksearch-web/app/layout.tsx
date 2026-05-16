@@ -7,7 +7,6 @@ import { cookies } from "next/headers"
 import { cn } from '@/lib/utils';
 import { Toaster } from 'sonner';
 import { ChatProvider } from '@/components/ResearchAgent/hooks/useChat';
-import GoogleOneTap from '@/components/layout/GoogleOneTap';
 import { SessionProvider } from '@/components/ResearchAgent/hooks/useSession';
 import { ThemeProvider } from "shadcn-theme-menu";
 import { FontProvider } from "@/components/theme/font-provider";
@@ -57,7 +56,6 @@ export default async function RootLayout({
           <SessionProvider>
             <ExtractPanelProvider>
               <ChatProvider>
-                <GoogleOneTap />
                 <CategoryDockProvider>
                   <div className="w-screen h-screen overflow-auto pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0">
                     <CategoryDock />

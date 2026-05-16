@@ -1,16 +1,15 @@
-// @ts-nocheck
 /**
  * @module research/extractor/pdf-to-html/models/PageItem
  * @description Research library module.
  */
 // A abstract PageItem class, can be TextItem, LineItem or LineItemBlock
 export default class PageItem {
-  constructor (options) {
+  constructor(options) {
     if (this.constructor === PageItem) {
-      throw new TypeError('Can not construct abstract class.')
+      throw new TypeError("Can not construct abstract class.");
     }
-    this.type = options.type
-    this.annotation = options.annotation
-    this.parsedElements = options.parsedElements
+    this.type = options.type;
+    this.annotation = options.annotation;
+    this.parsedElements = options.parsedElements;
   }
 }

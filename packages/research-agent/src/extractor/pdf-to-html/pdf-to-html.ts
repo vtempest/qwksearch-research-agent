@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * @fileoverview High-fidelity PDF-to-HTML conversion pipeline.
  * Extracts structural elements (headers, lists, code blocks) and handles page-level metadata.
@@ -52,7 +51,10 @@ import ParseResult from "./models/ParseResult";
  * [pdf-to-markdown (2017)](https://github.com/jzillmann/pdf-to-markdown/tree/master),
  * [pdf.js (2012-)](https://github.com/mozilla/pdf.js/releases),
  */
-export async function convertPDFToHTML(pdfURLOrBuffer: any, options: { addPageNumbers?: boolean; addCitation?: boolean } = {}) {
+export async function convertPDFToHTML(
+  pdfURLOrBuffer: any,
+  options: { addPageNumbers?: boolean; addCitation?: boolean } = {},
+) {
   // try {
   var { addPageNumbers = false, addCitation = true } = options;
 

@@ -1,82 +1,87 @@
-// @ts-nocheck
 /**
  * @module research/extractor/pdf-to-html/transformations/line-item/CompactLines
  * @description Research library module.
  */
-import ToLineItemTransformation from '../ToLineItemTransformation'
-import ParseResult from '../../models/ParseResult'
-import LineItem from '../../models/LineItem'
-import TextItemLineGrouper from '../../models/TextItemLineGrouper'
-import LineConverter from '../../models/LineConverter'
-import BlockType from '../../models/BlockType'
-import { REMOVED_ANNOTATION, ADDED_ANNOTATION } from '../../models/Annotation'
+import ToLineItemTransformation from "../ToLineItemTransformation";
+import ParseResult from "../../models/ParseResult";
+import LineItem from "../../models/LineItem";
+import TextItemLineGrouper from "../../models/TextItemLineGrouper";
+import LineConverter from "../../models/LineConverter";
+import BlockType from "../../models/BlockType";
+import { REMOVED_ANNOTATION, ADDED_ANNOTATION } from "../../models/Annotation";
 
 // gathers text items on the same y line to one line item
 export default class CompactLines extends ToLineItemTransformation {
-  constructor () {
-    super('Compact To Lines')
+  constructor() {
+    super("Compact To Lines");
   }
 
-  transform (parseResult /*: ParseResult */) /*: ParseResult */ {
-    const { mostUsedDistance, fontToFormats } = parseResult.globals
-    const foundFootnotes = []
-    const foundFootnoteLinks = []
-    var linkCount = 0
-    var formattedWords = 0
+  transform(parseResult /*: ParseResult */) /*: ParseResult */ {
+    const { mostUsedDistance, fontToFormats } = parseResult.globals;
+    const foundFootnotes = [];
+    const foundFootnoteLinks = [];
+    var linkCount = 0;
+    var formattedWords = 0;
 
     const lineGrouper = new TextItemLineGrouper({
       mostUsedDistance: mostUsedDistance,
-    })
-    const lineCompactor = new LineConverter(fontToFormats)
+    });
+    const lineCompactor = new LineConverter(fontToFormats);
 
-    parseResult.pages.forEach(page => {
+    parseResult.pages.forEach((page) => {
       if (page.items.length > 0) {
-        const lineItems = []
-        const textItemsGroupedByLine = lineGrouper.group(page.items)
-        textItemsGroupedByLine.forEach(lineTextItems => {
-          const lineItem = lineCompactor.compact(lineTextItems)
+        const lineItems = [];
+        const textItemsGroupedByLine = lineGrouper.group(page.items);
+        textItemsGroupedByLine.forEach((lineTextItems) => {
+          const lineItem = lineCompactor.compact(lineTextItems);
           if (lineTextItems.length > 1) {
-            lineItem.annotation = ADDED_ANNOTATION
-            lineTextItems.forEach(item => {
-              item.annotation = REMOVED_ANNOTATION
-              lineItems.push(new LineItem({
-                ...item,
-              }))
-            })
+            lineItem.annotation = ADDED_ANNOTATION;
+            lineTextItems.forEach((item) => {
+              item.annotation = REMOVED_ANNOTATION;
+              lineItems.push(
+                new LineItem({
+                  ...item,
+                }),
+              );
+            });
           }
           if (lineItem.words.length === 0) {
-            lineItem.annotation = REMOVED_ANNOTATION
+            lineItem.annotation = REMOVED_ANNOTATION;
           }
-          lineItems.push(lineItem)
+          lineItems.push(lineItem);
 
           if (lineItem.parsedElements.formattedWords) {
-            formattedWords += lineItem.parsedElements.formattedWords
+            formattedWords += lineItem.parsedElements.formattedWords;
           }
           if (lineItem.parsedElements.containLinks > 0) {
-            linkCount++
+            linkCount++;
           }
           if (lineItem.parsedElements.footnoteLinks.length > 0) {
-            const footnoteLinks = lineItem.parsedElements.footnoteLinks.map(footnoteLink => ({ footnoteLink, page: page.index + 1 }))
-            foundFootnoteLinks.push.apply(foundFootnoteLinks, footnoteLinks)
+            const footnoteLinks = lineItem.parsedElements.footnoteLinks.map(
+              (footnoteLink) => ({ footnoteLink, page: page.index + 1 }),
+            );
+            foundFootnoteLinks.push.apply(foundFootnoteLinks, footnoteLinks);
           }
           if (lineItem.parsedElements.footnotes.length > 0) {
-            lineItem.type = BlockType.FOOTNOTES
-            const footnotes = lineItem.parsedElements.footnotes.map(footnote => ({ footnote, page: page.index + 1 }))
-            foundFootnotes.push.apply(foundFootnotes, footnotes)
+            lineItem.type = BlockType.FOOTNOTES;
+            const footnotes = lineItem.parsedElements.footnotes.map(
+              (footnote) => ({ footnote, page: page.index + 1 }),
+            );
+            foundFootnotes.push.apply(foundFootnotes, footnotes);
           }
-        })
-        page.items = lineItems
+        });
+        page.items = lineItems;
       }
-    })
+    });
 
     return new ParseResult({
       ...parseResult,
       messages: [
-        'Detected ' + formattedWords + ' formatted words',
-        'Found ' + linkCount + ' links',
-        'Detected ' + foundFootnoteLinks.length + ' footnotes links',
-        'Detected ' + foundFootnotes.length + ' footnotes',
+        "Detected " + formattedWords + " formatted words",
+        "Found " + linkCount + " links",
+        "Detected " + foundFootnoteLinks.length + " footnotes links",
+        "Detected " + foundFootnotes.length + " footnotes",
       ],
-    })
+    });
   }
 }

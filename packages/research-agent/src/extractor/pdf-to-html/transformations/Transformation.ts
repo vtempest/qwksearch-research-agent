@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * @module research/extractor/pdf-to-html/transformations/Transformation
  * @description Research library module.
@@ -6,25 +5,27 @@
 
 // A transformation from an PdfPage to an PdfPage
 export default class Transformation {
-  constructor (name, itemType) {
+  constructor(name, itemType) {
     if (this.constructor === Transformation) {
-      throw new TypeError('Can not construct abstract class.')
+      throw new TypeError("Can not construct abstract class.");
     }
     if (this.transform === Transformation.prototype.transform) {
-      throw new TypeError("Please implement abstract method 'transform()'.")
+      throw new TypeError("Please implement abstract method 'transform()'.");
     }
-    this.name = name
-    this.itemType = itemType
+    this.name = name;
+    this.itemType = itemType;
   }
 
   // Transform an incoming ParseResult into an outgoing ParseResult
-  transform (parseResult /*: ParseResult */) /*: ParseResult */ { // eslint-disable-line no-unused-vars
-    throw new TypeError('Do not call abstract method foo from child.')
+  transform(parseResult /*: ParseResult */) /*: ParseResult */ {
+    // eslint-disable-line no-unused-vars
+    throw new TypeError("Do not call abstract method foo from child.");
   }
 
   // Sometimes the transform() does only visualize a change. This methods then does the actual change.
-  completeTransform (parseResult /*: ParseResult */) /*: ParseResult */ { // eslint-disable-line no-unused-vars
-    parseResult.messages = []
-    return parseResult
+  completeTransform(parseResult /*: ParseResult */) /*: ParseResult */ {
+    // eslint-disable-line no-unused-vars
+    parseResult.messages = [];
+    return parseResult;
   }
 }

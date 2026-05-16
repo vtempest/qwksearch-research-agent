@@ -92,31 +92,31 @@ export async function weighRelevanceConceptVectorAPI(
 }
 
 /**
-// * Initialize HuggingFace Transformers pipeline for embedding text.
-// *
-// * <img src="https://i.imgur.com/3R5Tsrf.png" width="350px" />
-// * @param {Object} [options]
-// * @param {string} options.pipelineName default "feature-extraction",
-// * @param {string} options.modelName default="Xenova/all-MiniLM-L6-v2" -
-// * The name of the model to use
-// * @returns {Promise<import("@huggingface/transformers").AutoTokenizer>} The pipeline.
-// * @category Similarity
-// */
-// export async function getEmbeddingModel(options: any = {}) {
-//   const { pipeline } = await import("@huggingface/transformers");
-//   const {
-//     pipelineName = "feature-extraction",
-//     modelName = "Xenova/all-MiniLM-L6-v2",
-//     quantized = true,
-//     gpu = false,
-//   } = options;
+ * Initialize HuggingFace Transformers pipeline for embedding text.
+ *
+ * <img src="https://i.imgur.com/3R5Tsrf.png" width="350px" />
+ * @param {Object} [options]
+ * @param {string} options.pipelineName default "feature-extraction",
+ * @param {string} options.modelName default="Xenova/all-MiniLM-L6-v2" -
+ * The name of the model to use
+ * @returns {Promise<import("@huggingface/transformers").AutoTokenizer>} The pipeline.
+ * @category Similarity
+ */
+export async function getEmbeddingModel(options: any = {}) {
+  const { pipeline } = await (import("@huggingface/transformers") as Promise<any>);
+  const {
+    pipelineName = "feature-extraction",
+    modelName = "Xenova/all-MiniLM-L6-v2",
+    quantized = true,
+    gpu = false,
+  } = options;
 
-//   return await pipeline(pipelineName, modelName, {
-//     quantized,
-//     dtype: "fp32",
-//     device: gpu ? "webgpu" : "cpu", // note webgpu over cuda to comply with Transformers.js spec, but typing bypass goes here via cast if needed:
-//   } as any);
-// }
+  return await pipeline(pipelineName, modelName, {
+    quantized,
+    dtype: "fp32",
+    device: gpu ? "webgpu" : "cpu",
+  } as any);
+}
 
 /**
  * [Cosine similarity](https://en.wikipedia.org/wiki/Cosine_similarity) gets similarity of two

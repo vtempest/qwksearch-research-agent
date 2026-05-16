@@ -7,7 +7,7 @@ import { dash } from "@better-auth/infra";
 import { getDB } from "../database";
 import * as schema from "../database/schema";
 import { Resend } from "resend";
-import { APP_NAME, APP_EMAIL } from "../config/site";
+import { APP_NAME, APP_EMAIL, NEXT_PUBLIC_BASE_URL } from "../config/site";
 import { getEnv } from "../env";
 
 async function authBuilder() {
@@ -29,7 +29,7 @@ async function authBuilder() {
         ...(kv && { kv }),
       },
       {
-        baseURL: getEnv("NEXT_PUBLIC_BASE_URL") || "http://localhost:3000",
+        baseURL: NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
         database: drizzleAdapter(getDB(), {
           provider: "sqlite",
           schema,

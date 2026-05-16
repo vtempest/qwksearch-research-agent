@@ -64,6 +64,13 @@
       "when": 1767800000000,
       "tag": "0008_thinking_time_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1778936105158,
+      "tag": "0009_true_nico_minoru",
+      "breakpoints": true
     }
   ]
 }

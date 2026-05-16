@@ -61,31 +61,31 @@ export class DrizzleMemoryStorage implements IMemoryStorage {
     limit: number = 10,
     options: MemorySearchOptions = {},
   ): Promise<MemoryRecord[]> {
-    const conditions = [eq("user_id", userId)];
+    const conditions = [eq(sql.raw("user_id"), userId)];
 
     if (query && query.trim()) {
-      conditions.push(like("content", `%${query}%`));
+      conditions.push(like(sql.raw("content") as any, `%${query}%`));
     }
 
     if (options.memoryType) {
-      conditions.push(eq("memory_type", options.memoryType));
+      conditions.push(eq(sql.raw("memory_type"), options.memoryType));
     }
 
     const results = await this.db
       .select({
-        id: "id",
-        user_id: "user_id",
-        memory_type: "memory_type",
-        content: "content",
-        importance: "importance",
-        access_count: "access_count",
-        metadata: "metadata",
-        created_at: "created_at",
-        updated_at: "updated_at",
+        id: sql.raw("id"),
+        user_id: sql.raw("user_id"),
+        memory_type: sql.raw("memory_type"),
+        content: sql.raw("content"),
+        importance: sql.raw("importance"),
+        access_count: sql.raw("access_count"),
+        metadata: sql.raw("metadata"),
+        created_at: sql.raw("created_at"),
+        updated_at: sql.raw("updated_at"),
       })
       .from(this.tableName)
       .where(and(...conditions))
-      .orderBy(desc("importance"), desc("access_count"), desc("updated_at"))
+      .orderBy(desc(sql.raw("importance")), desc(sql.raw("access_count")), desc(sql.raw("updated_at")))
       .limit(Math.min(limit, 50)); // Cap at 50 for performance
 
     return results as MemoryRecord[];
@@ -110,13 +110,13 @@ export class DrizzleMemoryStorage implements IMemoryStorage {
       return [];
     }
 
-    const conditions = searchTerms.map((term) => like("content", `%${term}%`));
+    const conditions = searchTerms.map((term) => like(sql.raw("content") as any, `%${term}%`));
 
     const results = await this.db
       .select()
       .from(this.tableName)
-      .where(and(eq("user_id", userId), or(...conditions)))
-      .orderBy(desc("importance"), desc("updated_at"))
+      .where(and(eq(sql.raw("user_id"), userId), or(...conditions)))
+      .orderBy(desc(sql.raw("importance")), desc(sql.raw("updated_at")))
       .limit(limit);
 
     return results as MemoryRecord[];
@@ -148,14 +148,14 @@ export class DrizzleMemoryStorage implements IMemoryStorage {
       updateData.metadata = updates.metadata;
     }
 
-    await this.db.update(this.tableName).set(updateData).where(eq("id", id));
+    await this.db.update(this.tableName).set(updateData).where(eq(sql.raw("id"), id));
   }
 
   /**
    * Delete a memory record
    */
   async deleteMemory(id: string): Promise<void> {
-    await this.db.delete(this.tableName).where(eq("id", id));
+    await this.db.delete(this.tableName).where(eq(sql.raw("id"), id));
   }
 
   /**
@@ -165,7 +165,7 @@ export class DrizzleMemoryStorage implements IMemoryStorage {
     const results = await this.db
       .select()
       .from(this.tableName)
-      .where(eq("id", id))
+      .where(eq(sql.raw("id"), id))
       .limit(1);
 
     return (results[0] as MemoryRecord) || null;

@@ -10,7 +10,6 @@ export * from "./agents/generate-language";
 export * from "./agents/language-model-names";
 export * from "./agents/agent-prompts";
 export * from "./agents/agent-tools";
-export * from "./agents/api2ai";
 export * from "./agents/memory";
 export * from "./search/search-web";
 export * from "./tokenize/word-to-root-stem";
@@ -23,7 +22,7 @@ export * from "./extractor/url-to-content/url-to-html";
 export * from "./extractor/html-to-cite/url-to-domain";
 export * from "./extractor/url-to-content/youtube-to-text";
 // PDF export removed from main index to prevent pdfjs-serverless from being evaluated at build time
-// Import directly from "./extractor/pdf-to-html/pdf-to-html" when needed
+// Import directly from "./extractor/pdf-to-html/pdfToHtml" when needed
 export * from "./extractor/url-to-content/docx-to-content";
 export * from "./extractor/html-to-content/html-to-content";
 export * from "./extractor/html-to-content/extract-content/extract-content-readability";

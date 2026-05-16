@@ -4,11 +4,15 @@
  * original and extracted data. GET retrieves extracted content by file ID.
  * DELETE removes uploaded files and their extracted data.
  */
-import { NextResponse } from 'next/server';
-import crypto from 'crypto';
+import { NextResponse } from "next/server";
+import crypto from "crypto";
 
-import { uploadFile, downloadFile, deleteFile } from '@/lib/integrations/cloudStorageService';
-import { R2Credentials } from '@/types/fileSource';
+import {
+  uploadFile,
+  downloadFile,
+  deleteFile,
+} from "@/lib/integrations/cloudStorageService";
+import { R2Credentials } from "@/types/fileSource";
 import { getEnv } from "@/lib/env";
 
 interface FileRes {
@@ -21,10 +25,10 @@ function getR2Credentials(): R2Credentials {
   const accountId = getEnv("R2_ACCOUNT_ID");
   const accessKeyId = getEnv("R2_ACCESS_KEY_ID");
   const secretAccessKey = getEnv("R2_SECRET_ACCESS_KEY");
-  const bucket = getEnv("R2_UPLOADS_BUCKET") || 'qwksearch-uploads';
+  const bucket = getEnv("R2_UPLOADS_BUCKET") || "qwksearch-uploads";
 
   if (!accountId || !accessKeyId || !secretAccessKey) {
-    throw new Error('R2 credentials not configured');
+    throw new Error("R2 credentials not configured");
   }
 
   return { accountId, accessKeyId, secretAccessKey, bucket };
@@ -33,49 +37,43 @@ function getR2Credentials(): R2Credentials {
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    const files = formData.getAll('files') as File[];
+    const files = formData.getAll("files") as File[];
     const credentials = getR2Credentials();
 
     const processedFiles: FileRes[] = [];
 
     await Promise.all(
       files.map(async (file: File) => {
-        const fileExtension = file.name.split('.').pop()?.toLowerCase();
-        if (!fileExtension || !['pdf', 'txt', 'html', 'htm'].includes(fileExtension)) {
+        const fileExtension = file.name.split(".").pop()?.toLowerCase();
+        if (
+          !fileExtension ||
+          !["pdf", "txt", "html", "htm"].includes(fileExtension)
+        ) {
           return NextResponse.json(
-            { message: 'File type not supported' },
+            { message: "File type not supported" },
             { status: 400 },
           );
         }
 
-        const fileId = crypto.randomBytes(16).toString('hex');
+        const fileId = crypto.randomBytes(16).toString("hex");
         const uniqueFileName = `${fileId}.${fileExtension}`;
         const buffer = Buffer.from(await file.arrayBuffer());
 
         // Upload original file to R2
         await uploadFile(
-          { provider: 'r2', credentials },
+          { provider: "r2", credentials },
           uniqueFileName,
-          buffer
+          buffer,
         );
 
         // Extract text content based on file type
-        let fullText = '';
-        if (fileExtension === 'pdf') {
-          // Dynamic import to avoid build-time execution
-          const pdfjs = await import('pdfjs-serverless');
-          const data = new Uint8Array(buffer);
-          const pdfDoc = await pdfjs.getDocument(data).promise;
-          const numPages = pdfDoc.numPages;
-
-          for (let i = 1; i <= numPages; i++) {
-            const page = await pdfDoc.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map((item: any) => item.str).join(' ');
-            fullText += pageText + '\n';
-          }
-        } else if (fileExtension === 'txt' || fileExtension === 'html' || fileExtension === 'htm') {
-          fullText = buffer.toString('utf-8');
+        let fullText = "";
+        if (
+          fileExtension === "txt" ||
+          fileExtension === "html" ||
+          fileExtension === "htm"
+        ) {
+          fullText = buffer.toString("utf-8");
         }
 
         // Upload extracted data as JSON to R2
@@ -84,9 +82,9 @@ export async function POST(req: Request) {
           content: fullText,
         });
         await uploadFile(
-          { provider: 'r2', credentials },
+          { provider: "r2", credentials },
           `${fileId}-extracted.json`,
-          extractedData
+          extractedData,
         );
 
         processedFiles.push({
@@ -101,9 +99,9 @@ export async function POST(req: Request) {
       files: processedFiles,
     });
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error("Error uploading file:", error);
     return NextResponse.json(
-      { message: 'An error has occurred.' },
+      { message: "An error has occurred." },
       { status: 500 },
     );
   }
@@ -112,11 +110,11 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const fileId = searchParams.get('fileId');
+    const fileId = searchParams.get("fileId");
 
     if (!fileId) {
       return NextResponse.json(
-        { message: 'File ID is required' },
+        { message: "File ID is required" },
         { status: 400 },
       );
     }
@@ -125,29 +123,26 @@ export async function GET(req: Request) {
     const extractedKey = `${fileId}-extracted.json`;
 
     const content = await downloadFile(
-      { provider: 'r2', credentials },
-      extractedKey
+      { provider: "r2", credentials },
+      extractedKey,
     );
 
     return NextResponse.json(JSON.parse(content));
   } catch (error) {
-    console.error('Error fetching file:', error);
-    return NextResponse.json(
-      { message: 'File not found' },
-      { status: 404 },
-    );
+    console.error("Error fetching file:", error);
+    return NextResponse.json({ message: "File not found" }, { status: 404 });
   }
 }
 
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const fileId = searchParams.get('fileId');
-    const fileExtension = searchParams.get('ext');
+    const fileId = searchParams.get("fileId");
+    const fileExtension = searchParams.get("ext");
 
     if (!fileId) {
       return NextResponse.json(
-        { message: 'File ID is required' },
+        { message: "File ID is required" },
         { status: 400 },
       );
     }
@@ -158,10 +153,13 @@ export async function DELETE(req: Request) {
     // Delete extracted JSON
     try {
       const extractedResult = await deleteFile(
-        { provider: 'r2', credentials },
-        `${fileId}-extracted.json`
+        { provider: "r2", credentials },
+        `${fileId}-extracted.json`,
       );
-      results.push({ key: `${fileId}-extracted.json`, success: extractedResult.success });
+      results.push({
+        key: `${fileId}-extracted.json`,
+        success: extractedResult.success,
+      });
     } catch (error) {
       results.push({ key: `${fileId}-extracted.json`, success: false });
     }
@@ -170,22 +168,22 @@ export async function DELETE(req: Request) {
     if (fileExtension) {
       try {
         const originalResult = await deleteFile(
-          { provider: 'r2', credentials },
-          `${fileId}.${fileExtension}`
+          { provider: "r2", credentials },
+          `${fileId}.${fileExtension}`,
         );
-        results.push({ key: `${fileId}.${fileExtension}`, success: originalResult.success });
+        results.push({
+          key: `${fileId}.${fileExtension}`,
+          success: originalResult.success,
+        });
       } catch (error) {
         results.push({ key: `${fileId}.${fileExtension}`, success: false });
       }
     } else {
       // Try common extensions if not provided
-      const extensions = ['pdf', 'txt', 'html', 'htm'];
+      const extensions = ["pdf", "txt", "html", "htm"];
       for (const ext of extensions) {
         try {
-          await deleteFile(
-            { provider: 'r2', credentials },
-            `${fileId}.${ext}`
-          );
+          await deleteFile({ provider: "r2", credentials }, `${fileId}.${ext}`);
           results.push({ key: `${fileId}.${ext}`, success: true });
           break;
         } catch {
@@ -200,9 +198,9 @@ export async function DELETE(req: Request) {
       deleted: results,
     });
   } catch (error) {
-    console.error('Error deleting file:', error);
+    console.error("Error deleting file:", error);
     return NextResponse.json(
-      { message: 'Failed to delete file' },
+      { message: "Failed to delete file" },
       { status: 500 },
     );
   }

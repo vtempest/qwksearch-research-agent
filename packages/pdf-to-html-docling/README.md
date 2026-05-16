@@ -1,7 +1,7 @@
 
 # PDF To HTML with Docling OCR Model 
 
-![docling_pdf_logo](https://i.imgur.com/cbPvVDd.png)
+![docling_pdf_logo](https://i.imgur.com/2VFpwzF.png)
 
 Convert PDF documents to HTML using the [`ibm-granite/granite-docling-258M`](https://huggingface.co/ibm-granite/granite-docling-258M) AI model from Hugging Face.
 

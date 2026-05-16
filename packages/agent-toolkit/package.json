@@ -74,7 +74,6 @@
     "linkedom": "^0.18.12",
     "marked": "^17.0.4",
     "node-fetch": "^3.3.2",
-    "pdfjs-serverless": "^1.1.0",
     "qwksearch-api-client": "^0.0.12",
     "tldts": "^7.0.25",
     "youtube-po-token-generator": "^0.6.0",

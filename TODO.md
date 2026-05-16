@@ -1,4 +1,4 @@
-1. T3 customization settings: [t3.chat/settings/customization](https://t3.chat/settings/customization).
+1. T3 chat model info https://t3.chat/chat/
 2. Chat with open tabs as context.
 3. Show Vals scores for all models; example Kimi K2.5 page lists Vals Index 51.70%, latency 807.18s, and cost/test $0.29.[developer.chrome](https://developer.chrome.com/docs/extensions/reference/manifest/chrome-settings-override)
 4. Outline tree should reuse Fumadocs page tree/sidebar patterns.

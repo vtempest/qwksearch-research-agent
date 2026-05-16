@@ -4,14 +4,54 @@
  * @module components/ResearchAgent/state/chat/types
  */
 
-import {
-  AssistantMessage,
-  ChatTurn,
-  Message,
-  SearchingMessage,
-  SourceMessage,
-  UserMessage,
-} from "@/components/ResearchAgent/components/ChatConversation/ChatWindow";
+import type { Document } from "@langchain/core/documents";
+
+export interface BaseMessage {
+  chatId: string;
+  messageId: string;
+  createdAt: Date;
+}
+
+export interface AssistantMessage extends BaseMessage {
+  role: "assistant";
+  content: string;
+  suggestions?: string[];
+}
+
+export interface UserMessage extends BaseMessage {
+  role: "user";
+  content: string;
+}
+
+export interface SourceMessage extends BaseMessage {
+  role: "source";
+  sources: Document[];
+}
+
+export interface SuggestionMessage extends BaseMessage {
+  role: "suggestion";
+  suggestions: string[];
+}
+
+export interface SearchQuery {
+  query: string;
+  category?: string;
+  status: "running" | "done";
+}
+
+export interface SearchingMessage extends BaseMessage {
+  role: "searching";
+  queries: SearchQuery[];
+}
+
+export type Message =
+  | AssistantMessage
+  | UserMessage
+  | SourceMessage
+  | SuggestionMessage
+  | SearchingMessage;
+
+export type ChatTurn = UserMessage | AssistantMessage;
 
 /**
  * Represents a section of the chat UI, grouping related messages together.

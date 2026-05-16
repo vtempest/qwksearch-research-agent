@@ -7,7 +7,9 @@ import type { TableOfContentsEntry } from '@lexical/react/LexicalTableOfContents
 import { OutlineView } from '../search/OutlineView';
 import { AIRewriteSuggestion } from '../features/AIRewriteSuggestion';
 import { Button } from '../ui/button';
-import { Loader2, X } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Loader2, X, Search } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 /** Props for the {@link RightPanel} component. */
 interface RightPanelProps {
@@ -29,6 +31,7 @@ interface RightPanelProps {
   headings: TableOfContentsEntry[];
   searchQuery: string;
   onNavigate: (key: string) => void;
+  documentContent?: string;
 }
 
 /**
@@ -46,7 +49,40 @@ export function RightPanel({
   headings,
   searchQuery,
   onNavigate,
+  documentContent = '',
 }: RightPanelProps) {
+  const [outlineFilter, setOutlineFilter] = useState('');
+
+  // Build per-heading body text from HTML so we can search inside sections
+  const sectionBodies = useMemo<string[]>(() => {
+    if (!documentContent) return [];
+    const doc = new DOMParser().parseFromString(documentContent, 'text/html');
+    const bodies: string[] = [];
+    let currentBody = '';
+    let headingIndex = -1;
+    for (const el of Array.from(doc.body.children)) {
+      if (/^h[1-6]$/i.test(el.tagName)) {
+        if (headingIndex >= 0) bodies[headingIndex] = currentBody;
+        headingIndex++;
+        currentBody = '';
+      } else if (headingIndex >= 0) {
+        currentBody += ' ' + (el.textContent || '');
+      }
+    }
+    if (headingIndex >= 0) bodies[headingIndex] = currentBody;
+    return bodies;
+  }, [documentContent]);
+
+  // Filter headings: match by heading text OR body text in that section
+  const filteredHeadings = useMemo<TableOfContentsEntry[]>(() => {
+    const q = outlineFilter.trim().toLowerCase();
+    if (!q) return headings;
+    return headings.filter(([, text], i) =>
+      text.toLowerCase().includes(q) ||
+      (sectionBodies[i] || '').toLowerCase().includes(q)
+    );
+  }, [outlineFilter, headings, sectionBodies]);
+
   return (
     <div className="h-full border-l border-sidebar-border bg-sidebar-background">
       {showAiPanel ? (
@@ -90,12 +126,29 @@ export function RightPanel({
       ) : (
         <div className="h-full overflow-hidden flex flex-col">
           <div className="px-3 py-2 border-b border-sidebar-border">
-            <h3 className="text-sm font-semibold text-sidebar-foreground">Outline</h3>
+            <h3 className="text-sm font-semibold text-sidebar-foreground mb-2">Outline</h3>
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={outlineFilter}
+                onChange={(e) => setOutlineFilter(e.target.value)}
+                placeholder="Filter headings & text…"
+                className="h-7 pl-7 pr-7 text-xs"
+              />
+              {outlineFilter && (
+                <button
+                  onClick={() => setOutlineFilter('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex-1 overflow-auto">
             <OutlineView
-              headings={headings}
-              searchQuery={searchQuery}
+              headings={filteredHeadings}
+              searchQuery={outlineFilter}
               onNavigate={onNavigate}
             />
           </div>

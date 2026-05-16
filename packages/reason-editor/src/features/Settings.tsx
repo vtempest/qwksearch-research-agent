@@ -69,6 +69,8 @@ interface SettingsProps {
   open: boolean;
   /** Callback to open or close the dialog. */
   onOpenChange: (open: boolean) => void;
+  /** Section to navigate to when the dialog opens. */
+  initialSection?: string;
   /** Currently selected default sidebar view mode. */
   defaultSidebarView?: 'tree' | 'outline' | 'split' | 'last-used';
   /** Called when the user picks a different default sidebar view. */
@@ -96,13 +98,20 @@ const settingsNav = [
 export const Settings = ({
   open,
   onOpenChange,
+  initialSection,
   defaultSidebarView = 'last-used',
   onDefaultSidebarViewChange,
   enableDatabaseSync = false,
   onEnableDatabaseSyncChange
 }: SettingsProps) => {
   const { theme, setTheme } = useTheme();
-  const [activeSection, setActiveSection] = useState("Appearance");
+  const [activeSection, setActiveSection] = useState(initialSection || "Appearance");
+
+  useEffect(() => {
+    if (open) {
+      setActiveSection(initialSection || "Appearance");
+    }
+  }, [open, initialSection]);
   const [rewriteModes, setRewriteModes] = useState<RewriteMode[]>([]);
   const [editingMode, setEditingMode] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<RewriteMode>>({});

@@ -40,6 +40,10 @@ export const Sidebar = ({
   activeTab,
   onTabChange,
   onTabClose,
+  onTabRename,
+  onSplitRight,
+  onReopenLastClosed,
+  canReopenLastClosed = false,
 }: SidebarProps) => {
   const deletedDocs = documents.filter(doc => doc.isDeleted);
 
@@ -179,6 +183,10 @@ export const Sidebar = ({
                 activeTab={activeTab}
                 onTabChange={onTabChange}
                 onTabClose={onTabClose}
+                onTabRename={onTabRename}
+                onSplitRight={onSplitRight}
+                onReopenLastClosed={onReopenLastClosed}
+                canReopenLastClosed={canReopenLastClosed}
               />
             </div>
             <FileManagerModal open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen} documents={activeDocuments} onSelectDocument={onSelect} />
@@ -245,6 +253,10 @@ export const Sidebar = ({
           activeTab={activeTab}
           onTabChange={onTabChange}
           onTabClose={onTabClose}
+          onTabRename={onTabRename}
+          onSplitRight={onSplitRight}
+          onReopenLastClosed={onReopenLastClosed}
+          canReopenLastClosed={canReopenLastClosed}
         />
       </div>
       <FileManagerModal open={isFileManagerOpen} onOpenChange={setIsFileManagerOpen} documents={activeDocuments} onSelectDocument={onSelect} />

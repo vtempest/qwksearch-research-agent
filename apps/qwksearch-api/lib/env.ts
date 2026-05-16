@@ -7,7 +7,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 export function getEnv(key: string): string | undefined {
   try {
     const { env } = getCloudflareContext();
-    return (env as Record<string, string | undefined>)[key];
+    return (env as unknown as Record<string, string | undefined>)[key];
   } catch {
     // Not in a Cloudflare Worker context (e.g. local dev, CLI)
     return process.env[key];

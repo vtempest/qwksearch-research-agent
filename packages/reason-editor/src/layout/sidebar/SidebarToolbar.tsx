@@ -8,7 +8,7 @@ import { RefObject } from 'react';
 import { Button } from '../../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../../ui/dropdown-menu';
-import { Search, FilePlus, FolderPlus, ChevronsDownUp, ChevronsUpDown, Check, Folders, Settings, Trash2, Columns2, RotateCcw, MoreHorizontal, X } from 'lucide-react';
+import { Search, FilePlus, FolderPlus, ChevronsDownUp, ChevronsUpDown, Check, Folders, Trash2, Columns2, RotateCcw, MoreHorizontal, X } from 'lucide-react';
 import { AnyFileSource } from '../../types/fileSource';
 import { getSourceIcon, getSourceTypeLabel } from './fileSourceUtils';
 import type { DocumentTreeHandle } from '../../filetree/filetree';
@@ -61,8 +61,8 @@ interface SidebarToolbarProps {
   onToggleRightOutline?: () => void;
   /** Changes the current view mode. */
   onViewModeChange?: (mode: ViewMode) => void;
-  /** Opens the settings dialog. */
-  onSettingsClick?: () => void;
+  /** Opens the settings dialog, optionally navigating to a specific section. */
+  onSettingsClick?: (section?: string) => void;
   /** Suppresses the settings button when `true` (mobile layout). */
   isMobile?: boolean;
   /** All currently open tab IDs. */
@@ -431,24 +431,6 @@ export const SidebarToolbar = ({
                 </DropdownMenu>
               )}
 
-              {/* Settings Button */}
-              {!isMobile && onSettingsClick && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={onSettingsClick}
-                      className="flex-1 h-8 px-2 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>Settings</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
             </>
           )}
 

@@ -171,7 +171,7 @@ function OnChangeToHTMLPlugin({
 }
 
 /** Minimum interval (ms) between successive `onHeadingsChange` calls. */
-const HEADINGS_THROTTLE_MS = 30_000;
+const HEADINGS_THROTTLE_MS = 300;
 
 /**
  * Throttles calls to `onHeadingsChange` so that table-of-contents updates

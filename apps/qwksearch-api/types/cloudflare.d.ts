@@ -1,7 +1,5 @@
-declare global {
-  interface CloudflareEnv {
-    DB: D1Database;
-  }
+interface CloudflareEnv {
+  DB: D1Database;
 }
 
 // Minimal D1Database type so drizzle-orm/d1 binding compiles without @cloudflare/workers-types

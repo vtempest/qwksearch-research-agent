@@ -20,6 +20,12 @@ interface HeaderProps {
   onShareClick?: () => void;
   /** Title of the currently active document shown in the desktop breadcrumb. */
   documentTitle?: string;
+  /** Logged-in user info, or null/undefined when not authenticated. */
+  user?: { name?: string; email?: string } | null;
+  /** Called when the user clicks "Login" in the user menu. */
+  onLogin?: () => void;
+  /** Called when the user clicks "Sign Out" in the user menu. */
+  onSignOut?: () => void;
 }
 
 /**
@@ -27,7 +33,7 @@ interface HeaderProps {
  * on mobile it shows the hamburger button and a search icon; on desktop
  * it shows the breadcrumb, share button, and new-doc button.
  */
-export const Header = ({ onMenuClick, onSearchClick, onSettingsClick, onShareClick, documentTitle }: HeaderProps) => {
+export const Header = ({ onMenuClick, onSearchClick, onSettingsClick, onShareClick, documentTitle, user, onLogin, onSignOut }: HeaderProps) => {
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
       {/* Left section - Mobile menu + breadcrumb */}
@@ -66,7 +72,7 @@ export const Header = ({ onMenuClick, onSearchClick, onSettingsClick, onShareCli
           onClick={onShareClick}
         >
           <Share2 className="mr-2 h-4 w-4" />
-          Share
+          Share & invite
         </Button>
 
         {/* Desktop new doc button */}
@@ -89,7 +95,7 @@ export const Header = ({ onMenuClick, onSearchClick, onSettingsClick, onShareCli
         </Button>
 
         {/* User menu with theme switcher - replaces avatars and settings */}
-        <UserMenu onSettingsClick={onSettingsClick} />
+        <UserMenu onSettingsClick={onSettingsClick} user={user} onLogin={onLogin} onSignOut={onSignOut} />
 
         {/* More menu */}
         <Button

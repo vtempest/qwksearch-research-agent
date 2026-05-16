@@ -11,6 +11,7 @@ import {
 } from "@headless-tree/core";
 import { AssistiveTreeDescription, useTree } from "@headless-tree/react";
 import { FolderIcon, FolderOpenIcon } from "lucide-react";
+import { FileTypeIcon } from "../ui/FileTypeIcon";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from "react";
 
 import type { Document } from "../documents/DocumentTree";
@@ -305,12 +306,15 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
                         onDoubleClick={() => onRename && item.startRenaming()}
                       >
                         <span className="flex items-center gap-2 w-full">
-                          {item.isFolder() &&
-                            (item.isExpanded() ? (
+                          {item.isFolder() ? (
+                            item.isExpanded() ? (
                               <FolderOpenIcon className="pointer-events-none size-4 text-muted-foreground" />
                             ) : (
                               <FolderIcon className="pointer-events-none size-4 text-muted-foreground" />
-                            ))}
+                            )
+                          ) : (
+                            <FileTypeIcon filename={item.getItemName()} size="sm" />
+                          )}
                           <span className="flex-1 truncate">{item.getItemName()}</span>
                         </span>
                       </TreeItemLabel>

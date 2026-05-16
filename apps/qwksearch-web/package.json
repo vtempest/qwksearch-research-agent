@@ -157,7 +157,6 @@
     "@types/node": "^25.3.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@types/react-window": "^2.0.0",
     "autoprefixer": "^10.4.27",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.9",

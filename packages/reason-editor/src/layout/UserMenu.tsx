@@ -6,7 +6,7 @@
  * Documentation, API reference, Upgrade, and the Settings dialog. Also
  * renders the {@link ThemeDropdown} inline.
  */
-import { User, Settings, FileText, Code, Zap } from 'lucide-react';
+import { User, Settings, FileText, Code, Zap, LogIn, LogOut } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -25,6 +25,12 @@ interface UserMenuProps {
   onSettingsClick: () => void;
   /** Two-letter initials displayed in the avatar fallback. Defaults to `'JD'`. */
   userInitials?: string;
+  /** Logged-in user info, or null/undefined when not authenticated. */
+  user?: { name?: string; email?: string } | null;
+  /** Called when the user clicks "Login". */
+  onLogin?: () => void;
+  /** Called when the user clicks "Sign Out". */
+  onSignOut?: () => void;
 }
 
 /**
@@ -32,7 +38,7 @@ interface UserMenuProps {
  * alongside an avatar that opens a menu with app navigation links and
  * Settings.
  */
-export const UserMenu = ({ onSettingsClick, userInitials = 'JD' }: UserMenuProps) => {
+export const UserMenu = ({ onSettingsClick, userInitials = 'JD', user, onLogin, onSignOut }: UserMenuProps) => {
   /** Opens the documentation site in a new tab. */
   const handleDocumentation = () => {
     window.open('https://docs.example.com', '_blank');
@@ -67,9 +73,11 @@ export const UserMenu = ({ onSettingsClick, userInitials = 'JD' }: UserMenuProps
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">User Account</p>
+              <p className="text-sm font-medium leading-none">
+                {user?.name || 'User Account'}
+              </p>
               <p className="text-xs leading-none text-muted-foreground">
-                user@example.com
+                {user?.email || 'Not signed in'}
               </p>
             </div>
           </DropdownMenuLabel>
@@ -96,6 +104,20 @@ export const UserMenu = ({ onSettingsClick, userInitials = 'JD' }: UserMenuProps
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          {user ? (
+            <DropdownMenuItem onClick={onSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sign Out</span>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={onLogin}>
+              <LogIn className="mr-2 h-4 w-4" />
+              <span>Login</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

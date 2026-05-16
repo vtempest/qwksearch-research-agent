@@ -12,8 +12,16 @@ import type { ViewMode } from './types';
 import type { TableOfContentsEntry } from '@lexical/react/LexicalTableOfContentsPlugin';
 import { SplitPane, Pane } from 'react-split-pane';
 import { usePersistence } from 'react-split-pane/persistence';
-import { X, FileText } from 'lucide-react';
+import { X, Edit2, RotateCcw, SplitSquareVertical } from 'lucide-react';
+import { FileTypeIcon } from '../../ui/FileTypeIcon';
 import { cn } from '../../lib/utils';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '../../ui/context-menu';
 import '../../styles/split-pane.css';
 
 type DocumentTreeHandle = { collapseAll: () => void; edit: (nodeId: string) => void; expandAll: () => void };
@@ -64,6 +72,14 @@ interface SidebarContentProps {
   onTabChange?: (id: string) => void;
   /** Closes a tab. */
   onTabClose?: (id: string) => void;
+  /** Renames a tab's document. */
+  onTabRename?: (id: string, newTitle: string) => void;
+  /** Opens a tab in a split view to the right. */
+  onSplitRight?: (id: string) => void;
+  /** Reopens the last closed tab. */
+  onReopenLastClosed?: () => void;
+  /** Whether there is a closed tab that can be reopened. */
+  canReopenLastClosed?: boolean;
 }
 
 /**
@@ -93,6 +109,10 @@ export const SidebarContent = ({
   activeTab,
   onTabChange,
   onTabClose,
+  onTabRename,
+  onSplitRight,
+  onReopenLastClosed,
+  canReopenLastClosed = false,
 }: SidebarContentProps) => {
   // Track copied document for copy/paste operations
   const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
@@ -176,28 +196,67 @@ export const SidebarContent = ({
                   const title = doc?.title || 'Untitled';
                   const isActive = tabId === activeTab;
                   return (
-                    <div
-                      key={tabId}
-                      className={cn(
-                        'group flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors hover:bg-sidebar-accent',
-                        isActive && 'bg-sidebar-accent text-blue-600 font-medium'
-                      )}
-                      onClick={() => onTabChange?.(tabId)}
-                    >
-                      <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <span className="flex-1 truncate text-sm">{title}</span>
-                      {onTabClose && (
-                        <button
-                          className="shrink-0 h-4 w-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onTabClose(tabId);
-                          }}
+                    <ContextMenu key={tabId}>
+                      <ContextMenuTrigger>
+                        <div
+                          className={cn(
+                            'group flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors hover:bg-sidebar-accent',
+                            isActive && 'bg-sidebar-accent text-blue-600 font-medium'
+                          )}
+                          onClick={() => onTabChange?.(tabId)}
                         >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
+                          <FileTypeIcon filename={title} size={14} />
+                          <span className="flex-1 truncate text-sm">{title}</span>
+                          {onTabClose && (
+                            <button
+                              className="shrink-0 h-4 w-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onTabClose(tabId);
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        {onTabRename && (
+                          <ContextMenuItem onClick={() => {
+                            const newTitle = window.prompt('Rename document', title);
+                            if (newTitle?.trim()) onTabRename(tabId, newTitle.trim());
+                          }}>
+                            <Edit2 className="mr-2 h-4 w-4" />
+                            Rename
+                          </ContextMenuItem>
+                        )}
+                        {onTabClose && (
+                          <ContextMenuItem
+                            onClick={() => onTabClose(tabId)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <X className="mr-2 h-4 w-4" />
+                            Close
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuSeparator />
+                        {onSplitRight && (
+                          <ContextMenuItem onClick={() => onSplitRight(tabId)}>
+                            <SplitSquareVertical className="mr-2 h-4 w-4" />
+                            Split Right
+                          </ContextMenuItem>
+                        )}
+                        {onReopenLastClosed && (
+                          <ContextMenuItem
+                            onClick={onReopenLastClosed}
+                            disabled={!canReopenLastClosed}
+                          >
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Reopen Last Closed
+                          </ContextMenuItem>
+                        )}
+                      </ContextMenuContent>
+                    </ContextMenu>
                   );
                 })
               )}

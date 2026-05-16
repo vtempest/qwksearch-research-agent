@@ -1,103 +1,74 @@
 /**
- * Custom styles for react-split-pane resizers
+ * Custom styles for react-split-pane dividers.
+ * Library uses class: split-pane-divider [horizontal|vertical] [dragging]
  */
 
-/* Horizontal resizer (vertical split - divides left/right) */
-.Resizer.horizontal {
-  width: 8px;
-  margin: 0 -4px;
+.split-pane-divider {
+  position: relative;
+  z-index: 10;
+  transition: background-color 0.15s ease;
+  /* Expand the narrow 1px hit area without shifting layout */
+  flex: none;
+}
+
+/* ── Horizontal split (left/right panes) ── vertical bar ── */
+.split-pane-divider.horizontal {
+  padding: 0 6px;
   cursor: col-resize;
-  background-clip: padding-box;
-  position: relative;
-  z-index: 1;
-  transition: background-color 0.15s ease;
 }
 
-.Resizer.horizontal::before {
+.split-pane-divider.horizontal::before {
   content: '';
   position: absolute;
-  top: 50%;
+  top: 0;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   width: 2px;
-  height: 40px;
+  height: 100%;
   background-color: hsl(var(--border));
   border-radius: 2px;
-  transition: all 0.15s ease;
+  transition: width 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.Resizer.horizontal:hover::before,
-.Resizer.horizontal.resizing::before {
-  background-color: hsl(var(--primary));
+.split-pane-divider.horizontal:hover,
+.split-pane-divider.horizontal.dragging {
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+.split-pane-divider.horizontal:hover::before,
+.split-pane-divider.horizontal.dragging::before {
   width: 3px;
-  height: 60px;
-  box-shadow: 0 0 6px hsl(var(--primary) / 0.4);
+  background-color: hsl(var(--primary));
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.45);
 }
 
-/* Vertical resizer (horizontal split - divides top/bottom) */
-.Resizer.vertical {
-  height: 8px;
-  margin: -4px 0;
+/* ── Vertical split (top/bottom panes) ── horizontal bar ── */
+.split-pane-divider.vertical {
+  padding: 6px 0;
   cursor: row-resize;
-  background-clip: padding-box;
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.15s ease;
 }
 
-.Resizer.vertical::before {
+.split-pane-divider.vertical::before {
   content: '';
   position: absolute;
   top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  left: 0;
+  transform: translateY(-50%);
   height: 2px;
-  width: 40px;
+  width: 100%;
   background-color: hsl(var(--border));
   border-radius: 2px;
-  transition: all 0.15s ease;
+  transition: height 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.Resizer.vertical:hover,
-.Resizer.vertical.resizing {
-  background-color: hsl(var(--accent) / 0.3);
+.split-pane-divider.vertical:hover,
+.split-pane-divider.vertical.dragging {
+  background-color: hsl(var(--primary) / 0.08);
 }
 
-.Resizer.vertical:hover::before,
-.Resizer.vertical.resizing::before {
-  background-color: hsl(var(--primary));
-  width: 60px;
+.split-pane-divider.vertical:hover::before,
+.split-pane-divider.vertical.dragging::before {
   height: 3px;
-  box-shadow: 0 0 6px hsl(var(--primary) / 0.4);
-}
-
-/* Grip dots overlay for vertical resizer */
-.Resizer.vertical::after {
-  content: '⋯';
-  position: absolute;
-  color: hsl(var(--muted-foreground));
-  font-size: 14px;
-  line-height: 1;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.Resizer.vertical:hover::after,
-.Resizer.vertical.resizing::after {
-  opacity: 0.7;
-  color: hsl(var(--primary));
-}
-
-/* Disabled state */
-.Resizer.disabled {
-  cursor: not-allowed;
-  opacity: 0.3;
-}
-
-.Resizer.disabled:hover::before {
-  opacity: 0.3;
-  background-color: hsl(var(--border));
+  background-color: hsl(var(--primary));
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.45);
 }

@@ -5,12 +5,12 @@
  * and all application-level dialogs into a single responsive shell.
  */
 import { Sidebar } from '../layout/Sidebar';
-import { DocumentTabs } from '../documents/DocumentTabs';
 import { EditorArea } from './EditorArea';
 import { RightPanel } from './RightPanel';
 import { ReasonDocsDialogs } from './ReasonDocsDialogs';
 import { useReasonDocsState } from './useReasonDocsState';
 import { useTheme } from 'next-themes';
+import { useState } from 'react';
 import { SplitPane, Pane } from 'react-split-pane';
 import { usePersistence } from 'react-split-pane/persistence';
 import '../styles/split-pane.css';
@@ -24,6 +24,7 @@ import '../styles/split-pane.css';
 const Index = () => {
   const { theme, setTheme } = useTheme();
   const state = useReasonDocsState();
+  const [settingsInitialSection, setSettingsInitialSection] = useState<string | undefined>(undefined);
 
   // Use persistence hook for sidebar sizes
   const [sidebarSizes, setSidebarSizes] = usePersistence({ key: 'reason-docs-sidebar' });
@@ -55,7 +56,7 @@ const Index = () => {
     isMobile: state.isMobile,
     viewMode: state.viewMode,
     onViewModeChange: state.setViewMode,
-    onSettingsClick: () => state.setIsSettingsOpen(true),
+    onSettingsClick: (section?: string) => { setSettingsInitialSection(section); state.setIsSettingsOpen(true); },
     onInviteClick: () => state.setIsInviteModalOpen(true),
     onRestore: state.handleRestoreDocument,
     onPermanentDelete: state.handlePermanentDelete,
@@ -68,19 +69,9 @@ const Index = () => {
     activeTab: state.activeDocId,
     onTabChange: state.handleTabChange,
     onTabClose: state.handleTabClose,
-  };
-
-  const tabsProps = {
-    openTabs: state.openTabs,
-    activeTab: state.activeDocId,
-    documents: state.documents,
-    onTabChange: state.handleTabChange,
-    onTabClose: state.handleTabClose,
-    onTabAdd: state.handleTabAdd,
-    onRename: (id: string, title: string) => state.handleUpdateDocument(id, { title }),
-    onDelete: state.handleTabDelete,
-    onReopenLastClosed: state.handleReopenLastClosed,
+    onTabRename: (id: string, title: string) => state.handleUpdateDocument(id, { title }),
     onSplitRight: state.handleSplitRight,
+    onReopenLastClosed: state.handleReopenLastClosed,
     canReopenLastClosed: state.closedTabsHistory.length > 0,
   };
 
@@ -111,7 +102,6 @@ const Index = () => {
         <div className="flex-1 flex overflow-hidden">
           <Sidebar {...sidebarProps} headings={state.headings} />
           <main className="flex-1 overflow-hidden flex flex-col">
-            <DocumentTabs {...tabsProps} onMenuClick={() => state.setIsSidebarOpen(true)} />
             <EditorArea {...editorProps} />
           </main>
         </div>
@@ -132,7 +122,6 @@ const Index = () => {
                   {/* Main editor area */}
                   <Pane>
                     <div className="h-full flex flex-col bg-background">
-                      <DocumentTabs {...tabsProps} />
                       <div className="flex-1 min-h-0">
                         <EditorArea {...editorProps} />
                       </div>
@@ -153,13 +142,13 @@ const Index = () => {
                         headings={state.headings}
                         searchQuery={state.searchQuery}
                         onNavigate={(key) => state.editorRef.current?.scrollToHeading(key)}
+                        documentContent={state.activeDocument?.content || ''}
                       />
                     </div>
                   </Pane>
                 </SplitPane>
               ) : (
-                <div className="h-screen flex flex-col bg-background ">
-                  <DocumentTabs {...tabsProps} />
+                <div className="h-screen flex flex-col bg-background">
                   <div className="flex-1 min-h-0 overflow-auto">
                     <EditorArea {...editorProps} />
                   </div>
@@ -175,6 +164,7 @@ const Index = () => {
         setIsSearchModalOpen={state.setIsSearchModalOpen}
         isSettingsOpen={state.isSettingsOpen}
         setIsSettingsOpen={state.setIsSettingsOpen}
+        settingsInitialSection={settingsInitialSection}
         isTeamsOpen={state.isTeamsOpen}
         setIsTeamsOpen={state.setIsTeamsOpen}
         isInviteModalOpen={state.isInviteModalOpen}

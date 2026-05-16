@@ -20,6 +20,8 @@ interface ReasonDocsDialogsProps {
   isSettingsOpen: boolean;
   /** Setter for `isSettingsOpen`. */
   setIsSettingsOpen: (open: boolean) => void;
+  /** Section to open when the settings dialog is shown. */
+  settingsInitialSection?: string;
   /** Controls visibility of the team-management dialog. */
   isTeamsOpen: boolean;
   /** Setter for `isTeamsOpen`. */
@@ -58,6 +60,7 @@ export function ReasonDocsDialogs({
   setIsSearchModalOpen,
   isSettingsOpen,
   setIsSettingsOpen,
+  settingsInitialSection,
   isTeamsOpen,
   setIsTeamsOpen,
   isInviteModalOpen,
@@ -93,6 +96,7 @@ export function ReasonDocsDialogs({
       <Settings
         open={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}
+        initialSection={settingsInitialSection}
         defaultSidebarView={defaultSidebarView}
         onDefaultSidebarViewChange={setDefaultSidebarView}
         enableDatabaseSync={enableDatabaseSync}

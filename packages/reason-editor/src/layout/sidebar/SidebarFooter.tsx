@@ -7,7 +7,15 @@
 import { Button } from '../../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../../ui/dropdown-menu';
-import { Settings, Trash2, Columns2, RotateCcw } from 'lucide-react';
+import { Settings, Trash2, Columns2, RotateCcw, Paintbrush, Database, HardDrive, Wand2, Info, LogIn, LogOut } from 'lucide-react';
+
+const settingsNav = [
+  { name: "Appearance", icon: Paintbrush },
+  { name: "Storage", icon: Database },
+  { name: "File Sources", icon: HardDrive },
+  { name: "AI Rewrite Modes", icon: Wand2 },
+  { name: "About", icon: Info },
+];
 import { cn } from '../../lib/utils';
 import { Document } from '../../documents/DocumentTree';
 import { ThemeDropdown } from '../../theme/theme-dropdown';
@@ -25,8 +33,14 @@ interface SidebarFooterProps {
   deletedDocs: Document[];
   /** Restores a soft-deleted document by ID. */
   onRestore?: (id: string) => void;
-  /** Opens the settings dialog. */
-  onSettingsClick?: () => void;
+  /** Opens the settings dialog, optionally navigating to a specific section. */
+  onSettingsClick?: (section?: string) => void;
+  /** Logged-in user info, or null/undefined when not authenticated. */
+  user?: { name?: string; email?: string } | null;
+  /** Called when the user clicks "Login". */
+  onLogin?: () => void;
+  /** Called when the user clicks "Sign Out". */
+  onSignOut?: () => void;
   /** Changes the current view mode. */
   onViewModeChange: (mode: ViewMode) => void;
   /** Toggles the right-side outline panel. */
@@ -45,6 +59,9 @@ export const SidebarFooter = ({
   deletedDocs,
   onRestore,
   onSettingsClick,
+  user,
+  onLogin,
+  onSignOut,
   onViewModeChange,
   onToggleRightOutline,
 }: SidebarFooterProps) => {
@@ -109,23 +126,50 @@ export const SidebarFooter = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Settings Button */}
+          {/* Settings Dropdown */}
           {!isMobile && onSettingsClick && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onSettingsClick}
-                  className="h-9 w-9 p-0 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p>Settings</p>
-              </TooltipContent>
-            </Tooltip>
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Settings</p>
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-48">
+                {settingsNav.map((item) => (
+                  <DropdownMenuItem
+                    key={item.name}
+                    onClick={() => onSettingsClick(item.name)}
+                    className="flex items-center gap-2"
+                  >
+                    <item.icon className="h-4 w-4 text-muted-foreground" />
+                    <span>{item.name}</span>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                {user ? (
+                  <DropdownMenuItem onClick={onSignOut} className="flex items-center gap-2">
+                    <LogOut className="h-4 w-4 text-muted-foreground" />
+                    <span>Sign Out</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={onLogin} className="flex items-center gap-2">
+                    <LogIn className="h-4 w-4 text-muted-foreground" />
+                    <span>Login</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {/* Split View Menu */}

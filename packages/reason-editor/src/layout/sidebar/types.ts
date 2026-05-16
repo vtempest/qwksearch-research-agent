@@ -29,7 +29,7 @@ export interface SidebarProps {
   viewMode: "tree" | "outline" | "split";
   onViewModeChange: (mode: "tree" | "outline" | "split") => void;
   // Settings
-  onSettingsClick?: () => void;
+  onSettingsClick?: (section?: string) => void;
   onInviteClick?: () => void;
   // Trash callbacks
   onRestore?: (id: string) => void;
@@ -49,6 +49,10 @@ export interface SidebarProps {
   activeTab?: string | null;
   onTabChange?: (id: string) => void;
   onTabClose?: (id: string) => void;
+  onTabRename?: (id: string, newTitle: string) => void;
+  onSplitRight?: (id: string) => void;
+  onReopenLastClosed?: () => void;
+  canReopenLastClosed?: boolean;
 }
 
 export type ViewMode = "tree" | "outline" | "split";

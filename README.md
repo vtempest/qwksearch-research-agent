@@ -44,7 +44,7 @@ Language Models can distill the essence of collective thought into a vector spac
 
 ```bash
 # Download Source
-bun x git0 vtempest/ai-research-agent
+bun x git0 vtempest/qwksearch-research-agent
 ```
 
 ```bash
@@ -84,7 +84,7 @@ bun i qwksearch-api-client
     <img width="400px" src="https://i.imgur.com/pDvMC1Q.png" />
 </p>
 
-- 📝 **Complex Rich Text Editor**: full featured alternative to Google Docs based onMeta's Lexical with easy minimalist UI
+- 📝 **Complex Rich Text Editor**: full featured alternative to Google Docs based on Meta's Lexical with easy minimalist UI
 - 📂 **Nested Document Tree**: organize research notes with a nested document organizer with drag-and-drop, tabs, and custom storage sources
 - 🖱️ **Context Menu**: right-click to access quick actions for seamless document management
 - 🔍 **Full-Text Search**: instantly find documents by title or content with full-text search
@@ -110,13 +110,21 @@ bun i qwksearch-api-client
 4. **Basic HTML Standardization**: Transform complex HTML into a simplified reading-mode format of basic HTML, making it ideal for research note archival and focused reading, with headings, images and links.
 5. **Cite**: Identify and extract citation metadata including author names, publication dates, sources, and titles using HTML meta tags and common class name patterns. The system validates author names against a comprehensive database of 90,000 first and last names, distinguishing between personal and organizational authors to properly format citations.
 
+## 🖥️ Desktop App
+
+**QwkSearch Desktop** — Built with Tauri. Select any text on screen, press `` ` `` to instantly search the web without leaving your workflow.
+
+## 🧩 Browser Extension
+
+**QwkSearch Tab Manager AI** — AI-powered tab manager that organizes, searches, and manages browser tabs intelligently.
+
 ## Further Research
 
 - [ThoughtSource Reasoning Datasets](https://github.com/OpenBioLink/ThoughtSource)
 - [Awesome-LLMs-Datasets](https://github.com/lmmlzn/Awesome-LLMs-Datasets)
 - [GPT Researcher](https://github.com/assafelovic/gpt-researcher)
 - [NLP Papers Latest Updates](https://index.quantumstat.com)
-- [Anthropic Persuation Overview](https://www.anthropic.com/research/measuring-model-persuasiveness)
+- [Anthropic Persuasion Overview](https://www.anthropic.com/research/measuring-model-persuasiveness)
 - [NLP Research Progress](https://github.com/sebastianruder/NLP-progress/)
 - [NLP Datasets](https://github.com/niderhoff/nlp-datasets?tab=readme-ov-file)
 - [Google Search Algorithm](https://searchengineland.com/google-search-document-leak-ranking-442617)

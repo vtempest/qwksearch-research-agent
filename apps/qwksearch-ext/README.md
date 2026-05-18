@@ -2,10 +2,9 @@
 
 - Vertical Tabs Sidebar with Sorting and Context Menu
 - Search Inside All Open Tabs Page Content
-- Resolve query against LLM search or Google
 - Select Text, Press Tab To Search Google, Tab again for First Result
 - Reader Mode to Extract main content text and cite (includes PDF & Youtube)
-- Ask Groq Llama AI about Text Content of Open Tabs & Saved Tabs
+- Ask AI about Text Content of Open Tabs & Saved Tabs
 
 ### Screenshot
 

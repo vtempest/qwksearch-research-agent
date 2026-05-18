@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Upload, CloudIcon, FolderOpen, Loader2, Clock, SlidersHorizontal, Paperclip, History, Settings } from 'lucide-react';
+import { Upload, CloudIcon, FolderOpen, Loader2, Clock, SlidersHorizontal, Paperclip, History, Settings, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import grab from 'grab-url';
 import {
@@ -54,7 +54,7 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
   disabled = false,
 }) => {
   const router = useRouter();
-  const { category, setCategory } = useChat();
+  const { category, setCategory, incognito, setIncognito } = useChat();
   const selectedCodes = category ? category.split(',').filter(Boolean) : ['general'];
   const primaryCategory = categories.find((cat) => cat.code === selectedCodes[0]) || categories[0];
 
@@ -366,6 +366,18 @@ const FileUploadDropdown: React.FC<FileUploadDropdownProps> = ({
                 )}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuCheckboxItem
+              checked={incognito}
+              onCheckedChange={setIncognito}
+              onSelect={(e) => e.preventDefault()}
+              className="gap-2"
+            >
+              <EyeOff className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+              <span>Private</span>
+            </DropdownMenuCheckboxItem>
 
             <DropdownMenuSeparator />
 

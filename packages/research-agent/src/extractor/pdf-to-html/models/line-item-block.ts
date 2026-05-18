@@ -5,10 +5,10 @@
  * from each line into the block, and strips the type tag from individual lines
  * so only the block-level type is authoritative.
  */
-import PageItem, { BlockTypeEntry } from "./pageItem";
+import PageItem, { BlockTypeEntry } from "./page-item";
 import Annotation from "./annotation";
-import ParsedElements from "./parsedElements";
-import LineItem from "./lineItem";
+import ParsedElements from "./parsed-elements";
+import LineItem from "./line-item";
 
 // A block of LineItem[] within a Page
 export default class LineItemBlock extends PageItem {
@@ -48,3 +48,4 @@ export default class LineItemBlock extends PageItem {
     this.items.push(copiedItem);
   }
 }
+

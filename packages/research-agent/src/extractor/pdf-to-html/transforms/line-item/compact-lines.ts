@@ -5,12 +5,12 @@
  * and records footnote links, footnote definitions, hyperlinks, and bold/italic
  * word counts, tagging items as ADDED/REMOVED for debug rendering.
  */
-import ToLineItemTransformation from "../base/toLineItemTransform";
-import ParseResult from "../../models/parseResult";
-import LineItem from "../../models/lineItem";
-import TextItemLineGrouper from "../../models/textItemLineGrouper";
-import LineConverter from "../../models/lineConverter";
-import BlockType from "../../models/blockType";
+import ToLineItemTransformation from "../base/to-line-item-transform";
+import ParseResult from "../../models/parse-result";
+import LineItem from "../../models/line-item";
+import TextItemLineGrouper from "../../models/text-item-line-grouper";
+import LineConverter from "../../models/line-converter";
+import BlockType from "../../models/block-type";
 import { REMOVED_ANNOTATION, ADDED_ANNOTATION } from "../../models/annotation";
 
 // gathers text items on the same y line to one line item
@@ -88,3 +88,5 @@ export default class CompactLines extends ToLineItemTransformation {
     });
   }
 }
+
+

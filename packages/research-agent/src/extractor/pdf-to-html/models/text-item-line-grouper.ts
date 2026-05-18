@@ -5,8 +5,8 @@
  * which is critical for footnote detection and word ordering in `CompactLines`.
  */
 
-import TextItem from "./textItem";
-import { sortByX } from "../utils/pageItemFunctions";
+import TextItem from "./text-item";
+import { sortByX } from "../utils/page-item-functions";
 
 // Groups all text items which are on the same y line
 export default class TextItemLineGrouper {
@@ -37,3 +37,5 @@ export default class TextItemLineGrouper {
     return lines;
   }
 }
+
+

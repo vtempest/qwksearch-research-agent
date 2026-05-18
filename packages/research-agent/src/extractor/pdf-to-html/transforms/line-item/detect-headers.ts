@@ -6,11 +6,11 @@
  * above-average heights largest-first and maps them to heading levels. Also
  * detects all-uppercase body-font lines as the next lower heading level.
  */
-import ToLineItemTransformation from "../base/toLineItemTransform";
-import ParseResult from "../../models/parseResult";
+import ToLineItemTransformation from "../base/to-line-item-transform";
+import ParseResult from "../../models/parse-result";
 import { DETECTED_ANNOTATION } from "../../models/annotation";
-import BlockType from "../../models/blockType";
-import { isListItem } from "../../utils/stringFunctions";
+import BlockType from "../../models/block-type";
+import { isListItem } from "../../utils/string-functions";
 
 // Detect headlines based on heights
 export default class DetectHeaders extends ToLineItemTransformation {
@@ -169,3 +169,5 @@ function findPagesWithMaxHeight(pages: any[], maxHeight: number): Set<any> {
   });
   return maxHeaderPagesSet;
 }
+
+

@@ -5,8 +5,8 @@
  * strips `REMOVED_ANNOTATION` items and clears annotations before the next stage.
  */
 import Transformation from './transformation'
-import LineItem from '../../models/lineItem'
-import ParseResult from '../../models/parseResult'
+import LineItem from '../../models/line-item'
+import ParseResult from '../../models/parse-result'
 import { REMOVED_ANNOTATION } from '../../models/annotation'
 
 // Abstract class for transformations producing LineItem(s) to be shown in the LineItemPageView

@@ -5,10 +5,10 @@
  * such lines and merges them into one horizontal `LineItem`, combining their
  * words and computing the correct bounding box.
  */
-import ToLineItemTransformation from "../base/toLineItemTransform";
-import ParseResult from "../../models/parseResult";
-import LineItem from "../../models/lineItem";
-import StashingStream from "../../models/stashingStream";
+import ToLineItemTransformation from "../base/to-line-item-transform";
+import ParseResult from "../../models/parse-result";
+import LineItem from "../../models/line-item";
+import StashingStream from "../../models/stashing-stream";
 import { REMOVED_ANNOTATION, ADDED_ANNOTATION } from "../../models/annotation";
 
 // Converts vertical text to horizontal
@@ -86,3 +86,5 @@ class VerticalsStream extends StashingStream {
     }
   }
 }
+
+

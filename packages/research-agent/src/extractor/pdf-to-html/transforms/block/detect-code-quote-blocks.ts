@@ -6,11 +6,11 @@
  * font metadata.
  */
 
-import ToLineItemBlockTransformation from '../base/toLineItemBlockTransform'
-import ParseResult from '../../models/parseResult'
+import ToLineItemBlockTransformation from '../base/to-line-item-block-transform'
+import ParseResult from '../../models/parse-result'
 import { DETECTED_ANNOTATION } from '../../models/annotation'
-import BlockType from '../../models/blockType'
-import { minXFromBlocks } from '../../utils/pageItemFunctions'
+import BlockType from '../../models/block-type'
+import { minXFromBlocks } from '../../utils/page-item-functions'
 
 // Detect items which are code/quote blocks
 export default class DetectCodeQuoteBlocks extends ToLineItemBlockTransformation {

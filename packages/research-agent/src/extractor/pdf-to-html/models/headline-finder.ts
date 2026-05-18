@@ -5,8 +5,8 @@
  * the array of matching items once the full headline has been consumed, or `null`
  * if the sequence breaks. Used by `DetectTOC` to locate heading text on content pages.
  */
-import LineItem from "./lineItem";
-import { normalizedCharCodeArray } from "../utils/stringFunctions";
+import LineItem from "./line-item";
+import { normalizedCharCodeArray } from "../utils/string-functions";
 
 export default class HeadlineFinder {
   headlineCharCodes: number[];
@@ -49,3 +49,5 @@ export default class HeadlineFinder {
     return true;
   }
 }
+
+

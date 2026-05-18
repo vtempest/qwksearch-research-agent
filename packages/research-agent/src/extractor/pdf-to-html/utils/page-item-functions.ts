@@ -4,7 +4,7 @@
  * `minXFromPageItems` finds the minimum x across a flat page item array; `sortByX`
  * sorts items in place by x coordinate for left-to-right reading order.
  */
-import LineItemBlock from '../models/lineItemBlock'
+import LineItemBlock from '../models/line-item-block'
 
 export function minXFromBlocks(blocks: LineItemBlock[]): number | null {
   var minX = 999

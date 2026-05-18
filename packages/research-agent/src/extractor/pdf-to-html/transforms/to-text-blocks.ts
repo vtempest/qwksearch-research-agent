@@ -9,8 +9,8 @@
  * style metadata — making downstream NLP processing and serialization simpler.
  */
 import Transformation from "./base/transformation";
-import ParseResult from "../models/parseResult";
-import BlockType from "../models/blockType";
+import ParseResult from "../models/parse-result";
+import BlockType from "../models/block-type";
 
 export default class ToTextBlocks extends Transformation {
   constructor() {
@@ -35,3 +35,4 @@ export default class ToTextBlocks extends Transformation {
     });
   }
 }
+

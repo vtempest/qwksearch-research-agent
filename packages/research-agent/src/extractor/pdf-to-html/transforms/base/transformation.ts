@@ -5,7 +5,7 @@
  * used for view routing). `completeTransform` is a no-op by default; subclasses
  * override it to flush deferred mutations after the stage's debug view is rendered.
  */
-import ParseResult from "../../models/parseResult";
+import ParseResult from "../../models/parse-result";
 
 // A transformation from an PdfPage to an PdfPage
 export default class Transformation {
@@ -32,3 +32,4 @@ export default class Transformation {
     return parseResult;
   }
 }
+

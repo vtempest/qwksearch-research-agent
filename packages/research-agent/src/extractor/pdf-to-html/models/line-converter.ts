@@ -5,13 +5,13 @@
  * rendering helpers for links and footnotes. The inner WordDetectionStream extends
  * StashingStream to buffer consecutive same-format items before flushing them as Word nodes.
  */
-import TextItem from "./textItem";
+import TextItem from "./text-item";
 import Word, { WordFormatEntry, WordTypeEntry } from "./word";
-import LineItem from "./lineItem";
-import StashingStream from "./stashingStream";
-import ParsedElements from "./parsedElements";
-import { isNumber, isListItemCharacter } from "../utils/stringFunctions";
-import { sortByX } from "../utils/pageItemFunctions";
+import LineItem from "./line-item";
+import StashingStream from "./stashing-stream";
+import ParsedElements from "./parsed-elements";
+import { isNumber, isListItemCharacter } from "../utils/string-functions";
+import { sortByX } from "../utils/page-item-functions";
 
 export const WordFormat: Record<string, WordFormatEntry> = {
   BOLD: {
@@ -219,3 +219,6 @@ function combineText(textItems: TextItem[]): string {
   });
   return text;
 }
+
+
+

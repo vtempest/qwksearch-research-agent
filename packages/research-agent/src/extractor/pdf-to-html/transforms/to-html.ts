@@ -6,7 +6,7 @@
  */
 
 import Transformation from './base/transformation'
-import ParseResult from '../models/parseResult'
+import ParseResult from '../models/parse-result'
 
 export default class ToHTML extends Transformation {
   constructor () {

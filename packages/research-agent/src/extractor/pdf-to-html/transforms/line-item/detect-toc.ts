@@ -7,19 +7,19 @@
  * headings that could not be located by exact text.
  */
 
-import ToLineItemTransformation from "../base/toLineItemTransform";
-import ParseResult from "../../models/parseResult";
-import LineItem from "../../models/lineItem";
+import ToLineItemTransformation from "../base/to-line-item-transform";
+import ParseResult from "../../models/parse-result";
+import LineItem from "../../models/line-item";
 import Word from "../../models/word";
-import HeadlineFinder from "../../models/headlineFinder";
+import HeadlineFinder from "../../models/headline-finder";
 import { REMOVED_ANNOTATION, ADDED_ANNOTATION } from "../../models/annotation";
-import BlockType from "../../models/blockType";
+import BlockType from "../../models/block-type";
 import {
   isDigit,
   isNumber,
   wordMatch,
   hasOnly,
-} from "../../utils/stringFunctions";
+} from "../../utils/string-functions";
 
 // Detect table of contents pages plus linked headlines
 export default class DetectTOC extends ToLineItemTransformation {
@@ -455,3 +455,5 @@ class TocLink {
     this.level = 0;
   }
 }
+
+

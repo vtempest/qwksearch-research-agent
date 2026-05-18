@@ -4,9 +4,9 @@
  * Can be constructed from a pre-built `words` array or from a raw `text` string,
  * which is split on spaces and wrapped into `Word` instances automatically.
  */
-import PageItem, { BlockTypeEntry } from "./pageItem";
+import PageItem, { BlockTypeEntry } from "./page-item";
 import Annotation from "./annotation";
-import ParsedElements from "./parsedElements";
+import ParsedElements from "./parsed-elements";
 import Word from "./word";
 
 // A line within a page
@@ -56,3 +56,4 @@ export default class LineItem extends PageItem {
     return this.words.map((word) => word.string);
   }
 }
+

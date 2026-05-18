@@ -6,13 +6,13 @@
  * preserving the debug diff trail.
  */
 
-import ToLineItemTransformation from '../base/toLineItemTransform'
-import ParseResult from '../../models/parseResult'
-import LineItem from '../../models/lineItem'
+import ToLineItemTransformation from '../base/to-line-item-transform'
+import ParseResult from '../../models/parse-result'
+import LineItem from '../../models/line-item'
 import Word from '../../models/word'
 import { REMOVED_ANNOTATION, ADDED_ANNOTATION, DETECTED_ANNOTATION } from '../../models/annotation'
-import BlockType from '../../models/blockType'
-import { isListItemCharacter, isNumberedListItem } from '../../utils/stringFunctions'
+import BlockType from '../../models/block-type'
+import { isListItemCharacter, isNumberedListItem } from '../../utils/string-functions'
 
 // Detect items starting with -, \u2022, etc...
 export default class DetectListItems extends ToLineItemTransformation {

@@ -9,7 +9,7 @@ import {
   removeLeadingWhitespaces,
   removeTrailingWhitespaces,
   isNumber,
-} from "./stringFunctions";
+} from "./string-functions";
 
 interface TextContentItem {
   str: string;
@@ -106,3 +106,4 @@ const removePageNumber = (textContent: TextContent, pageNum: number): TextConten
 };
 
 export { findPageNumbers, findFirstPage, removePageNumber };
+

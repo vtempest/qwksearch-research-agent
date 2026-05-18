@@ -5,8 +5,8 @@
  * remaining annotations before passing the result to the next stage.
  */
 import Transformation from './transformation'
-import LineItemBlock from '../../models/lineItemBlock'
-import ParseResult from '../../models/parseResult'
+import LineItemBlock from '../../models/line-item-block'
+import ParseResult from '../../models/parse-result'
 import { REMOVED_ANNOTATION } from '../../models/annotation'
 
 // Abstract class for transformations producing LineItemBlock(s) to be shown in the LineItemBlockPageView

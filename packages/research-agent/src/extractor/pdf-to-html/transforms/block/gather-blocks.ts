@@ -6,11 +6,11 @@
  * `mergeFollowingNonTypedItemsWithSmallDistance`) to handle lists and footnotes correctly.
  */
 
-import ToLineItemBlockTransformation from "../base/toLineItemBlockTransform";
-import ParseResult from "../../models/parseResult";
-import LineItemBlock from "../../models/lineItemBlock";
+import ToLineItemBlockTransformation from "../base/to-line-item-block-transform";
+import ParseResult from "../../models/parse-result";
+import LineItemBlock from "../../models/line-item-block";
 import { DETECTED_ANNOTATION } from "../../models/annotation";
-import { minXFromPageItems } from "../../utils/pageItemFunctions";
+import { minXFromPageItems } from "../../utils/page-item-functions";
 
 // Gathers lines to blocks
 export default class GatherBlocks extends ToLineItemBlockTransformation {
@@ -109,3 +109,5 @@ function bigDistance(lastItem: any, item: any, minX: number, mostUsedDistance: n
   }
   return false;
 }
+
+

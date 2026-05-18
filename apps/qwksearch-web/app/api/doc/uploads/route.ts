@@ -61,20 +61,7 @@ export async function POST(req: Request) {
 
         // Extract text content based on file type
         let fullText = '';
-        if (fileExtension === 'pdf') {
-          // Dynamic import to avoid build-time execution
-          const pdfjs = await import('pdfjs-serverless');
-          const data = new Uint8Array(buffer);
-          const pdfDoc = await pdfjs.getDocument(data).promise;
-          const numPages = pdfDoc.numPages;
-
-          for (let i = 1; i <= numPages; i++) {
-            const page = await pdfDoc.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map((item: any) => item.str).join(' ');
-            fullText += pageText + '\n';
-          }
-        } else if (fileExtension === 'txt' || fileExtension === 'html' || fileExtension === 'htm') {
+        if (fileExtension === 'txt' || fileExtension === 'html' || fileExtension === 'htm') {
           fullText = buffer.toString('utf-8');
         }
 

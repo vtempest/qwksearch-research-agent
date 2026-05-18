@@ -8,24 +8,24 @@ import {
   findPageNumbers,
   findFirstPage,
   removePageNumber,
-} from "./utils/pageNumberFunctions";
-import TextItem from "./models/textItem";
+} from "./utils/page-number-functions";
+import TextItem from "./models/text-item";
 import Page from "./models/page";
 
-import CalculateGlobalStats from "./transforms/calculateGlobalStats";
-import CompactLines from "./transforms/lineItem/compactLines";
-import RemoveRepetitiveElements from "./transforms/lineItem/removeRepetitiveElements";
-import VerticalToHorizontal from "./transforms/lineItem/verticalToHorizontal";
-import DetectTOC from "./transforms/lineItem/detectTOC";
-import DetectListItems from "./transforms/lineItem/detectListItems";
-import DetectHeaders from "./transforms/lineItem/detectHeaders";
+import CalculateGlobalStats from "./transforms/calculate-global-stats";
+import CompactLines from "./transforms/line-item/compact-lines";
+import RemoveRepetitiveElements from "./transforms/line-item/remove-repetitive-elements";
+import VerticalToHorizontal from "./transforms/line-item/vertical-to-horizontal";
+import DetectTOC from "./transforms/line-item/detect-toc";
+import DetectListItems from "./transforms/line-item/detect-list-items";
+import DetectHeaders from "./transforms/line-item/detect-headers";
 
-import GatherBlocks from "./transforms/block/gatherBlocks";
-import DetectCodeQuoteBlocks from "./transforms/block/detectCodeQuoteBlocks";
-import DetectListLevels from "./transforms/block/detectListLevels";
-import ToTextBlocks from "./transforms/toTextBlocks";
-import ToHTML from "./transforms/toHTML";
-import ParseResult from "./models/parseResult";
+import GatherBlocks from "./transforms/block/gather-blocks";
+import DetectCodeQuoteBlocks from "./transforms/block/detect-code-quote-blocks";
+import DetectListLevels from "./transforms/block/detect-list-levels";
+import ToTextBlocks from "./transforms/to-text-blocks";
+import ToHTML from "./transforms/to-html";
+import ParseResult from "./models/parse-result";
 
 /**
  * ### Convert PDF to HTML
@@ -202,3 +202,5 @@ export async function convertPDFToHTML(
 
   return { author, title, html, format: "pdf" };
 }
+
+

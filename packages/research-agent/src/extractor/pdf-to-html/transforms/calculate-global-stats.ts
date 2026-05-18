@@ -6,9 +6,9 @@
  * from font names. Also deep-copies every page item so subsequent transforms
  * never mutate the original parsed data.
  */
-import ToTextItemTransformation from "./base/toTextItemTransform";
-import ParseResult from "../models/parseResult";
-import { WordFormat } from "../models/lineConverter";
+import ToTextItemTransformation from "./base/to-text-item-transform";
+import ParseResult from "../models/parse-result";
+import { WordFormat } from "../models/line-converter";
 
 export default class CalculateGlobalStats extends ToTextItemTransformation {
   fontMap: Map<string, { name: string }> | undefined;
@@ -128,3 +128,5 @@ function getMostUsedKey(keyToOccurrence: Record<string, number>): string {
   });
   return maxKey;
 }
+
+

@@ -4,11 +4,11 @@
  * and whitespace so page numbers don't break the match), then marks lines whose
  * hash appears on more than two-thirds of all pages with `REMOVED_ANNOTATION`.
  */
-import ToLineItemTransformation from '../base/toLineItemTransform'
-import ParseResult from '../../models/parseResult'
+import ToLineItemTransformation from '../base/to-line-item-transform'
+import ParseResult from '../../models/parse-result'
 import { REMOVED_ANNOTATION } from '../../models/annotation'
 
-import { isDigit } from '../../utils/stringFunctions'
+import { isDigit } from '../../utils/string-functions'
 
 function hashCodeIgnoringSpacesAndNumbers(string: string): number {
   var hash = 0

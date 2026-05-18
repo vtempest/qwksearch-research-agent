@@ -4,9 +4,9 @@
  * inline format markers (lineFormat, unopenedFormat, unclosedFormat) used by the
  * line-compaction pipeline to track bold/italic spans that cross item boundaries.
  */
-import PageItem, { BlockTypeEntry } from "./pageItem";
+import PageItem, { BlockTypeEntry } from "./page-item";
 import Annotation from "./annotation";
-import ParsedElements from "./parsedElements";
+import ParsedElements from "./parsed-elements";
 import { WordFormatEntry } from "./word";
 
 export default class TextItem extends PageItem {
@@ -47,3 +47,4 @@ export default class TextItem extends PageItem {
     this.unclosedFormat = options.unclosedFormat ?? null;
   }
 }
+

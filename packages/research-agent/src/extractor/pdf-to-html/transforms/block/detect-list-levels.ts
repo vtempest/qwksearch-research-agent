@@ -5,11 +5,11 @@
  * new sub-level — and prepends spaces proportional to the level so the HTML
  * output reflects the original visual hierarchy.
  */
-import ToLineItemBlockTransformation from '../base/toLineItemBlockTransform'
-import ParseResult from '../../models/parseResult'
+import ToLineItemBlockTransformation from '../base/to-line-item-block-transform'
+import ParseResult from '../../models/parse-result'
 import Word from '../../models/word'
 import { MODIFIED_ANNOTATION, UNCHANGED_ANNOTATION } from '../../models/annotation'
-import BlockType from '../../models/blockType'
+import BlockType from '../../models/block-type'
 
 // Cares for proper sub-item spacing/leveling
 export default class DetectListLevels extends ToLineItemBlockTransformation {

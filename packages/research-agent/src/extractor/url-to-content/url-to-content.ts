@@ -5,8 +5,8 @@
 import { extractContentAndCite } from "../html-to-content/html-to-content";
 import { getURLYoutubeVideo, convertYoutubeToText } from "./youtube-to-text";
 // Lazy import to prevent pdfjs-serverless from being evaluated at build time
-// import { convertPDFToHTML } from "../pdf-to-html/pdfToHtml";
-import { isUrlPDF } from "../pdf-to-html/utils/isUrlPdf";
+// import { convertPDFToHTML } from "../pdf-to-html/pdf-to-html";
+import { isUrlPDF } from "../pdf-to-html/utils/is-url-pdf";
 import { convertDOCXToHTML, isBufferDOCX } from "./docx-to-content";
 import { scrapeURL } from "./url-to-html";
 
@@ -201,7 +201,7 @@ export async function extractContent(
 
     if (isPdf) {
       // pdf checker - use dynamic import to prevent build-time evaluation
-      const { convertPDFToHTML } = await import("../pdf-to-html/pdfToHtml");
+      const { convertPDFToHTML } = await import("../pdf-to-html/pdf-to-html");
       response = await convertPDFToHTML(url, options as any);
     } else if (url.endsWith(".docx")) {
       response.html = await convertDOCXToHTML(url);
@@ -231,7 +231,7 @@ export async function extractContent(
 
     if (isPdf) {
       // pdf checker - use dynamic import to prevent build-time evaluation
-      const { convertPDFToHTML } = await import("../pdf-to-html/pdfToHtml");
+      const { convertPDFToHTML } = await import("../pdf-to-html/pdf-to-html");
       response = await convertPDFToHTML(url, {});
     }
     else if (youtubeID) {

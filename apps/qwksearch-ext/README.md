@@ -21,8 +21,3 @@
 - Show current url & title when in full screen
 - Search in text of recently closed history
 - Crowdsourced bookmarking of topic outlines and keywords
-
-### Design Quotes
-
-> > "Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away." ― Antoine de Saint-Exupéry
-> > "What I cannot build. I do not understand." ― Richard Feynman

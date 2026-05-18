@@ -5,8 +5,8 @@
  * and clears annotations before passing control to the next transformation.
  */
 import Transformation from './transformation'
-import TextItem from '../../models/textItem'
-import ParseResult from '../../models/parseResult'
+import TextItem from '../../models/text-item'
+import ParseResult from '../../models/parse-result'
 import { REMOVED_ANNOTATION } from '../../models/annotation'
 
 export default class ToTextItemTransformation extends Transformation {

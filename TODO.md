@@ -36,3 +36,4 @@
 34. Reuse Fumadocs multi-tree/root-toggle ideas for docs organization.
 35. Release on HN, YouTube, and Product Hunt.
 36. https://21st.dev/community/agents
+37. from the drodpown menu have tit  insret to as about tabs

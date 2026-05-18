@@ -6,7 +6,7 @@
  * instantiated directly.
  */
 import Annotation from "./annotation";
-import ParsedElements from "./parsedElements";
+import ParsedElements from "./parsed-elements";
 
 export interface BlockTypeEntry {
   name: string;
@@ -33,3 +33,4 @@ export default class PageItem {
     this.parsedElements = options.parsedElements ?? null;
   }
 }
+

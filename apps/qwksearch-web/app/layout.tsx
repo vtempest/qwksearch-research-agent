@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import 'shadcn-theme-menu/themes.css';
 import { cookies } from "next/headers"
@@ -25,7 +25,11 @@ export const metadata: Metadata = {
     apple: '/icons/apple-touch-icon.png'
   },
   manifest: "/manifest.webmanifest",
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default async function RootLayout({

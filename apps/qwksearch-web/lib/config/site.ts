@@ -22,17 +22,14 @@ import {
   Cog,
   type LucideIcon,
 } from "lucide-react";
-import type { StaticImageData } from "next/image";
-import iconRead from "@/components/icons/icon-read.svg";
-import iconNewsTitle from "@/components/icons/icon-news-title.svg";
 
 export const /** App Name in title case */
   APP_NAME: string = "QwkSearch",
   NEXT_PUBLIC_BASE_URL = "https://qwksearch.com",
   NEXT_PUBLIC_GOOGLE_CLIENT_ID =
-    "644604561446-niuns88krqdrs260kptpf1ti10ecrfls.apps.googleusercontent.com",
+    "921732917742-79ql1h9hek2qsdn9f5vnk6lg26jq0vi2.apps.googleusercontent.com",
   /** App Email for support */
-  APP_EMAIL: string = "support@qwksearch.com",
+  APP_EMAIL: string = "[EMAIL_ADDRESS]",
   /** Terms & Privacy Last Revised Date */
   LAST_REVISED_DATE: string = "2026-01-15",
   /** Windows product ID for native & URL links */
@@ -164,39 +161,6 @@ export const SearchCategories: Category[] = [
   //   name: "Music",
   // },
 ];
-
-export const SidebarAppLinks: SidebarAppLink[] = [
-  {
-    customIcon: "/icons/apple-touch-icon.png",
-    href: "/",
-    label: "Research",
-    title: APP_NAME + " Research AI",
-  },
-  {
-    customIcon: iconRead,
-    href: "/docs",
-    label: "Docs",
-    title: APP_NAME + " Docs",
-  },
-
-  {
-    customIcon: iconNewsTitle,
-    href: "/news",
-    label: "News",
-    title: APP_NAME + " Discover News",
-  },
-];
-
-export type SidebarAppLink = {
-  /** Path to the custom icon image */
-  customIcon: string | StaticImageData;
-  /** Webpage URL external or internal */
-  href: string;
-  /** Label text of the link */
-  label: string;
-  /** Title text for the link */
-  title: string;
-};
 
 export interface FooterLink {
   /** Webpage URL external or internal */

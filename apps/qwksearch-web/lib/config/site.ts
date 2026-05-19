@@ -29,7 +29,7 @@ export const /** App Name in title case */
   NEXT_PUBLIC_GOOGLE_CLIENT_ID =
     "921732917742-79ql1h9hek2qsdn9f5vnk6lg26jq0vi2.apps.googleusercontent.com",
   /** App Email for support */
-  APP_EMAIL: string = "[EMAIL_ADDRESS]",
+  APP_EMAIL: string = "support@qwksearch.com",
   /** Terms & Privacy Last Revised Date */
   LAST_REVISED_DATE: string = "2026-01-15",
   /** Windows product ID for native & URL links */

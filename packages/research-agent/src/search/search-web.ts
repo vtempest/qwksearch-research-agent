@@ -147,16 +147,27 @@ export async function searchWeb(query, options = {} as any) {
 
   if (privateSearxng) url += "&format=json";
 
-  //on cloudflare to avoid "Too many redirects" change SSL mode to Full
-
-  if (proxy && !privateSearxng) url = proxy + url;
-
-  const resultHTML = await grab(url, {
-    headers: {
-      "accept-language": lang + ",en;q=0.9",
-    },
-    responseType: "text",
-  });
+  let resultHTML: string = "";
+  try {
+    resultHTML = await grab(url, {
+      headers: {
+        "accept-language": lang + ",en;q=0.9",
+      },
+      responseType: "text",
+    }) as string;
+  } catch (error: any) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.warn(`[searchWeb] Failed to fetch from SearXNG domain "${searchDomain}": ${errorMsg}`);
+    if (maxRetries > 0) {
+      console.log(`[searchWeb] Retrying with another instance... (${maxRetries} retries left)`);
+      return await searchWeb(query, {
+        ...options,
+        maxRetries: maxRetries - 1,
+      });
+    }
+    console.error(`[searchWeb] All retries exhausted. Returning empty results.`);
+    return [];
+  }
 
   if (privateSearxng) {
     if (!resultHTML.startsWith("{"))

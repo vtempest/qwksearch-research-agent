@@ -117,19 +117,34 @@ export async function searchWeb(
   //on cloudflare to avoid "Too many redirects" change SSL mode to Full
   if (proxy && !privateSearxng) url = proxy + url;
 
-  const resultHTML = await grab(searchDomain + "/search", {
-    q: encodeURIComponent(query),
-    ["category_" + categoryName]: 1,
-    language: lang,
-    [privateSearxng && "format"]: "json",
-    [recency && RECENCY_ALLOWED_LIST.includes(recency) ? "time_range" : ""]:
-      recency,
-    safesearch: safesearch ? "1" : "0",
-    pageno: page,
-    headers: {
-      "accept-language": lang + ",en;q=0.9",
-    },
-  });
+  let resultHTML: any;
+  try {
+    resultHTML = await grab(searchDomain + "/search", {
+      q: encodeURIComponent(query),
+      ["category_" + categoryName]: 1,
+      language: lang,
+      [privateSearxng && "format"]: "json",
+      [recency && RECENCY_ALLOWED_LIST.includes(recency) ? "time_range" : ""]:
+        recency,
+      safesearch: safesearch ? "1" : "0",
+      pageno: page,
+      headers: {
+        "accept-language": lang + ",en;q=0.9",
+      },
+    });
+  } catch (error: any) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.warn(`[searchWeb] Failed to fetch from SearXNG domain "${searchDomain}": ${errorMsg}`);
+    if (maxRetries > 0) {
+      console.log(`[searchWeb] Retrying with another instance... (${maxRetries} retries left)`);
+      return await searchWeb(query, {
+        ...options,
+        maxRetries: maxRetries - 1,
+      });
+    }
+    console.error(`[searchWeb] All retries exhausted. Returning empty results.`);
+    return [];
+  }
 
   if (privateSearxng) {
     let parsedData: any;

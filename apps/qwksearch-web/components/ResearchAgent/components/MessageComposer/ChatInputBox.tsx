@@ -155,7 +155,7 @@ const ChatInputBox = () => {
         >
             <motion.div
                 ref={wrapperRef}
-                className="!box-content flex flex-col mx-2 md:mx-0 items-stretch relative z-10 rounded-[28px] bg-white dark:bg-[#30302E] border border-bg-300 dark:border-transparent overflow-hidden cursor-text font-sans antialiased"
+                className="!box-content flex flex-col mx-2 md:mx-0 items-stretch relative z-10 rounded-[28px] bg-white dark:bg-[#30302E] border border-bg-300 dark:border-transparent cursor-text font-sans antialiased"
                 animate={{
                     boxShadow: showExpanded
                         ? "0 8px 32px 0 rgba(0,0,0,0.16)"
@@ -251,45 +251,55 @@ const ChatInputBox = () => {
 
                     {/* Mic */}
                     {isSpeechSupported && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); toggleSpeech(); }}
-                            disabled={loading}
-                            className={`transition-all duration-200 h-8 w-8 flex items-center justify-center rounded-full active:scale-95
-                                ${isListening
-                                    ? 'text-red-500 bg-red-500/10 animate-pulse'
-                                    : 'text-text-400 hover:text-text-200 hover:bg-bg-200'}
-                            `}
-                            aria-label={isListening ? "Stop listening" : "Voice input"}
-                        >
-                            <Icons.Mic className="w-5 h-5" />
-                        </button>
+                        <div className="relative flex shrink !shrink-0 group">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); toggleSpeech(); }}
+                                disabled={loading}
+                                className={`transition-all duration-200 h-8 w-8 flex items-center justify-center rounded-full active:scale-95
+                                    ${isListening
+                                        ? 'text-red-500 bg-red-500/10 animate-pulse'
+                                        : 'text-text-400 hover:text-text-200 hover:bg-bg-200'}
+                                `}
+                                aria-label={isListening ? "Stop listening" : "Voice input"}
+                            >
+                                <Icons.Mic className="w-5 h-5" />
+                            </button>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#1F1E1D] dark:bg-[#EEEEEC] text-[11px] font-medium rounded-[6px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-sm tracking-wide">
+                                <span className="text-[#ECECEC] dark:text-[#1F1E1D]">{isListening ? "Stop listening" : "Voice input"}</span>
+                            </div>
+                        </div>
                     )}
 
                     {/* Send / Stop */}
-                    {loading ? (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); stopStreaming(); }}
-                            className="inline-flex items-center justify-center shrink-0 transition-colors h-8 w-8 rounded-full active:scale-95 bg-red-500 text-white hover:bg-red-600 shadow-md"
-                            type="button"
-                            aria-label="Stop generating"
-                        >
-                            <Icons.Stop className="w-3.5 h-3.5 fill-current" />
-                        </button>
-                    ) : (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); handleSend(); }}
-                            disabled={!hasContent}
-                            className={`inline-flex items-center justify-center shrink-0 transition-all duration-200 h-8 w-8 rounded-full active:scale-95
-                                ${hasContent
-                                    ? 'bg-accent text-bg-0 hover:bg-accent-hover shadow-md'
-                                    : 'bg-bg-300 text-text-400 cursor-default opacity-50'}
-                            `}
-                            type="button"
-                            aria-label="Send message"
-                        >
-                            <Icons.ArrowUp className="w-4 h-4" />
-                        </button>
-                    )}
+                    <div className="relative flex shrink !shrink-0 group">
+                        {loading ? (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); stopStreaming(); }}
+                                className="inline-flex items-center justify-center shrink-0 transition-colors h-8 w-8 rounded-full active:scale-95 bg-red-500 text-white hover:bg-red-600 shadow-md"
+                                type="button"
+                                aria-label="Stop generating"
+                            >
+                                <Icons.Stop className="w-3.5 h-3.5 fill-current" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleSend(); }}
+                                disabled={!hasContent}
+                                className={`inline-flex items-center justify-center shrink-0 transition-all duration-200 h-8 w-8 rounded-full active:scale-95
+                                    ${hasContent
+                                        ? 'bg-accent text-bg-0 hover:bg-accent-hover shadow-md'
+                                        : 'bg-bg-300 text-text-400 cursor-default opacity-50'}
+                                `}
+                                type="button"
+                                aria-label="Send message"
+                            >
+                                <Icons.ArrowUp className="w-4 h-4" />
+                            </button>
+                        )}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#1F1E1D] dark:bg-[#EEEEEC] text-[11px] font-medium rounded-[6px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-sm tracking-wide">
+                            <span className="text-[#ECECEC] dark:text-[#1F1E1D]">{loading ? "Stop generating" : "Send message"}</span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Expanded Controls (Think + Deep Search) */}

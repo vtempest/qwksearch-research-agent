@@ -153,10 +153,10 @@ export function DynamicIslandTOC({ headings, onNavigate, editorRef }: DynamicIsl
       </AnimatePresence>
 
       <motion.div
-        initial={{ y: 50, opacity: 0 }}
+        initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="fixed bottom-[30px] left-1/2 z-[9999] flex -translate-x-1/2 flex-col items-center"
+        className="fixed top-[44px] left-1/2 z-[9999] flex -translate-x-1/2 flex-col items-center"
       >
         <motion.div
           onClick={() => { if (!isExpanded) setIsExpanded(true); }}

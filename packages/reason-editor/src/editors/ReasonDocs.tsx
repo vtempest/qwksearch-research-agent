@@ -9,6 +9,7 @@ import { EditorArea } from './EditorArea';
 import { RightPanel } from './RightPanel';
 import { ReasonDocsDialogs } from './ReasonDocsDialogs';
 import { useReasonDocsState } from './useReasonDocsState';
+import { DynamicIslandTOC } from '../search/DynamicIslandTOC';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
 import { SplitPane, Pane } from 'react-split-pane';
@@ -157,6 +158,14 @@ const Index = () => {
             </Pane>
           </SplitPane>
         </div>
+      )}
+
+      {state.headings.length > 0 && (
+        <DynamicIslandTOC
+          headings={state.headings}
+          onNavigate={(key) => state.editorRef.current?.scrollToHeading(key)}
+          editorRef={state.editorRef}
+        />
       )}
 
       <ReasonDocsDialogs

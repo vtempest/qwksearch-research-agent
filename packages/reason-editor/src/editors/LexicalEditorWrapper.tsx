@@ -226,9 +226,11 @@ function HeadingsReporter({
 function HeadingsAndScrollPlugin({
   onHeadingsChange,
   scrollFnRef,
+  getElementByKeyRef,
 }: {
   onHeadingsChange?: (headings: TableOfContentsEntry[]) => void;
   scrollFnRef: React.MutableRefObject<((key: NodeKey) => void) | null>;
+  getElementByKeyRef: React.MutableRefObject<((key: NodeKey) => HTMLElement | null) | null>;
 }) {
   const [editor] = useLexicalComposerContext();
 
@@ -239,8 +241,12 @@ function HeadingsAndScrollPlugin({
         el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     };
-    return () => { scrollFnRef.current = null; };
-  }, [editor, scrollFnRef]);
+    getElementByKeyRef.current = (key: NodeKey) => editor.getElementByKey(key);
+    return () => {
+      scrollFnRef.current = null;
+      getElementByKeyRef.current = null;
+    };
+  }, [editor, scrollFnRef, getElementByKeyRef]);
 
   if (!onHeadingsChange) return null;
 
@@ -270,6 +276,7 @@ function LexicalEditorInner({
   onChange,
   onHeadingsChange,
   scrollFnRef,
+  getElementByKeyRef,
   syncStore,
   onInviteClick,
   onShareClick,
@@ -281,6 +288,7 @@ function LexicalEditorInner({
   onChange: (content: string) => void;
   onHeadingsChange?: (headings: TableOfContentsEntry[]) => void;
   scrollFnRef: React.MutableRefObject<((key: NodeKey) => void) | null>;
+  getElementByKeyRef: React.MutableRefObject<((key: NodeKey) => HTMLElement | null) | null>;
   syncStore: ReturnType<typeof useSyncStore>;
   onInviteClick?: () => void;
   onShareClick?: () => void;
@@ -320,7 +328,7 @@ function LexicalEditorInner({
                   <EditorContent />
                   <LoadAndSyncContentPlugin content={content} contentKey={contentKey} syncStore={syncStore} />
                   <OnChangeToHTMLPlugin onChange={onChange} syncStore={syncStore} />
-                  <HeadingsAndScrollPlugin onHeadingsChange={onHeadingsChange} scrollFnRef={scrollFnRef} />
+                  <HeadingsAndScrollPlugin onHeadingsChange={onHeadingsChange} scrollFnRef={scrollFnRef} getElementByKeyRef={getElementByKeyRef} />
                 </EditorCallbacksProvider>
               </ToolbarContext>
             </TableContext>
@@ -337,6 +345,8 @@ function LexicalEditorInner({
 export type LexicalEditorHandle = {
   /** Smoothly scrolls the editor viewport to the heading identified by `key`. */
   scrollToHeading: (key: NodeKey) => void;
+  /** Returns the DOM element for the Lexical node with the given key, or null. */
+  getElementByKey: (key: NodeKey) => HTMLElement | null;
 };
 
 /**
@@ -360,6 +370,7 @@ export type LexicalEditorHandle = {
 export const LexicalEditorWrapper = forwardRef<LexicalEditorHandle, LexicalEditorWrapperProps>(
   ({ content, contentKey, onChange, onHeadingsChange, onInviteClick, onShareClick, title, documentId }, ref) => {
     const scrollFnRef = useRef<((key: NodeKey) => void) | null>(null);
+    const getElementByKeyRef = useRef<((key: NodeKey) => HTMLElement | null) | null>(null);
     const syncStore = useSyncStore();
 
     // Stable key: falls back to content hash if caller doesn't provide one.
@@ -368,6 +379,7 @@ export const LexicalEditorWrapper = forwardRef<LexicalEditorHandle, LexicalEdito
 
     useImperativeHandle(ref, () => ({
       scrollToHeading: (key: NodeKey) => scrollFnRef.current?.(key),
+      getElementByKey: (key: NodeKey) => getElementByKeyRef.current?.(key) ?? null,
     }));
 
     return (
@@ -381,6 +393,7 @@ export const LexicalEditorWrapper = forwardRef<LexicalEditorHandle, LexicalEdito
                 onChange={onChange}
                 onHeadingsChange={onHeadingsChange}
                 scrollFnRef={scrollFnRef}
+                getElementByKeyRef={getElementByKeyRef}
                 syncStore={syncStore}
                 onInviteClick={onInviteClick}
                 onShareClick={onShareClick}

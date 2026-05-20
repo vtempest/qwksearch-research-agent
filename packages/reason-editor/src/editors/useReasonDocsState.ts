@@ -6,6 +6,7 @@
  */
 import { useState, useMemo, useEffect, useRef } from "react";
 import type { TableOfContentsEntry } from "@lexical/react/LexicalTableOfContentsPlugin";
+import type { LexicalEditorHandle } from "./LexicalEditorWrapper";
 import type { Document } from "../documents/DocumentTree";
 import {
   getActiveFileSourceId,
@@ -58,7 +59,7 @@ export function useReasonDocsState() {
     mode?: string;
   } | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const editorRef = useRef<{ scrollToHeading: (key: string) => void } | null>(
+  const editorRef = useRef<LexicalEditorHandle | null>(
     null,
   );
   const [headings, setHeadings] = useState<TableOfContentsEntry[]>([]);

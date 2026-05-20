@@ -114,9 +114,16 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
   const t0 = Date.now();
   console.log("[POST /api/agent/chat] request received");
   try {
-    const db = getDB();
     const userId = await getUserId();
     console.log("[POST /api/agent/chat] userId:", userId ?? "(guest)");
+
+    // DB is only needed to persist history for authenticated users.
+    // Guests don't require any DB access, so we load it lazily to avoid
+    // failing the entire request if the DB binding is unavailable.
+    let db: ReturnType<typeof getDB> | undefined;
+    if (userId) {
+      db = getDB();
+    }
 
     /** @type {Body} Raw request body before validation. */
     const reqBody = (await req.json()) as Body;
@@ -262,15 +269,17 @@ export const handleChatRequest = async (req: Request): Promise<Response> => {
       "[POST /api/agent/chat] awaiting handleHistorySave for chatId:",
       message.chatId,
     );
-    await handleHistorySave(
-      message,
-      humanMessageId,
-      body.focusMode,
-      body.files,
-      userId,
-      db,
-      body.thinkingTimeLimit,
-    );
+    if (userId && db) {
+      await handleHistorySave(
+        message,
+        humanMessageId,
+        body.focusMode,
+        body.files,
+        userId,
+        db,
+        body.thinkingTimeLimit,
+      );
+    }
     console.log(
       `[POST /api/agent/chat] history saved, returning stream (setup took ${Date.now() - t0}ms)`,
     );

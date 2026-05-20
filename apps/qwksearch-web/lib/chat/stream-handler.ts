@@ -83,7 +83,7 @@ export const handleEmitterEvents = async (
   encoder: TextEncoder,
   chatId: string,
   userId: string | null,
-  db: ReturnType<typeof getDB>,
+  db: ReturnType<typeof getDB> | undefined,
 ): Promise<void> => {
   /** Accumulates the full AI response text across multiple "response" chunks. */
   let receivedMessage = "";
@@ -125,8 +125,8 @@ export const handleEmitterEvents = async (
         messageId: aiMessageId,
       });
 
-      // Only save source messages to database for authenticated users
-      if (userId) {
+      // Only save source messages to database for authenticated users with DB access
+      if (userId && db) {
         const sourceMessageId = crypto.randomBytes(7).toString("hex");
 
         db.insert(messagesSchema)
@@ -148,8 +148,8 @@ export const handleEmitterEvents = async (
     await writeSSE({ type: "messageEnd" });
     await writer.close();
 
-    // Only save the assistant message to database for authenticated users
-    if (userId) {
+    // Only save the assistant message to database for authenticated users with DB access
+    if (userId && db) {
       db.insert(messagesSchema)
         .values({
           content: receivedMessage,

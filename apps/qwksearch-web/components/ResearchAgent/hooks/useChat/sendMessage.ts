@@ -386,20 +386,24 @@ export async function sendMessage(
       }),
     });
 
-    // Handle authentication errors
-    if (res.status === 401) {
-      if (isAuthenticated) {
+    // Handle non-OK responses — parse the message body when possible
+    if (!res.ok) {
+      let errMessage = "Failed to send message. Please try again.";
+      try {
+        const errBody = await res.clone().json();
+        if (errBody?.message) errMessage = errBody.message;
+      } catch {
+        // body not JSON — use default
+      }
+
+      if (res.status === 401 && isAuthenticated) {
         toast.error("Your session has expired. Please sign in again.");
         setLoading(false);
         window.location.href = "/";
         return;
       }
-      // For guests, 401 is expected - the API handles guest mode
-    }
 
-    // Handle other errors
-    if (!res.ok) {
-      toast.error("Failed to send message. Please try again.");
+      toast.error(errMessage);
       setLoading(false);
       return;
     }

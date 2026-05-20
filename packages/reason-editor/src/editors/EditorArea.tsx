@@ -5,7 +5,7 @@
  */
 import type { TableOfContentsEntry } from '@lexical/react/LexicalTableOfContentsPlugin';
 import type { Document } from '../documents/DocumentTree';
-import { LexicalEditorWrapper } from './LexicalEditorWrapper';
+import { LexicalEditorWrapper, type LexicalEditorHandle } from './LexicalEditorWrapper';
 import { FileText, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { SplitPane, Pane } from 'react-split-pane';
@@ -20,7 +20,7 @@ interface EditorAreaProps {
   splitViewDocId: string | null;
   activeDocId: string | null;
   isMobile: boolean;
-  editorRef?: React.RefObject<{ scrollToHeading: (key: string) => void } | null>;
+  editorRef?: React.RefObject<LexicalEditorHandle | null>;
   onUpdateDocument: (id: string, updates: Partial<Document>) => void;
   onHeadingsChange?: (headings: TableOfContentsEntry[]) => void;
   onCloseSplitView: () => void;

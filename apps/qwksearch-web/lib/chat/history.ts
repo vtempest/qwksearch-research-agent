@@ -50,11 +50,11 @@ export const handleHistorySave = async (
   focusMode: string,
   files: string[],
   userId: string | null,
-  db: ReturnType<typeof getDB>,
+  db: ReturnType<typeof getDB> | undefined,
   thinkingTimeLimit = 0,
 ): Promise<void> => {
-  // Skip database persistence entirely for unauthenticated guests
-  if (!userId) return;
+  // Skip database persistence for guests or when DB is unavailable
+  if (!userId || !db) return;
 
   console.log(
     "[handleHistorySave] Starting chat save for chatId:",

@@ -99,6 +99,9 @@ const SaveButton = ({ onClick, loading, disabled }: { onClick: () => void; loadi
 );
 
 export default function Account() {
+  const { data: authSession, isPending: isSessionLoading } = authClient.useSession();
+  const isAuthenticated = !!authSession?.user;
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
@@ -122,6 +125,11 @@ export default function Account() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (isSessionLoading) return;
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
     const fetchData = async () => {
       try {
         const [profileRes, accountsRes, sessionsRes] = await Promise.all([
@@ -146,7 +154,7 @@ export default function Account() {
       }
     };
     fetchData();
-  }, []);
+  }, [isAuthenticated, isSessionLoading]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -291,6 +299,22 @@ export default function Account() {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="w-5 h-5 animate-spin text-black/40 dark:text-white/40" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-4 px-6 text-center">
+        <p className="text-black/70 dark:text-white/70 text-sm">
+          Sign in to manage your account, API key, and sessions.
+        </p>
+        <button
+          onClick={() => authClient.signIn.social({ provider: 'google', callbackURL: '/settings' })}
+          className="px-4 py-2 rounded-lg bg-[#24A0ED] text-white text-sm hover:bg-[#1a8fd1] transition-colors"
+        >
+          Sign in with Google
+        </button>
       </div>
     );
   }

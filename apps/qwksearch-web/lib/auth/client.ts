@@ -15,6 +15,9 @@ export const authClient = createAuthClient({
   plugins: [
     oneTapClient({
       clientId: NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+      additionalOptions: {
+        use_fedcm_for_prompt: true,
+      },
     }),
     magicLinkClient(),
     cloudflareClient(),

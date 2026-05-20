@@ -160,7 +160,7 @@ const Index = () => {
         </div>
       )}
 
-      {state.headings.length > 0 && (
+      {state.headings.length > 0 && !state.showRightOutline && (
         <DynamicIslandTOC
           headings={state.headings}
           onNavigate={(key) => state.editorRef.current?.scrollToHeading(key)}

@@ -55,7 +55,22 @@ export function DynamicIslandTOC({ headings, onNavigate, editorRef }: DynamicIsl
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [topOffset, setTopOffset] = useState(44);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
+
+  // Track toolbar bottom so the island sits flush below it.
+  useEffect(() => {
+    const measure = () => {
+      const toolbar = document.querySelector<HTMLElement>(".toolbar");
+      if (toolbar) setTopOffset(toolbar.getBoundingClientRect().bottom + 6);
+    };
+    measure();
+    const toolbar = document.querySelector<HTMLElement>(".toolbar");
+    if (!toolbar) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(toolbar);
+    return () => ro.disconnect();
+  }, []);
 
   const minLevel = useMemo(() => {
     if (headings.length === 0) return 1;
@@ -156,7 +171,8 @@ export function DynamicIslandTOC({ headings, onNavigate, editorRef }: DynamicIsl
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="fixed top-[44px] left-1/2 z-[9999] flex -translate-x-1/2 flex-col items-center"
+        style={{ top: topOffset }}
+        className="fixed left-1/2 z-[9999] flex -translate-x-1/2 flex-col items-center"
       >
         <motion.div
           onClick={() => { if (!isExpanded) setIsExpanded(true); }}

@@ -25,7 +25,7 @@ import iconConfigure from "../icons/icon-configure.svg"
 const NAV_ITEMS = [
   { href: "/", label: "Research", icon: "/apple-touch-icon.png" },
   {
-    href: "/docs",
+    href: "/workspace",
     label: "Docs",
     icon: <Image src={iconRead} alt="Docs" width={24} height={24} className="w-full h-full" />,
   },

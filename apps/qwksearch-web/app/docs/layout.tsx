@@ -1,43 +1,17 @@
-import type { Metadata, Viewport } from 'next';
-// import "./editor.css"
+import type { ReactNode } from 'react';
 
-export const metadata: Metadata = {
-  title: "Reason - Research Manager",
-  description:
-    "A powerful research manager with nested documents, rich-text editing, and full-text search",
-  authors: [{ name: "Reason" }],
-  openGraph: {
-    title: "Reason - Research Manager",
-    description:
-      "A powerful research manager with nested documents, rich-text editing, and full-text search",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    site: "@Reason",
-  },
-  icons: {
-    apple: "/apple-touch-icon.png",
-  },
-  manifest: "/manifest.webmanifest",
-};
+import { DocsLayout } from 'fumadocs-ui/layouts/notebook';
+import { RootProvider } from 'fumadocs-ui/provider/next';
+import { source } from 'user-help-docs';
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-};
+import { docsLayoutOptions } from './layout.config';
 
-export const dynamic = 'force-dynamic';
-
-export default function EditorLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // Root sidebar is bypassed via segments check, render editor full-screen
+export default function DocsRootLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="h-screen w-screen overflow-hidden bg-background">
-      {children}
-    </div>
+    <RootProvider>
+      <DocsLayout tree={source.pageTree} {...docsLayoutOptions}>
+        {children}
+      </DocsLayout>
+    </RootProvider>
   );
 }

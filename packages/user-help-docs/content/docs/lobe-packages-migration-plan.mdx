@@ -1,6 +1,11 @@
+---
+title: "LobeHub Packages Migration Plan"
+description: "Migration plan for packages-lobe powering chat mode and settings."
+---
+
 # LobeHub Packages Migration Plan — Chat Engine + Settings Cutover
 
-Step-by-step plan for making [`packages-lobe/`](../packages-lobe/README.md) (the
+Step-by-step plan for making [`packages-lobe/`](https://github.com/OpenSourceAGI/qwksearch-research-agent/blob/main/packages-lobe/README.md) (the
 adapted LobeHub v2.2.13 monorepo) **the engine that powers chat mode and the
 settings system** for qwksearch.com, then replacing the rest of the in-house
 chat stack — while **reusing** four QwkSearch assets:
@@ -12,9 +17,9 @@ chat stack — while **reusing** four QwkSearch assets:
 
 Relationship to prior docs:
 
-- [`LOBEHUB_INTEGRATION_PLAN.md`](./LOBEHUB_INTEGRATION_PLAN.md) (#286) cherry-picked
+- [`LOBEHUB_INTEGRATION_PLAN.md`](./lobehub-integration-plan) (#286) cherry-picked
   Lobe pieces *into* QwkSearch. Superseded in strategy; its license analysis stands.
-- [`LOBEHUB_CORE_ENGINE_PLAN.md`](./LOBEHUB_CORE_ENGINE_PLAN.md) proposed this
+- [`LOBEHUB_CORE_ENGINE_PLAN.md`](./lobehub-core-engine-plan) proposed this
   inversion against the old `packages-third-party/` snapshot (since removed).
   **This plan replaces it**, grounded in `packages-lobe/` — which is no longer a raw
   vendored copy but a working Cloudflare-Workers port of LobeHub with QwkSearch

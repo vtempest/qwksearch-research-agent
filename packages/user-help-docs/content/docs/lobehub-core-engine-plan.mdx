@@ -1,6 +1,11 @@
+---
+title: "LobeHub as the Core Engine"
+description: "Superseded integration plan for inverting the architecture around packages-lobe."
+---
+
 # LobeHub as the Core Engine — Integration Plan
 
-> **Superseded** by [`LOBE_PACKAGES_MIGRATION_PLAN.md`](./LOBE_PACKAGES_MIGRATION_PLAN.md),
+> **Superseded** by [`LOBE_PACKAGES_MIGRATION_PLAN.md`](./lobe-packages-migration-plan),
 > which re-grounds this strategy in the now-working `packages-lobe/` Cloudflare port
 > (the `packages-third-party/` snapshot referenced below has been removed).
 
@@ -9,9 +14,9 @@ engine and settings system**, and QwkSearch's differentiators are layered on
 top of it — the home/landing pages, the QwkSearch visual identity, the article
 extraction pipeline, and the REASON editor.
 
-- Vendored source baseline: [`packages-third-party/`](../packages-third-party/README.md)
+- Vendored source baseline: `packages-third-party/` (removed; see note above)
   — all 96 LobeHub workspace packages at `vtempest/lobehub@25a7c3fd` (v2.2.13), unmodified.
-- Relationship to [`LOBEHUB_INTEGRATION_PLAN.md`](./LOBEHUB_INTEGRATION_PLAN.md) (#286):
+- Relationship to [`LOBEHUB_INTEGRATION_PLAN.md`](./lobehub-integration-plan) (#286):
   that plan cherry-picked LobeHub pieces *into* QwkSearch. This plan is the
   opposite direction and **supersedes it in strategy**; its package triage
   tables and license analysis remain accurate and are referenced below.
@@ -32,7 +37,7 @@ well-bounded:
 |---|---|---|
 | Search fan-out across 100+ engines, 13 categories | `search-web-api`, `searxng-search-cloudflare`, `domain-rank` | LobeHub's `builtin-tool-web-browsing` ships 1 search provider; ours is the moat |
 | Article extraction + citation | `extract-webpage`, `extract-pdf`, `extract-youtube`, `render-url-to-html` | LobeHub's `web-crawler` has 7 generic backends but no cite-graph, no APA citations, no transcript extraction |
-| REASON writing editor | `reason-editor` (see [`REASON_EDITOR.md`](./REASON_EDITOR.md)) | LobeHub's editor is `@lobehub/editor` (chat input); REASON is a full document organizer |
+| REASON writing editor | `reason-editor` (see [`REASON_EDITOR.md`](./reason-editor)) | LobeHub's editor is `@lobehub/editor` (chat input); REASON is a full document organizer |
 | Landing/marketing surface | `apps/qwksearch-web` app-router pages (`/`, `/features`, `/enterprise`, `/docs`) | LobeHub has no marketing shell — it *is* the app |
 
 Everything else — chat runtime, agent orchestration, model providers, settings,
@@ -101,7 +106,7 @@ Key structural facts about the engine (from the vendored tree and the fork's
 
 - **0.1** ✅ Vendor all LobeHub packages → `packages-third-party/` (unmodified,
   out of workspaces/turbo/vitest — see its README).
-- **0.2** ✅ This plan + [`REASON_EDITOR.md`](./REASON_EDITOR.md).
+- **0.2** ✅ This plan + [`REASON_EDITOR.md`](./reason-editor).
 - **0.3** Send the commercial-license inquiry; record the answer in
   `packages-third-party/README.md`. **Phases 2–7 are gated on this.**
 
@@ -201,7 +206,7 @@ Two coexisting styling systems, each kept on its own side of the seam:
 
 ### Phase 6 — REASON editor as the writing surface 🔒
 
-Details in [`REASON_EDITOR.md`](./REASON_EDITOR.md); summary:
+Details in [`REASON_EDITOR.md`](./reason-editor); summary:
 
 - **6.1** Mount REASON at a `/write` route in the engine SPA: route segment in
   `src/spa/router/desktopRouter.shared.tsx` + a thin `src/features/Reason/`

@@ -1,0 +1,29 @@
+{
+  "name": "user-help-docs",
+  "description": "User-facing help documentation, hosted at /docs in qwksearch-web via Fumadocs",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "license": "rights.institute/PROSPER",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OpenSourceAGI/qwksearch-research-agent.git",
+    "directory": "packages/user-help-docs"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/source.ts",
+      "import": "./src/source.ts",
+      "require": "./src/source.ts"
+    },
+    "./*": {
+      "types": "./src/*.ts",
+      "import": "./src/*.ts",
+      "require": "./src/*.ts"
+    }
+  },
+  "dependencies": {
+    "@fumadocs/mdx-remote": "^1.5.1",
+    "fumadocs-core": "^16.15.8"
+  }
+}

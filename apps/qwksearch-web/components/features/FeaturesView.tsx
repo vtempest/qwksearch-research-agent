@@ -108,7 +108,7 @@ function Hero() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href="/docs">
+              <Link href="/workspace">
                 <PenLine />
                 Open REASON editor
               </Link>

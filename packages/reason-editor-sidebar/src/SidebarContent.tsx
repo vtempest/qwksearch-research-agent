@@ -29,7 +29,7 @@ import {
 } from './app-ui/context-menu';
 import { SplitPane, Pane } from 'react-split-pane';
 import { usePersistence } from 'react-split-pane/persistence';
-import { X, Edit2, RotateCcw, SplitSquareVertical, Loader2, Search, MessageSquare, FilePlus2, MessageSquarePlus, Link2, Tag, Sparkles, Lightbulb } from 'lucide-react';
+import { X, XCircle, ArrowDownFromLine, Edit2, RotateCcw, SplitSquareVertical, Loader2, Search, MessageSquare, FilePlus2, MessageSquarePlus, Link2, Tag, Sparkles, Lightbulb } from 'lucide-react';
 import './split-pane.css';
 
 import type { DocumentTreeHandle } from './file-tree/filetree';
@@ -156,6 +156,18 @@ export const SidebarContent = ({
     kind: 'file' as const,
   }));
 
+  const handleCloseOtherTabs = (tabId: string) => {
+    if (!onTabClose) return;
+    resolvedTabItems.filter((tab) => tab.id !== tabId).forEach((tab) => onTabClose(tab.id));
+  };
+
+  const handleCloseTabsBelow = (tabId: string) => {
+    if (!onTabClose) return;
+    const index = resolvedTabItems.findIndex((tab) => tab.id === tabId);
+    if (index === -1) return;
+    resolvedTabItems.slice(index + 1).forEach((tab) => onTabClose(tab.id));
+  };
+
   const renderOpenTabs = () => (
     <div className="h-full overflow-auto">
       <div className="px-1 py-1">
@@ -183,9 +195,11 @@ export const SidebarContent = ({
         {resolvedTabItems.length === 0 ? (
           <div className="px-2 py-3 text-xs text-muted-foreground">No open tabs</div>
         ) : (
-          resolvedTabItems.map(({ id: tabId, title, kind }) => {
+          resolvedTabItems.map(({ id: tabId, title, kind }, tabIndex) => {
             const isActive = tabId === activeTab;
             const isChat = kind === 'chat';
+            const hasTabsBelow = tabIndex < resolvedTabItems.length - 1;
+            const hasOtherTabs = resolvedTabItems.length > 1;
             return (
               <ContextMenu key={tabId}>
                 <ContextMenuTrigger>
@@ -232,6 +246,24 @@ export const SidebarContent = ({
                     >
                       <X className="mr-2 h-4 w-4" />
                       Close
+                    </ContextMenuItem>
+                  )}
+                  {onTabClose && (
+                    <ContextMenuItem
+                      onClick={() => handleCloseTabsBelow(tabId)}
+                      disabled={!hasTabsBelow}
+                    >
+                      <ArrowDownFromLine className="mr-2 h-4 w-4" />
+                      Close Tabs Below
+                    </ContextMenuItem>
+                  )}
+                  {onTabClose && (
+                    <ContextMenuItem
+                      onClick={() => handleCloseOtherTabs(tabId)}
+                      disabled={!hasOtherTabs}
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Close Other Tabs
                     </ContextMenuItem>
                   )}
                   {!isChat && (onSplitRight || onReopenLastClosed) && <ContextMenuSeparator />}

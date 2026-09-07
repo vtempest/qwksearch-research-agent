@@ -26,6 +26,7 @@
     <a href="https://codespaces.new/vtempest/qwksearch-research-agent">
     <img src="https://github.com/codespaces/badge.svg" width="150" height="20" />
     </a>
+    <a href="https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent"><img src="https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent/graph/badge.svg?component=package-chat-agent-toolkit" alt="Coverage" /></a>
 </p>
 
 Multi-provider AI agent toolkit for generating language responses, searching the web, extracting page content, and managing long-term memory across 10+ LLM providers.

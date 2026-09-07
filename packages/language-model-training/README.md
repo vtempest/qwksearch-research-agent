@@ -2,6 +2,8 @@
 
 # Transformer Language Model Training with Tinygrad
 
+[![Coverage](https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent/graph/badge.svg?component=package-language-model-training)](https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent)
+
 A from-scratch GPT-style transformer implementation on [Tinygrad](https://github.com/tinygrad/tinygrad), with three ways to run it depending on scale:
 
 | Mode | What it does | Where |

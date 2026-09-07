@@ -1,5 +1,7 @@
 # Advanced Puppeteer API with Authentication & Cookie Management
 
+[![Coverage](https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent/graph/badge.svg?component=package-html-renderer-api)](https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent)
+
 A production-ready Cloudflare Worker API that renders web pages using Puppeteer with advanced features including password authentication, session management, cookie persistence, resource blocking, and comprehensive OpenAPI documentation.
 
 ## 🌟 Key Features

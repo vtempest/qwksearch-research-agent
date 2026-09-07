@@ -1,5 +1,7 @@
 # trending-news-api
 
+[![Coverage](https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent/graph/badge.svg?component=package-trending-news-api)](https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent)
+
 React trending news widget: daily top Wikipedia pages (via the Wikimedia Pageviews API) matched
 against headlines from [The News API](https://www.thenewsapi.com/), served through a bundled
 Cloudflare Worker so the News API key never reaches the browser.

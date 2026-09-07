@@ -1,5 +1,7 @@
 # shadcn-settings
 
+[![Coverage](https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent/graph/badge.svg?component=package-shadcn-settings)](https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent)
+
 Schema-driven **settings form renderer** for React, built on
 [shadcn/ui](https://ui.shadcn.com) + Radix primitives.
 

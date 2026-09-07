@@ -27,6 +27,7 @@
     <a href="https://codespaces.new/vtempest/qwksearch-research-agent">
     <img src="https://github.com/codespaces/badge.svg" width="150" height="20" />
     </a>
+    <a href="https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent"><img src="https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent/graph/badge.svg?component=package-extract-youtube" alt="Coverage" /></a>
 </p>
 
 # Extract YouTube Transcript 

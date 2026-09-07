@@ -28,7 +28,9 @@
     "dev:docling": "node --watch server/server.js",
     "ship": "npm run build && npx standard-version --release-as patch; rm -f CHANGELOG.md; npm publish"
   },
-  "dependencies": {},
+  "dependencies": {
+    "grab-url": "^1.6.22"
+  },
   "optionalDependencies": {
     "@hono/node-server": "^1.8.2",
     "@hono/swagger-ui": "^0.2.1",

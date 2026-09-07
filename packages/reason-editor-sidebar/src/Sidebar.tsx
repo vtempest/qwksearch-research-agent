@@ -262,13 +262,9 @@ export const Sidebar = ({
 
   const footerProps = {
     leftPanels,
-    leftSplit,
     onLeftPanelsChange,
-    onLeftSplitChange,
     rightPanels,
-    rightSplit,
     onRightPanelsChange,
-    onRightSplitChange,
     isMobile,
     deletedDocs,
     onRestore,

@@ -47,7 +47,10 @@ export default defineConfig(({ command }) => ({
       // "liteparse" ParseMethod, behind a try/catch) ships a native napi addon
       // that workerd cannot load; nothing in this app opts into that method,
       // so keep it external rather than trying to bundle the .node binary.
-      external: ["fsevents", /^@mastra\//, "@llamaindex/liteparse"],
+      // `@napi-rs/canvas` (dynamically imported by extract-pdf's Docling OCR
+      // page rasterizer, behind a try/catch fallback) is likewise a native
+      // napi addon workerd cannot load.
+      external: ["fsevents", /^@mastra\//, "@llamaindex/liteparse", "@napi-rs/canvas"],
     },
     rolldownOptions: {
       // Rolldown (Vite 8.x bundler) needs its own external list.
@@ -67,9 +70,9 @@ export default defineConfig(({ command }) => ({
       // bundled client-side; the `externalize-kokoro-on-server` plugin below
       // keeps it external in the server (rsc/ssr) worker build instead.
       //
-      // `@llamaindex/liteparse` is likewise kept external — see the comment
-      // in `rollupOptions.external` above.
-      external: ["fsevents", /^@mastra\//, "@llamaindex/liteparse"],
+      // `@llamaindex/liteparse` and `@napi-rs/canvas` are likewise kept
+      // external — see the comments in `rollupOptions.external` above.
+      external: ["fsevents", /^@mastra\//, "@llamaindex/liteparse", "@napi-rs/canvas"],
     },
   },
   environments: {

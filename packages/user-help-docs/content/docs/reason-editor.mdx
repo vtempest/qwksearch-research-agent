@@ -1,8 +1,11 @@
-# REASON Editor
+---
+title: "REASON Editor"
+description: "QwkSearch's Tiptap-based writing editor and document organizer."
+---
 
 REASON is QwkSearch's writing half: a Tiptap-based rich-text editor and
 document organizer, published as **`react-reason-editor`** from
-[`packages/reason-editor`](../packages/reason-editor/). Research happens in the
+[`packages/reason-editor`](https://github.com/OpenSourceAGI/qwksearch-research-agent/blob/main/packages/reason-editor/). Research happens in the
 chat/search surface; REASON is where the answer becomes a document — with
 citations, structure, collaboration, and export.
 
@@ -60,7 +63,7 @@ import 'react-reason-editor/src/app-styles/split-pane.css';
 export const FullApp = () => <ReasonDocs />;
 ```
 
-The [package README](../packages/reason-editor/README.md) reproduces all six
+The [package README](https://github.com/OpenSourceAGI/qwksearch-research-agent/blob/main/packages/reason-editor/README.md) reproduces all six
 demo assemblies; `EXTENSIONS.md` documents each extension's options.
 
 ### Dev commands (repo root)
@@ -76,7 +79,7 @@ builds near the end of the web app's `prebuild` chain (after
 
 ## REASON in the LobeHub-core architecture
 
-Under the [LobeHub-as-core plan](./LOBEHUB_CORE_ENGINE_PLAN.md) (Phase 6),
+Under the [LobeHub-as-core plan](./lobehub-core-engine-plan) (Phase 6),
 REASON stays QwkSearch's writing surface, layered on top of the engine:
 
 1. **Mounting** — a `/write` route in the engine SPA: a thin
@@ -98,7 +101,7 @@ REASON stays QwkSearch's writing surface, layered on top of the engine:
 
 ## Related
 
-- [`LOBEHUB_CORE_ENGINE_PLAN.md`](./LOBEHUB_CORE_ENGINE_PLAN.md) — the architecture this doc slots into
-- [`packages/reason-editor/README.md`](../packages/reason-editor/README.md) — full usage reference
-- [`packages/reason-editor/EXTENSIONS.md`](../packages/reason-editor/EXTENSIONS.md) — extension catalog
+- [`LOBEHUB_CORE_ENGINE_PLAN.md`](./lobehub-core-engine-plan) — the architecture this doc slots into
+- [`packages/reason-editor/README.md`](https://github.com/OpenSourceAGI/qwksearch-research-agent/blob/main/packages/reason-editor/README.md) — full usage reference
+- [`packages/reason-editor/EXTENSIONS.md`](https://github.com/OpenSourceAGI/qwksearch-research-agent/blob/main/packages/reason-editor/EXTENSIONS.md) — extension catalog
 - `apps/collaboration-server` — Yjs/Hocuspocus collaboration backend

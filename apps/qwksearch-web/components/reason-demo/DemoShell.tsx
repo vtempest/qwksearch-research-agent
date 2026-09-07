@@ -47,7 +47,7 @@ export function DemoShell({
         </span>
         <Link
           className="ml-auto rounded border border-gray-200 px-2 py-1 text-xs hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-800"
-          href={`/docs/demo/${other}/${documentId}`}
+          href={`/workspace/demo/${other}/${documentId}`}
         >
           Open {other} version
         </Link>
@@ -55,8 +55,8 @@ export function DemoShell({
       <div className="flex min-h-0 flex-1">
         <ReasonSidebar
           activeDocumentId={documentId}
-          linkForDocument={(id) => `/docs/demo/${engine}/${id}`}
-          onNavigate={(id) => router.push(`/docs/demo/${engine}/${id}`)}
+          linkForDocument={(id) => `/workspace/demo/${engine}/${id}`}
+          onNavigate={(id) => router.push(`/workspace/demo/${engine}/${id}`)}
         />
         <main className="min-h-0 flex-1">{children}</main>
       </div>

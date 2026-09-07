@@ -1,7 +1,7 @@
 /**
  * The one document source both demo routes read from.
  *
- * `/docs/demo/tiptap/:id` and `/docs/demo/plate/:id` are backed by this module,
+ * `/workspace/demo/tiptap/:id` and `/workspace/demo/plate/:id` are backed by this module,
  * so the two engines are always compared against the same document. Only their
  * *collaboration* state is separate — see `collaborationRoom()` in
  * `react-reason-editor/docs-agent`.

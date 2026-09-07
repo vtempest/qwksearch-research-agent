@@ -1,3 +1,8 @@
+---
+title: "MCP Server"
+description: "Integrating QwkSearch with MCP-compatible AI assistants."
+---
+
 ## QwkSearch MCP Server
 
 The QwkSearch MCP (Messaging Control Protocol) server provides a standardized interface for external AI assistants to access web search, content extraction, and rendering capabilities. This enables seamless integration with tools like Claude Desktop, GPT-4o, and other MCP-compatible AI systems.
@@ -51,7 +56,8 @@ module.exports = {
 # Search for AI research papers
 curl -X POST http://localhost:3000/api/mcp/execute \
   -H "Content-Type: application/json" \
-  -d '{"server_id":"qwksearch","method":"web_search","params":{"query":"AI research","category":"academic"}}"'```
+  -d '{"server_id":"qwksearch","method":"web_search","params":{"query":"AI research","category":"academic"}}'
+```
 
 ### Testing
 Run the test suite:

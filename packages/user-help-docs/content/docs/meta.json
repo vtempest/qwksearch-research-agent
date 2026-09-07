@@ -12,6 +12,8 @@
     "d1-read-replication",
     "lobehub-core-engine-plan",
     "lobehub-integration-plan",
-    "lobe-packages-migration-plan"
+    "lobe-packages-migration-plan",
+    "lobehub-integrations",
+    "lobehub-migration-todo"
   ]
 }

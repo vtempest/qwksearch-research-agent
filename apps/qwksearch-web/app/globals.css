@@ -9,6 +9,7 @@
 @import "tw-animate-css";
 @import "react-native-app-buttons/styles" layer(vendor);
 @import "react-reason-editor/style.css" layer(vendor);
+@import "react-reason-editor-sidebar/style.css" layer(vendor);
 /* Workspace packages aren't covered by Tailwind's automatic source detection,
    so their responsive utilities (e.g. md:hidden on the mobile dock) must be
    registered explicitly. */

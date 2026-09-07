@@ -122,8 +122,11 @@ const styles = {
     width: '100%',
     boxSizing: 'border-box',
   } as React.CSSProperties,
-  // Current conditions stack down the left side of the card.
-  compactBody: { display: 'flex', flexDirection: 'column', gap: 10, flex: '1 1 200px', minWidth: 0 } as React.CSSProperties,
+  // Current conditions form two spread-out rows down the left side of the
+  // card (rather than five stacked lines), so the card stays short and each
+  // row uses the full available width.
+  compactBody: { display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14, flex: '1 1 200px', minWidth: 0 } as React.CSSProperties,
+  compactRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 } as React.CSSProperties,
   compactCity: { fontSize: 15, fontWeight: 700, lineHeight: 1.2 } as React.CSSProperties,
   compactHeader: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 } as React.CSSProperties,
   compactTemp: { fontSize: 32, fontWeight: 600, lineHeight: 1 } as React.CSSProperties,
@@ -237,40 +240,44 @@ function SingleWeatherForecast(props: Props) {
     return (
       <div className={props.className} style={{ ...styles.compactRoot, ...props.style }}>
         <div style={styles.compactBody}>
-          <div style={styles.compactCity}>
-            {data.location?.city || 'Current location'}
-            {data.location?.region ? `, ${data.location.region}` : ''}
-          </div>
-
-          <div style={styles.compactHeader}>
-            <WeatherIcon condition={data.current.icon} width={30} height={30} title="Current weather" />
-            <strong style={styles.compactTemp}>{data.current.temperature}</strong>
-            {renderUnitSwitch(13)}
-          </div>
-
-          <div>
-            <div style={styles.compactTime}>
-              {currentClock.main}
-              {currentClock.tail && <span style={styles.compactSeconds}>{currentClock.tail}</span>}
+          <div style={styles.compactRow}>
+            <div style={styles.compactCity}>
+              {data.location?.city || 'Current location'}
+              {data.location?.region ? `, ${data.location.region}` : ''}
             </div>
-            <div style={styles.compactDate}>
-              {currentDate}
-              {currentZone ? ` · ${currentZone}` : ''}
+
+            <div style={styles.compactHeader}>
+              <WeatherIcon condition={data.current.icon} width={30} height={30} title="Current weather" />
+              <strong style={styles.compactTemp}>{data.current.temperature}</strong>
+              {renderUnitSwitch(13)}
             </div>
           </div>
 
-          <div style={styles.compactStats}>
-            {today && (
+          <div style={styles.compactRow}>
+            <div>
+              <div style={styles.compactTime}>
+                {currentClock.main}
+                {currentClock.tail && <span style={styles.compactSeconds}>{currentClock.tail}</span>}
+              </div>
+              <div style={styles.compactDate}>
+                {currentDate}
+                {currentZone ? ` · ${currentZone}` : ''}
+              </div>
+            </div>
+
+            <div style={styles.compactStats}>
+              {today && (
+                <span style={styles.compactStat}>
+                  <WeatherIcon condition={today.icon} width={16} height={16} title="Today's high and low" />
+                  {today.max}&deg; / {today.min}&deg;
+                  <RainBadge probability={today.precipitationProbabilityMax} compact />
+                </span>
+              )}
               <span style={styles.compactStat}>
-                <WeatherIcon condition={today.icon} width={16} height={16} title="Today's high and low" />
-                {today.max}&deg; / {today.min}&deg;
-                <RainBadge probability={today.precipitationProbabilityMax} compact />
+                <WindIcon width={16} height={16} title="Wind speed" />
+                {data.current.windSpeed !== undefined ? `${Math.round(data.current.windSpeed)} ${windSpeedUnitLabel}` : '—'}
               </span>
-            )}
-            <span style={styles.compactStat}>
-              <WindIcon width={16} height={16} title="Wind speed" />
-              {data.current.windSpeed !== undefined ? `${Math.round(data.current.windSpeed)} ${windSpeedUnitLabel}` : '—'}
-            </span>
+            </div>
           </div>
         </div>
 

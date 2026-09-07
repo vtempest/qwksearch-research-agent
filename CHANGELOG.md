@@ -2,15 +2,31 @@
 
 # MVP Phase (2026)
 
+## September 2026
+
+The biggest bet this cycle is **LobeHub** (a Cloudflare Workers port of the lobe-chat monorepo) as the future core engine for chat and settings, with QwkSearch's homepage, article extraction, and REASON docs layered on top. It landed in stages: a full `packages-lobe` foundation — Hono worker, Better Auth, tRPC, D1/KV/R2/Hyperdrive bindings, plus QwkSearch's article side-panel and docs surfaces ported over — and a comprehensive test suite for it (#310); then all 96 upstream packages vendored verbatim into `packages-third-party` alongside a core-engine architecture plan (#313); the vendored tree was then removed again (#315) in favor of a phased migration plan for the chat-engine and settings cutover (#318).
+
+The **REASON editor sidebar** was extracted into its own `react-reason-editor-sidebar` package (#305), which took several follow-up fixes to build and style correctly: build-order fixes so the sidebar compiles before the packages that depend on it (#306, #308, #309), then restoring the Tailwind `@source` scan and dock-offset padding lost in the move and un-wiping Open Tabs from the default panel layout (#319). Sidebar panels were further refined to stack with Open Tabs above Files, infer split view from panel count instead of a checkbox, and fix expand/collapse-all cycling (#321), alongside a sidebar-footer visibility fix and a duplicate font-size entry fix (#320). The REASON toolbar also gained a configurable keyboard-shortcut system, with a central shortcut registry, live-updating tooltip shortcut chips, conflict detection, and a new Settings section for remapping bindings (#323).
+
+**Search & extraction**: `extract-pdf-docling` was merged back into `extract-pdf` with selectable processor modes (frontend/hybrid/docling) and a dependency-free OCR page-scan heuristic (#316). `extract-youtube` gained a standalone React popout transcript modal ported from debate-ai.com (#307). The article sidebar now detects Markdown-only scrape responses (e.g. from the JINA reader fallback) and renders them properly instead of showing raw `![]()` syntax, stripping navigation/cookie boilerplate along the way (#314).
+
+**Reliability & ops**: chat failures now surface as a persistent error bubble in the conversation instead of a silent toast, backed by a new `/admin/chat-test` diagnostics page, and admin access is now strictly gated to `ADMIN_EMAILS` with no first-user fallback (#322). D1 reads now route through the Sessions API with per-request version bookmarking so enabling read replication can't serve stale or out-of-order data (#324). Scoped CORS was added to the public, guest-usable agent routes so debate-ai.com can call them directly without an iframe (#312).
+
+**Other**: training jobs now provision GPUs on Vast.ai's marketplace from the web dashboard instead of running in-container (#303). The `/features` marketing page gained a product-comparison table against Perplexity/ChatGPT/Claude/Google/Grok (#317) and an updated hero tagline (#311).
+
 ## August 2026
 
-This cycle focused on delivery polish, weather, packaging, editor navigation, and user-account/connection quality improvements. The work stream shows a series of provider and UI changes: a new wide-area provider integration for `AnyAPI.ai` alongside OpenRouter and NVIDIA, discussions around a beta environment base URL and connection billing/social provider support, plus a settings and account-card update to show account email instead of provider account IDs.
+Editor work centered on making **Plate** the default REASON editor engine, adding the dictation and sidebar plugins it was still missing relative to the Tiptap engine (#295), alongside layout fixes: the editable area now fills its pane without a stray border, zoom scales layout instead of applying a post-layout transform, and the Page Settings popup was fixed to render as its own portalled panel instead of clipping under a dropdown (#288). The `packages/reason-editor/demo/` app, documented throughout the package's README but missing from the repo, was reconstructed from its pre-rename history (#280).
 
-The app also saw a weather-forecast expansion with `ipinfo.io` replacement, live local time, F/C temperature toggles, precipitation and multi-location settings, then a package rename from `react-weather-forecast` to `use-weather-forecast` with cleanup of workspace dependencies and package references.
+**Search results**: video results gained inline playback via a player dialog when a safe `iframe_src` is available, instead of always opening a new tab (#282); a shared, tested `mapSearchResultToDocument` helper replaced duplicated pagination-mapping logic that had been silently dropping `img_src` from paginated Images results (#283).
 
-On the REASON/editor side, the stack receives a new `MainViewProvider` workspace-navigation layer, a richer open-tabs/sidebar experience for chats and docs, sidebar file-tree and dock refinements, tooltip styling fixes, and CSS-variable isolation fixes to avoid collisions with the web app. Reliability fixes add stale-chunk reload behavior after deploys, a missing workspace dependency correction, and a build-error fix for an incorrect toast-import path.
+**Homepage widgets**: the weather widget's rain badges are now gated to only show above 2% precipitation probability, with a more compact upcoming-days row, and the trending-news widget gained an expandable vertical view (#297); trending-news cards also gained per-topic article thumbnails, plus new homepage settings to toggle and customize both the weather and trending-news widgets (#300).
 
-The release cadence also brought test-suite expansion and coverage wiring for packages through Codecov, plus integrative UX refinements such as the homepage downloads popup and app-store/extension landing-page button work.
+**Marketing**: added a `/features` page with a hero, animated counters, an engine-name marquee, a capability bento grid, and a pipeline/client-tabs walkthrough (#289).
+
+**Packaging & CI**: dropped `prepare`/`postinstall` lifecycle scripts from several packages (extract-pdf, extract-youtube, reason-editor, use-voice-control, qwksearch-ext) that were causing false-positive `bun install --frozen-lockfile` failures, and bumped the pinned bun version to 1.4.0 to fix the same underlying issue (#296, #298). Package README badges were switched from weekly to monthly npm-download counts, and an uptime status badge was added to the root README (#293, #294).
+
+**Planning**: drafted an initial LobeHub package-integration plan triaging lobe-chat's ~90 workspace packages into adopt/port/skip (#286), and triaged 7 stale open PRs as already superseded by master (#287).
 
 ## July 2026
 

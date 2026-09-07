@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ChatInputBox, ChatWindow, configureResearchAgentUI, useChat } from 'research-agent-ui';
+import { ChatInputBox, ChatWindow, configureResearchAgentUI, useChat, useSession } from 'research-agent-ui';
 import { ReasonDocs } from 'react-reason-editor/reason-docs';
 import { themeActions } from 'react-reason-editor/theme';
 import { localeActions } from 'react-reason-editor/locale-bundle';
@@ -20,6 +20,7 @@ export function MainWorkspaceView() {
   const { activeView, toggleToDocs, toggleToResearch, filesSidebarRequestId } = useMainView();
   const { chatTabs, activeChatId, openChat, newChat, closeChat } = useChatTabs();
   const { sendMessage } = useChat();
+  const { signIn } = useSession();
   const searchParams = useSearchParams();
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [initialDocId, setInitialDocId] = useState<string | null>(null);
@@ -141,6 +142,7 @@ export function MainWorkspaceView() {
     onGenerateTips: handleGenerateTips,
     onGenerateTopics: handleGenerateTopics,
     onSearchTopic: handleSearchTopic,
+    onSignIn: signIn,
   };
 
   return activeView === 'docs' ? (

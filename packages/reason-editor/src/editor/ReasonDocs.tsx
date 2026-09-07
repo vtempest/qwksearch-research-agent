@@ -16,7 +16,9 @@ import { SplitPane, Pane } from 'react-split-pane';
 import { usePersistence } from 'react-split-pane/persistence';
 import { ssrSafeLocalStorage } from '../utils/storage';
 import { Menu, PanelRight } from 'lucide-react';
-import type { OpenTabItem, SidebarProps, SidebarContentProps } from 'react-reason-editor-sidebar';
+import type { OpenTabItem, SidebarProps, SidebarContentProps, Document } from 'react-reason-editor-sidebar';
+import { useDocumentAccessRequest } from '../app-hooks/useDocumentAccessRequest';
+import { DocumentAccessDialog } from '../dialogs/DocumentAccessDialog';
 import '../app-styles/split-pane.css';
 
 /** A non-document tab (e.g. a chat conversation) supplied by the host app. */
@@ -94,6 +96,12 @@ interface ReasonDocsProps {
    * capability to offer, hiding the "Search topics" section's click action.
    */
   onSearchTopic?: (topic: string) => void;
+  /**
+   * Called when the "Sign in" action is shown in the document-access
+   * dialog (i.e. `initialDocId` points at someone else's document and the
+   * viewer isn't authenticated). Omitted hides that action.
+   */
+  onSignIn?: () => void;
 }
 
 /**
@@ -118,6 +126,7 @@ const Index = ({
   onGenerateTips,
   onGenerateTopics,
   onSearchTopic,
+  onSignIn,
 }: ReasonDocsProps) => {
   const { theme, setTheme } = useTheme();
   const state = useReasonDocsState(openFilesSidebarSignal);
@@ -139,6 +148,19 @@ const Index = ({
       }
     }
   }, [initialDocId, state.documents, state.activeDocId, state.handleSelectDocument]);
+
+  // When `initialDocId` isn't already in the locally-cached document list
+  // (e.g. a shared `?docs=` link opened on a browser that never loaded this
+  // doc before), fetch it from the server. If the caller can't access it,
+  // this surfaces a "Request access" prompt instead of silently doing
+  // nothing, as the effect above would.
+  const { state: accessState, requestAccess, dismiss: dismissAccessDialog } = useDocumentAccessRequest(
+    initialDocId ?? null,
+    state.documents,
+    (doc: Document) => {
+      state.setDocuments((docs) => (docs.some((d) => d.id === doc.id) ? docs : [...docs, doc]));
+    },
+  );
 
   // Mirror the active document back to the host so it can sync a URL param.
   useEffect(() => {
@@ -467,6 +489,13 @@ const Index = ({
         onToggleTheme={handleToggleTheme}
         currentTheme={theme}
         onUpdateTags={state.handleUpdateTags}
+      />
+
+      <DocumentAccessDialog
+        state={accessState}
+        onRequestAccess={requestAccess}
+        onOpenChange={(open) => { if (!open) dismissAccessDialog(); }}
+        onSignIn={onSignIn}
       />
     </div>
   );

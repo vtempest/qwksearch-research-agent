@@ -191,4 +191,38 @@ describe('ReadAloudController', () => {
       (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length
     ).toBeLessThanOrEqual(2);
   });
+  it('does not read Markdown marks out loud', async () => {
+    const spoken: string[] = [];
+    const controller = new ReadAloudController({
+      synthesize: async (text) => {
+        spoken.push(text);
+        return audioBlob();
+      },
+    });
+
+    await controller.speak('# Getting Started\n\nInstall the **package** first.');
+
+    expect(spoken.join(' ')).not.toMatch(/[#*]/);
+    expect(spoken.join(' ')).toContain('Getting Started.');
+    expect(spoken.join(' ')).toContain('Install the package first.');
+  });
+
+  it('leaves prose alone, and can be forced either way', async () => {
+    const spoken: string[] = [];
+    const synthesize = async (text: string) => {
+      spoken.push(text);
+      return audioBlob();
+    };
+
+    await new ReadAloudController({ synthesize }).speak('Two times three * four is not bold.');
+    expect(spoken[0]).toBe('Two times three * four is not bold.');
+
+    spoken.length = 0;
+    await new ReadAloudController({ synthesize, format: 'text' }).speak('# Not a heading');
+    expect(spoken[0]).toBe('# Not a heading');
+
+    spoken.length = 0;
+    await new ReadAloudController({ synthesize, format: 'markdown' }).speak('# A heading');
+    expect(spoken[0]).toBe('A heading.');
+  });
 });

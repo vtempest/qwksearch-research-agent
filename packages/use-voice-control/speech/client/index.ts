@@ -18,4 +18,14 @@ export {
   type TranscriberEngine,
 } from "./live-transcriber";
 
+export {
+  looksLikeMarkdown,
+  markdownToSpeech,
+  markdownToSpeechSegments,
+  stripInlineMarkdown,
+  type MarkdownToSpeechOptions,
+  type SpeechSegment,
+  type SpeechSegmentType,
+} from "../utils/markdown-to-speech";
+
 export type { TTSProvider, KokoroVoice, DeepgramSpeaker } from "../types/types";

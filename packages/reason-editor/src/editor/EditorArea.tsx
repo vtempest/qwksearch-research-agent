@@ -2,12 +2,32 @@
  * @module EditorArea
  * @description Renders the main editing area, supporting both single-document
  * and split-view layouts with optional AI suggestion integration.
+ *
+ * Both layouts mount whichever editor `engine` names, through the one contract
+ * in `./editor-contract.ts`. The default is Plate; `'tiptap'` keeps the previous
+ * engine reachable for the features not yet ported to it — today that is inline
+ * comments (see the module comment in `./PlateEditorWrapper.tsx`).
  */
 import type { TocEntry, Document } from 'react-reason-editor-sidebar';
-import { TiptapEditorWrapper, type TiptapEditorHandle } from './TiptapEditorWrapper';
+import type { ReasonEditorHandle, ReasonEditorProps } from './editor-contract';
+import { PlateEditorWrapper } from './PlateEditorWrapper';
+import { TiptapEditorWrapper } from './TiptapEditorWrapper';
 import { FileText, X } from 'lucide-react';
 import { Button } from '../app-ui/button';
 import { SplitPane, Pane } from 'react-split-pane';
+
+/** The editors `EditorArea` can mount. */
+export type ReasonEditorEngine = 'plate' | 'tiptap';
+
+const EDITORS: Record<
+  ReasonEditorEngine,
+  React.ForwardRefExoticComponent<
+    ReasonEditorProps & React.RefAttributes<ReasonEditorHandle>
+  >
+> = {
+  plate: PlateEditorWrapper,
+  tiptap: TiptapEditorWrapper,
+};
 
 /**
  * Props for the {@link EditorArea} component.
@@ -15,11 +35,13 @@ import { SplitPane, Pane } from 'react-split-pane';
 interface EditorAreaProps {
   /** Currently active document, or undefined when none is selected. */
   activeDocument: Document | undefined;
+  /** Which editor to mount. Defaults to Plate. */
+  engine?: ReasonEditorEngine;
   documents: Document[];
   splitViewDocId: string | null;
   activeDocId: string | null;
   isMobile: boolean;
-  editorRef?: React.RefObject<TiptapEditorHandle | null>;
+  editorRef?: React.RefObject<ReasonEditorHandle | null>;
   onUpdateDocument: (id: string, updates: Partial<Document>) => void;
   onHeadingsChange?: (headings: TocEntry[]) => void;
   onCloseSplitView: () => void;
@@ -42,10 +64,11 @@ interface EditorAreaProps {
  * Displays the active document editor.
  * - Shows a placeholder when no document is selected.
  * - Renders a split panel when `splitViewDocId` differs from `activeDocId`.
- * - Passes AI suggestion state through to the underlying `TiptapEditorWrapper`.
+ * - Passes AI suggestion state through to the underlying editor wrapper.
  */
 export function EditorArea({
   activeDocument,
+  engine = 'plate',
   documents,
   splitViewDocId,
   activeDocId,
@@ -63,6 +86,8 @@ export function EditorArea({
   onInviteClick,
   onShareClick,
 }: EditorAreaProps) {
+  const EditorWrapper = EDITORS[engine] ?? EDITORS.plate;
+
   if (!activeDocument) {
     return (
       <div className="flex h-full items-center justify-center bg-editor-bg">
@@ -89,7 +114,7 @@ export function EditorArea({
           <Pane minSize="300px">
             <div className="flex flex-col h-full border-r border-border">
               <div className="flex-1 min-h-0">
-                <TiptapEditorWrapper
+                <EditorWrapper
                   ref={editorRef}
                   contentKey={activeDocument.id}
                   content={activeDocument.content}
@@ -130,7 +155,7 @@ export function EditorArea({
                     </Button>
                   </div>
                   <div className="flex-1 min-h-0">
-                    <TiptapEditorWrapper
+                    <EditorWrapper
                       content={splitDoc.content}
                       onChange={(content: string) => onUpdateDocument(splitDoc.id, { content })}
                       title={splitDoc.title}
@@ -152,7 +177,7 @@ export function EditorArea({
 
   return (
     <div className="h-full flex flex-col">
-      <TiptapEditorWrapper
+      <EditorWrapper
         ref={editorRef}
         contentKey={activeDocument.id}
         content={activeDocument.content}

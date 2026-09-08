@@ -37,6 +37,7 @@ export default defineConfig({
       'packages/shadcn-settings',
       'packages/trending-news-api',
       'packages/use-voice-control',
+      'packages/user-help-docs',
       'packages/write-language',
     ],
     coverage: {

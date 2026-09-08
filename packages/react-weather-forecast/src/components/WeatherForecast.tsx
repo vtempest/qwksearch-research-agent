@@ -116,8 +116,8 @@ const styles = {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'stretch',
-    gap: 18,
-    padding: '16px 20px',
+    gap: 24,
+    padding: '20px 24px',
     borderRadius: 16,
     width: '100%',
     boxSizing: 'border-box',
@@ -125,15 +125,15 @@ const styles = {
   // Current conditions form two spread-out rows down the left side of the
   // card (rather than five stacked lines), so the card stays short and each
   // row uses the full available width.
-  compactBody: { display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14, flex: '1 1 200px', minWidth: 0 } as React.CSSProperties,
-  compactRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 } as React.CSSProperties,
+  compactBody: { display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 20, flex: '1.6 1 240px', minWidth: 0 } as React.CSSProperties,
+  compactRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px 16px' } as React.CSSProperties,
   compactCity: { fontSize: 15, fontWeight: 700, lineHeight: 1.2 } as React.CSSProperties,
-  compactHeader: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 } as React.CSSProperties,
+  compactHeader: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 } as React.CSSProperties,
   compactTemp: { fontSize: 32, fontWeight: 600, lineHeight: 1 } as React.CSSProperties,
   compactTime: { fontSize: 26, fontWeight: 600, lineHeight: 1.1 } as React.CSSProperties,
-  compactSeconds: { fontSize: 13, fontWeight: 500, opacity: 0.6 } as React.CSSProperties,
-  compactDate: { fontSize: 11, opacity: 0.7, marginTop: 2 } as React.CSSProperties,
-  compactStats: { display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 12, opacity: 0.9 } as React.CSSProperties,
+  compactSeconds: { fontSize: 13, fontWeight: 500, opacity: 0.6, marginLeft: 2 } as React.CSSProperties,
+  compactDate: { fontSize: 11, opacity: 0.7, marginTop: 5 } as React.CSSProperties,
+  compactStats: { display: 'flex', flexWrap: 'wrap', gap: '8px 18px', fontSize: 12, opacity: 0.9 } as React.CSSProperties,
   // Three equal columns on the right side of the card, each stacking
   // weekday / icon / high-low, vertically centered against the current
   // conditions and nudged over behind a divider so the two halves read as
@@ -142,18 +142,18 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
     alignContent: 'center',
-    gap: 10,
-    flex: '1 1 220px',
+    gap: 14,
+    flex: '1 1 190px',
     minWidth: 0,
-    paddingLeft: 18,
+    paddingLeft: 22,
     borderLeft: '1px solid currentColor',
     borderLeftColor: 'rgba(128,128,128,0.25)',
     fontSize: 11,
   } as React.CSSProperties,
-  upcomingDay: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, textAlign: 'center' } as React.CSSProperties,
+  upcomingDay: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, textAlign: 'center' } as React.CSSProperties,
   upcomingDayName: { opacity: 0.7, whiteSpace: 'nowrap' } as React.CSSProperties,
   upcomingTemps: { whiteSpace: 'nowrap' } as React.CSSProperties,
-  compactStat: { display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' } as React.CSSProperties,
+  compactStat: { display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' } as React.CSSProperties,
   unitSwitch: { display: 'inline-flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' } as React.CSSProperties,
   rain: { color: '#2563eb', whiteSpace: 'nowrap' } as React.CSSProperties,
   tz: { fontSize: 12, opacity: 0.7, marginTop: 2 } as React.CSSProperties,
@@ -211,7 +211,7 @@ function SingleWeatherForecast(props: Props) {
       style={{ ...styles.unitSwitch, fontSize }}
     >
       <span style={{ fontWeight: unit === 'fahrenheit' ? 700 : 400, opacity: unit === 'fahrenheit' ? 1 : 0.45 }}>&deg;F</span>
-      <span style={{ opacity: 0.4, margin: '0 3px' }}>|</span>
+      <span style={{ opacity: 0.4, margin: '0 4px' }}>|</span>
       <span style={{ fontWeight: unit === 'celsius' ? 700 : 400, opacity: unit === 'celsius' ? 1 : 0.45 }}>&deg;C</span>
     </span>
   );

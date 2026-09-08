@@ -13,6 +13,13 @@
  * demo opens by default; the two toolbar-schema editors above are untouched and
  * stay reachable so the three can be compared side by side.
  *
+ * The comparison has since settled: the product's own `ReasonDocs` shell mounts
+ * Plate by default too, through `src/editor/PlateEditorWrapper.tsx` — the same
+ * plugin set and playground toolbar as here, but driven by the document store's
+ * HTML rather than by a Yjs room. `ReasonTiptapEditor` stays as the control
+ * version, and `ReasonDocs`' `editorEngine="tiptap"` mounts the Tiptap wrapper
+ * for the features not yet ported.
+ *
  * Both render the same `REASON_TOOLBAR` schema through the same
  * `ReasonToolbar` renderer, and differ only in which `EditorToolbarAdapter`
  * they hand it — including the dictation button (`transcribe`), the
@@ -75,6 +82,15 @@ export {
 
 export { createPlateAdapter } from './docs-agent/plate/plate-adapter';
 export { htmlToPlateValue } from './docs-agent/plate/html-to-plate';
+/**
+ * The other half of the HTML bridge: `plateValueToHtml` serializes a document
+ * back to the HTML the document store persists, through the static plugin set
+ * in `plateBasePlugins`. Together with `htmlToPlateValue` this is what lets the
+ * Plate editor be `ReasonDocs`' default rather than only a collaboration
+ * surface — see `src/editor/PlateEditorWrapper.tsx`.
+ */
+export { plateValueToHtml } from './docs-agent/plate/plate-to-html';
+export { plateBasePlugins } from './docs-agent/plate/plate-base-kit';
 export {
   EMPTY_PLATE_VALUE,
   MediaKit,

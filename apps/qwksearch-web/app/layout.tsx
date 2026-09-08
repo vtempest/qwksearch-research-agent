@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "Search, extract, vectorize, outline graph, and monitor the web for a topic",
   icons: {
     icon: '/favicon.ico',
-    apple: '/icons/apple-touch-icon.png'
+    apple: '/apple-touch-icon.png'
   },
   manifest: "/manifest.webmanifest",
 };

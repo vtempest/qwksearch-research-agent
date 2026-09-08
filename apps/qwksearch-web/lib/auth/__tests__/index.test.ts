@@ -45,4 +45,58 @@ describe("auth configuration", () => {
       }),
     );
   });
+
+  describe("trustedOrigins", () => {
+    const resolveOrigins = async (requestUrl: string) => {
+      // initAuth memoizes its instance at module scope, so the config has to be
+      // rebuilt to observe a fresh betterAuth() call.
+      vi.resetModules();
+      const { initAuth } = await import("../index");
+      await initAuth();
+      const { trustedOrigins } = betterAuthMock.mock.calls.at(-1)![0];
+      return trustedOrigins(new Request(requestUrl, { method: "POST" }));
+    };
+
+    it("trusts the origin the request was actually served from", async () => {
+      // better-auth answers a sign-in POST from an untrusted origin with a 403,
+      // so a deploy on a host nobody listed at build time (workers.dev,
+      // preview URLs, a dev server on another port) could never sign in.
+      expect(await resolveOrigins("https://qwksearch.pages.dev/api/auth/sign-in/social"))
+        .toContain("https://qwksearch.pages.dev");
+      expect(await resolveOrigins("http://localhost:4321/api/auth/sign-in/social"))
+        .toContain("http://localhost:4321");
+    });
+
+    it("keeps the statically configured origins", async () => {
+      const origins = await resolveOrigins("https://qwksearch.com/api/auth/sign-in/social");
+
+      expect(origins).toEqual(
+        expect.arrayContaining([
+          "https://qwksearch.com",
+          "https://*.qwksearch.com",
+          "http://localhost:3000",
+        ]),
+      );
+    });
+
+    it("normalizes configured origins to bare origins", async () => {
+      // Non-wildcard entries are compared by exact string equality, so a
+      // trailing slash or path would silently never match.
+      vi.stubEnv(
+        "BETTER_AUTH_TRUSTED_ORIGINS",
+        " https://staging.example.com/ ,https://app.example.com/dashboard",
+      );
+
+      const origins = await resolveOrigins("https://qwksearch.com/api/auth/sign-in/social");
+
+      expect(origins).toEqual(
+        expect.arrayContaining([
+          "https://staging.example.com",
+          "https://app.example.com",
+        ]),
+      );
+
+      vi.unstubAllEnvs();
+    });
+  });
 });

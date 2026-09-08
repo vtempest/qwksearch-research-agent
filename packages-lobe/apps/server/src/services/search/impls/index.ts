@@ -6,6 +6,7 @@ import { FirecrawlImpl } from './firecrawl';
 import { GoogleImpl } from './google';
 import { JinaImpl } from './jina';
 import { KagiImpl } from './kagi';
+import { QwkSearchImpl } from './qwksearch';
 import { Search1APIImpl } from './search1api';
 import { SearXNGImpl } from './searxng';
 import { TavilyImpl } from './tavily';
@@ -23,6 +24,8 @@ export enum SearchImplType {
   Google = 'google',
   Jina = 'jina',
   Kagi = 'kagi',
+  /** QwkSearch's own fan-out across 100+ engines (Worker A `/api/agent/search`). */
+  QwkSearch = 'qwksearch',
   Search1API = 'search1api',
   SearXNG = 'searxng',
   Tavily = 'tavily',
@@ -65,6 +68,10 @@ export const createSearchServiceImpl = (
 
     case SearchImplType.Kagi: {
       return new KagiImpl();
+    }
+
+    case SearchImplType.QwkSearch: {
+      return new QwkSearchImpl();
     }
 
     case SearchImplType.SearXNG: {

@@ -59,6 +59,14 @@ data is reused as-is.
   vaults apply. Programmatic open: `window.dispatchEvent(new CustomEvent('qwksearch:open-article', { detail: { url } }))`.
 - **Docs** (`/docs`, `src/features/QwkSearch/Docs`): Markdown research documents stored in D1
   (`/api/doc/documents`), listed in the nav panel, autosaved, with write/preview modes.
+- **QwkSearch search provider** (`apps/server/src/services/search/impls/qwksearch/`): a
+  `SearchServiceImpl` that backs LobeHub's web-browsing tool with QwkSearch's own fan-out
+  (`search-web-api`, 100+ engines) instead of a single upstream provider. Enable it with
+  `SEARCH_PROVIDERS=qwksearch`; it calls `GET /api/agent/search` on the QwkSearch Worker
+  (`QWKSEARCH_SEARCH_URL`, default `https://qwksearch.com/api/agent/search`, optional
+  `QWKSEARCH_API_KEY`). Requested categories are normalized across three vocabularies
+  (LobeHub's manifest, QwkSearch's 13-category registry, SearXNG's), fanned out one request per
+  category (max 3) and merged by URL — highest score wins, engine lists union.
 - **Extraction chain** (`worker/qwksearch/extract.ts`): Cloudflare Puppeteer scraper
   (`SCRAPER_URL`, 8s deadline) → Tavily (`TAVILY_API_KEY`) → LobeHub's own `@lobechat/web-crawler`
   (fetch + readability). Search-engine result pages and video hosts are rejected up front.
@@ -122,7 +130,7 @@ Secrets (`wrangler secret put …`):
 | `QSTASH_TOKEN`, `QSTASH_*_SIGNING_KEY` | LobeHub workflows (Upstash QStash) |
 
 Plain vars (`APP_URL`, `DATABASE_DRIVER`, `DISABLE_REDIS`, `EMAIL_SERVICE_PROVIDER`, `SMTP_FROM`,
-`SCRAPER_URL`) are in `wrangler.jsonc`; `keep_vars` keeps dashboard-entered vars across deploys. Run
+`SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`) are in `wrangler.jsonc`; `keep_vars` keeps dashboard-entered vars across deploys. Run
 LobeHub's Postgres migrations once against the database: `bun run db:migrate` with `DATABASE_URL` set.
 
 ## Tests
@@ -130,7 +138,7 @@ LobeHub's Postgres migrations once against the database: `bun run db:migrate` wi
 ```bash
 # Worker + Cloudflare adapters + QwkSearch UI (root vitest config)
 bunx vitest run worker src/features/QwkSearch src/libs/better-auth/utils/kvSecondaryStorage.test.ts \
-  apps/server/src/services/email/impls/cloudflare
+  apps/server/src/services/email/impls/cloudflare apps/server/src/services/search/impls/qwksearch
 
 # routes/nav registration touched by /docs
 bunx vitest run src/spa/router/desktopRouter.sync.test.tsx src/features/NavPanel/routeKey.test.ts
@@ -148,6 +156,8 @@ Hyperdrive bridge, and rendered-component tests for the article panel and the do
 - `packages/database/src/core/web-server.ts`: Hyperdrive branch (`resolveHyperdriveConnectionString`).
 - `src/libs/better-auth/utils/config.ts`: KV-backed `secondaryStorage` (`createKVSecondaryStorage`).
 - `apps/server/src/services/email/*`: `cloudflare` provider (Email Routing binding), default on Workers.
+- `apps/server/src/services/search/impls/`: new `qwksearch` provider (`SearchImplType.QwkSearch`);
+  the factory switch and enum are the only edits to upstream files.
 - `packages/env/src/email.ts`: accepts `EMAIL_SERVICE_PROVIDER=cloudflare`.
 - `packages/business/const/src/branding.ts`, `packages/const/src/url.ts`: QwkSearch branding.
 - `packages/locales/src/default/{electron,qwksearch}.ts` + `locales/{en-US,zh-CN}`: new keys.

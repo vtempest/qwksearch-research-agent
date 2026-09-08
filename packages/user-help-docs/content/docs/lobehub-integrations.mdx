@@ -1,0 +1,167 @@
+---
+title: "LobeHub Integrations Reference"
+description: "Every seam between QwkSearch and the LobeHub engine in packages-lobe, file by file."
+---
+
+# LobeHub Integrations Reference
+
+The complete inventory of **where QwkSearch and LobeHub touch each other**. The
+strategy doc is [LobeHub Packages Migration Plan](./lobe-packages-migration-plan)
+(what we're building toward) and the running work list is
+[LobeHub Migration To-Do](./lobehub-migration-todo). This page is the *map*:
+what exists today, in which file, and what it depends on.
+
+Scope: `packages-lobe/` — the adapted LobeHub v2.2.13 monorepo that runs as one
+Cloudflare Worker. Keep it current whenever an integration is added, moved or
+removed; it is the merge contract against upstream LobeHub, so every entry
+should name real files.
+
+## Direction of the integration
+
+The dependency runs **one way**: QwkSearch code is added *into* the LobeHub tree.
+No package under `packages/` or `apps/` depends on `@lobehub/*` or `@lobechat/*`
+— verified by the absence of those names in every workspace `package.json`. That
+matters for the license gate: the QwkSearch workspace is not a LobeHub derivative
+work; `packages-lobe/` is.
+
+The two workspaces stay separate (bun/turbo vs pnpm). The only bridges are
+**published npm packages** and **shared Cloudflare bindings** — never workspace
+links. See §1 of the migration plan for why merging them is not on the table.
+
+## 1. Runtime integrations — LobeHub on Cloudflare Workers
+
+These make upstream LobeHub run on workerd at all. They are ports, not features.
+
+| # | Integration | Files | Replaces |
+|---|---|---|---|
+| R1 | Hono Worker entry + route composition | `worker/index.ts`, `worker/app.ts` | Next.js route handlers + middleware |
+| R2 | Bindings bridge (env, per-request context, eager `process.env` mirror) | `worker/cf/{env,globals,requestContext}.ts` | Node `process.env` |
+| R3 | Route shells: auth, tRPC, `/webapi/*`, `/api/v1`, SPA | `worker/routes/{auth,trpc,webapi,api,spa}.ts` | `src/app/(backend)` shells |
+| R4 | Node/Next shims (21 modules: `next/*`, `ioredis`, `nodemailer`, `sharp`, `oidc-provider`, `pglite`, `ws`, `undici`, …) | `worker/shims/` | packages unavailable on workerd |
+| R5 | Postgres over Hyperdrive | `packages/database/src/core/web-server.ts` (`resolveHyperdriveConnectionString`), `HYPERDRIVE` binding | `pg` pool / Neon URL |
+| R6 | Better Auth secondary storage on KV | `src/libs/better-auth/utils/config.ts` (`createKVSecondaryStorage`) | Redis |
+| R7 | Email through Cloudflare Email Routing | `apps/server/src/services/email/impls/cloudflare/`, `packages/env/src/email.ts` | nodemailer / Resend |
+| R8 | SPA asset serving + per-request `window.__SERVER_CONFIG__` injection | `worker/routes/spa.ts`, `worker/routes/spaVariants.ts`, `scripts/buildWorkerAssets.mts`, `ASSETS` binding | Next.js static serving |
+| R9 | Worker bundle build + deploy | `vite.worker.config.ts`, `wrangler.jsonc`, `wrangler.local.jsonc`, `wrangler.smoke.jsonc`, `build:worker*` / `cf:*` scripts | `next build` |
+
+**Mount order in `worker/app.ts` is load-bearing**: Better Auth first (`/api/auth/*`
+must not be shadowed), then the QwkSearch feature routes (their `/api/doc/*` and
+`/api/agent/article-*` paths are more specific than LobeHub's `/api/agent` app),
+then LobeHub's tRPC/webapi/api, then the SPA catch-all.
+
+## 2. Feature integrations — QwkSearch inside the engine
+
+| # | Feature | Server | Client | Data |
+|---|---|---|---|---|
+| F1 | **Article extract side panel** — external links in chat open in a resizable right panel; citation, favorites, Q&A, follow-ups | `worker/routes/qwksearch/article.ts`, `articleAi.ts` | `src/features/QwkSearch/ArticlePanel/` (`ArticlePanel.tsx`, `store.ts`, `api.ts`, `useArticleLinkInterceptor.ts`) | D1 `articleCache`, `articleQA`, `favorites` |
+| F2 | **Extraction chain** — Puppeteer scraper (8s deadline) → Tavily → `@lobechat/web-crawler` | `worker/qwksearch/extract.ts` | — | writes through F1's cache |
+| F3 | **Docs** (`/docs`) — Markdown research documents, autosaved, write/preview | `worker/routes/qwksearch/documents.ts` | `src/features/QwkSearch/Docs/` (`DocsWorkspace.tsx`, `DocsSidebar.tsx`, `DocsLayout.tsx`, `store.ts`) | D1 `documents` — the same table `apps/qwksearch-web` writes |
+| F4 | **Favorites** | `worker/routes/qwksearch/favorites.ts` | inside F1 | D1 `favorites` |
+| F5 | **QwkSearch search provider** — LobeHub's web-browsing tool fans out over QwkSearch's 100+ engines | `apps/server/src/services/search/impls/qwksearch/` | LobeHub's existing search portal UI | none (stateless proxy) |
+| F6 | **Branding** | `packages/business/const/src/branding.ts`, `packages/const/src/url.ts`, `public/` favicons | — | — |
+| F7 | **Route + nav registration** for `/docs` and the article panel mount | `src/spa/router/desktopRouter.shared.tsx`, `src/features/NavPanel/routeKey.ts`, `src/routes/(main)/_layout/index.tsx` | — | — |
+| F8 | **i18n** | `packages/locales/src/default/qwksearch.ts` + `locales/{en-US,zh-CN}/qwksearch.json` | — | — |
+
+### F1 — Article panel contract
+
+- Opens on any external link click inside a chat message; modifier and middle
+  clicks keep the browser default.
+- Programmatic open:
+  `window.dispatchEvent(new CustomEvent('qwksearch:open-article', { detail: { url } }))`.
+- `GET /api/doc/article?url=…` returns a cached article (hit count tracked) or
+  runs F2 fresh. `POST /api/doc/article` stores a Q&A pair or updates follow-ups.
+- Q&A and follow-ups run through LobeHub's `AiGenerationService`, so the signed-in
+  user's own providers and key vaults apply — no separate key path.
+
+### F5 — Search provider contract
+
+The seam that makes LobeHub's agent search *QwkSearch's* index.
+
+```
+LobeHub web-browsing tool
+  → SearchService (apps/server/src/services/search/index.ts)
+    → SearchImplType.QwkSearch → QwkSearchImpl
+      → GET {QWKSEARCH_SEARCH_URL}?q=…&cat=…&recency=…
+        → Worker A: apps/qwksearch-web/app/api/agent/search
+          → research-agent-ui createSearchHandler
+            → search-web-api searchWeb() → search.qwksearch.com (SearXNG) → 100+ engines
+```
+
+| Concern | Behavior |
+|---|---|
+| Enable | `SEARCH_PROVIDERS=qwksearch` (set in `wrangler.jsonc` vars) |
+| Endpoint | `QWKSEARCH_SEARCH_URL`, default `https://qwksearch.com/api/agent/search`; optional `QWKSEARCH_API_KEY` sent as a bearer token |
+| Categories | Three vocabularies are normalized onto the endpoint's: LobeHub's manifest (`general/images/news/science/videos`), QwkSearch's 13-category registry (`academic`, `social`, `tech`, `torrents`, …) and SearXNG's. Unknown names fall back to `general` rather than returning an empty page |
+| Fan-out | One request per category, capped at 3, issued in parallel |
+| Merge | Deduplicated by URL — highest score wins, engine lists union, a missing snippet is backfilled from the duplicate |
+| Engines | Never forwarded. `useAutoSearchEngineSelection = true` tells `SearchService` not to retry by stripping engine restrictions, because QwkSearch already picks engines per category |
+| Failure | Any category request failing raises `TRPCError SERVICE_UNAVAILABLE`, so `SearchService` can fail over to the next configured provider |
+
+Only two upstream files are edited for this: the `SearchImplType` enum and the
+factory switch in `apps/server/src/services/search/impls/index.ts`. Everything
+else is new files under `impls/qwksearch/`.
+
+## 3. Shared infrastructure
+
+Both Workers point at the **same** Cloudflare resources, which is what makes a
+gradual cutover possible at all.
+
+| Binding | Resource | Shared with `apps/qwksearch-web`? |
+|---|---|---|
+| `DB` | D1 `qwksearch-new` (`b0ba9a66-…`) | ✅ same database id |
+| `KV` | KV `c53d894414bb…` | ✅ same namespace id |
+| `R2` | `qwksearch-uploads` | ✅ |
+| `EMAIL` | Email Routing → `noreply@qwksearch.com` | ✅ |
+| `HYPERDRIVE` | Postgres for LobeHub's 169-table schema | ❌ engine-only |
+| `ASSETS` | SPA bundles | ❌ engine-only |
+
+D1 tables the engine reads and writes: `articleCache`, `articleQA`, `favorites`,
+`documents`, `research_quotes`, `share_tokens`, `google_docs_sync` — created
+idempotently by `migrations/d1/0001_qwksearch_tables.sql` (`bun run cf:d1:migrate`).
+
+LobeHub's own data stays on Postgres (169 tables, 211 `jsonb` columns, 11
+`pgvector` columns, ~380 raw SQL fragments, 157 migrations). Porting it to D1
+would be a rewrite of the data layer, not a runtime port.
+
+## 4. Configuration surface
+
+Vars in `wrangler.jsonc` (both the default and `production` env):
+`APP_URL`, `DATABASE_DRIVER`, `DISABLE_REDIS`, `EMAIL_SERVICE_PROVIDER`,
+`SMTP_FROM`, `SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`.
+
+Secrets (`wrangler secret put`): `KEY_VAULTS_SECRET`, `AUTH_SECRET`,
+`DATABASE_URL` (when not using Hyperdrive), `S3_*`, `TAVILY_API_KEY`,
+`SCRAPER_API_KEY`, `QWKSEARCH_API_KEY`, per-provider model keys, `QSTASH_*`.
+
+## 5. Style seam
+
+**antd 6 + `@lobehub/ui` + antd-style inside the engine; Tailwind 4 + shadcn
+outside** (homepage, marketing, REASON editor). No cross-imports between
+`packages-lobe/src` and `packages/research-agent-ui`. The one planned exception
+is the REASON editor mounted inside the engine's `/docs` page — it ships its own
+scoped stylesheet (`react-reason-editor/style.css`).
+
+## 6. Test coverage of the integration points
+
+```bash
+cd packages-lobe
+
+# Worker, Cloudflare adapters, QwkSearch features, the search provider
+bunx vitest run worker src/features/QwkSearch \
+  src/libs/better-auth/utils/kvSecondaryStorage.test.ts \
+  apps/server/src/services/email/impls/cloudflare \
+  apps/server/src/services/search/impls/qwksearch
+
+# Route/nav registration touched by /docs
+bunx vitest run src/spa/router/desktopRouter.sync.test.tsx src/features/NavPanel/routeKey.test.ts
+
+# Database bridge
+cd packages/database && bunx vitest run src/core/cloudflare.test.ts
+```
+
+## 7. Not yet integrated
+
+Tracked with owners and next steps in [LobeHub Migration To-Do](./lobehub-migration-todo):
+the REASON editor inside `/docs`, `extract-webpage`/`extract-pdf`/`extract-youtube`
+as extraction tiers, the Search & Sources and Extraction settings panes, one login
+across both Workers, chat-history migration, and the OIDC/Redis/mobile-SPA ops gaps.

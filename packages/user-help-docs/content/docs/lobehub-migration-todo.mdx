@@ -1,0 +1,185 @@
+---
+title: "LobeHub Migration To-Do"
+description: "Running checklist for making packages-lobe the engine behind qwksearch.com."
+---
+
+# LobeHub Migration To-Do
+
+The working checklist behind the
+[LobeHub Packages Migration Plan](./lobe-packages-migration-plan). The plan says
+*what* the target architecture is; this page tracks *where each piece stands* and
+what the next concrete step is. Every item names the file that owns it, so a run
+can pick one up without re-deriving the seam.
+
+The map of what already connects is
+[LobeHub Integrations Reference](./lobehub-integrations).
+
+**Legend** — ✅ done · 🚧 in progress · ⬜ not started · 🔒 blocked
+
+Last updated: 2026-09-07.
+
+## Snapshot
+
+| Phase | State |
+|---|---|
+| 0. Baseline — LobeHub builds and deploys on Workers | ✅ |
+| 1. Chat mode on the engine (staging) | 🚧 search wired; extraction and parity open |
+| 2. Settings as the single system of record | ⬜ |
+| 3. REASON docs inside the engine | ⬜ |
+| 4. Public cutover | 🔒 needs the license answer |
+| 5. Decommission + satellites + ops gaps | ⬜ |
+
+## Phase 1 — Chat mode powered by the engine
+
+### 1.1 Stand up staging ⬜
+
+Needs Cloudflare account access, so it cannot be done from a code-only run.
+
+1. `cd packages-lobe && pnpm install && bun run build:worker`
+2. Create the Hyperdrive config and paste the id into `wrangler.jsonc`
+   (or set `DATABASE_URL` to a Neon URL and keep `DATABASE_DRIVER=neon`).
+3. `bun run db:migrate` (Postgres, 157 migrations) and `bun run cf:d1:migrate` (D1).
+4. `bun run cf:deploy`, then smoke `/api/health`,
+   `/trpc/lambda/config.getGlobalConfig`, `/signin`.
+
+Until then, `bun run cf:dev` (local wrangler, dummy secrets, local D1/KV) is the
+only end-to-end check available.
+
+### 1.2 Search tool = `search-web-api` ✅
+
+Done: `apps/server/src/services/search/impls/qwksearch/` implements
+`SearchServiceImpl` against Worker A's `GET /api/agent/search`; registered as
+`SearchImplType.QwkSearch`; enabled via `SEARCH_PROVIDERS=qwksearch` in
+`wrangler.jsonc`. Category normalization, 3-way fan-out, URL-merge and failure
+mapping are covered by `impls/qwksearch/index.test.ts` (20 cases). The contract
+is written up in §F5 of the integrations reference.
+
+Follow-ups that are deliberately *not* in that change:
+
+- ⬜ **Extend the tool manifest's category enum** from LobeHub's five
+  (`general/images/news/science/videos`) to QwkSearch's thirteen.
+  `packages/builtin-tool-web-browsing/src/manifest.ts` is static and shared by
+  every provider, so widening it blind would let the model ask SearXNG or Brave
+  for `torrents` and get nothing. Do it by making the manifest categories
+  provider-aware, or only once `qwksearch` is the sole configured provider.
+- ⬜ **Service binding instead of HTTPS.** `QwkSearchImpl` calls Worker A over
+  the public internet. Once both Workers deploy together, a Cloudflare service
+  binding removes a hop and the need for `QWKSEARCH_API_KEY`.
+- ⬜ **Ranking parity.** The fan-out's scores come from `search-web-api`;
+  `domain-rank` (favicons, domain authority) is not consulted on the engine side.
+  Decide whether that belongs in the endpoint or the impl.
+
+### 1.3 Extraction chain, tier 0 = the QwkSearch article extractor ⬜
+
+Today `worker/qwksearch/extract.ts` runs Puppeteer scraper → Tavily →
+`@lobechat/web-crawler`. None of those is `extract-webpage`, so the engine loses
+QwkSearch's citation extraction, and `classifyUrl` rejects video hosts outright.
+
+1. ⬜ Add `extract-webpage` (already standalone on npm) as tier 0 of
+   `extractArticle`, ahead of the scraper — it brings `extractContent` plus
+   citation extraction, and shares the D1 `articleCache` the panel already writes.
+2. ⬜ Route YouTube URLs to `extract-youtube` transcripts instead of rejecting
+   them in `VIDEO_PATTERNS`.
+3. ⬜ Route PDF and arXiv URLs to `extract-pdf` (processor modes + OCR page scan).
+4. ⬜ Keep every tier returning `{ error }` rather than throwing — the chain
+   contract in `extract.ts` depends on it.
+
+### 1.4 Agent parity checklist ⬜
+
+Reproduce today's chat-mode behavior on the engine and record each gap:
+
+- ⬜ Search-cited answers with follow-up suggestions (LobeHub has both — verify
+  they read the QwkSearch results from 1.2).
+- ⬜ File-upload Q&A.
+- ⬜ Voice input — LobeHub's TTS/STT settings tab vs `use-voice-control`; decide
+  per gap whether to adopt or port.
+- ⬜ Guest / anonymous chat with rate limiting. Worker A has
+  `lib/rate-limit/guestRateLimiter.ts`; the engine requires sign-in. Decide
+  *before* cutover: anonymous session mode, or chat becomes login-gated.
+
+## Phase 2 — Settings: one system of record
+
+- ⬜ **2.1 Map every section** of `research-agent-ui/src/settings/sections.json`
+  to its engine equivalent: models → `Settings/provider` + `service-model`;
+  mcpservers → `features/MCP/MCPSettings`; voice → `tts`; skills-memory →
+  `skill` + `memory`; account/storage → `profile` / `storage`.
+- ⬜ **2.2 Add the two missing panes**, following the existing tab conventions
+  (`src/features/Settings/<tab>/` + route segment + keys in
+  `packages/locales/src/default/qwksearch.ts`): **Search & Sources** (engine and
+  category selection, per-category defaults, time range, SearXNG URL — now that
+  1.2 exists these map onto `QWKSEARCH_SEARCH_URL` and the category normalizer)
+  and **Extraction** (citation style, transcript language, render backend,
+  scraper/Tavily keys). Persist through `src/store/user/slices/settings/`.
+- ⬜ **2.3 Key migration.** Server env keys stay Worker secrets. Per-user keys
+  live in `localStorage` today and have no server copy — announce a one-time
+  re-entry into the engine's key vault; do not build a migrator.
+- ⬜ **2.4 Retire the old surface** only after the map is covered: delete
+  `apps/qwksearch-web/components/Settings/**`, `app/settings/[[...section]]`,
+  `app/api/config`, and drop `shadcn-settings` from the prebuild chain. Never run
+  two settings stores at once.
+
+## Phase 3 — REASON docs inside the engine
+
+- ⬜ **3.1** Consume `react-reason-editor` + `react-reason-editor-sidebar` from
+  npm in the pnpm workspace (source of truth stays `packages/reason-editor`) and
+  mount the shell in `src/features/QwkSearch/Docs`, replacing the plain editor.
+- ⬜ **3.2** Point its sync hook at `/api/doc/documents` — already served by the
+  same Worker against the same D1 `documents` table, so documents carry over with
+  zero migration.
+- ⬜ **3.3** Style seam: load `react-reason-editor/style.css` scoped to `/docs`;
+  verify Tailwind preflight does not leak into antd components.
+- ⬜ **3.4** "Send to REASON" message action in chat — the engine-side equivalent
+  of today's research → docs flow in `MainWorkspaceView`.
+- ⬜ **3.5** REASON's AI rewrite calls `AiGenerationService`, as ArticlePanel Q&A
+  already does, so one key vault serves chat, article Q&A and rewrite.
+
+## Phase 4 — Public cutover 🔒
+
+Blocked on the LobeHub Community License answer, recorded in
+`packages-lobe/README.md` before any public traffic moves.
+
+- 🔒 **4.1 Routing split.** `/chat*`, `/settings*`, `/docs*`, `/signin*`,
+  `/_spa*`, `/webapi/*`, `/trpc/*`, `/api/auth/*`, `/f/*` → engine; everything
+  else (homepage, marketing, `/api/doc/*`, `/api/agent/search`) → Worker A.
+- 🔒 **4.2 One login.** Both sides run Better Auth 1.6. Consolidate on the
+  engine's instance; Worker A reads the session via `/api/auth/get-session` on
+  the same cookie domain. Migrate `user`/`account` rows D1 → Postgres.
+- 🔒 **4.3 Chat history migration.** One-shot D1 `chats`/`messages` → Postgres
+  topics/messages/sessions, dry-run on a snapshot, D1 read-only for 30 days.
+- 🔒 **4.4 Homepage handoff.** The hero search box submits into `/chat?q=…`;
+  `app/page.tsx` stops mounting `ChatWindow`/`ChatInputBox`.
+- 🔒 **4.5 Decommission in Worker A**: `app/api/agent/**` (except `search`),
+  `lib/chat/**`, `app/c/[chatId]`, the `ChatProvider` mount, the NDJSON protocol.
+  `/c/:id` 301s to migrated topics.
+
+## Phase 5 — Replace the rest
+
+- ⬜ **5.1 Package fates.** Keep + publish: `search-web-api`, `extract-*`,
+  `render-url-to-html`, `domain-rank`, `reason-editor(-sidebar)`,
+  `qwksearch-mcp-server`, `qwksearch-api-client` (regenerate against `/api/v1`).
+  Freeze: `research-agent-ui`, `use-voice-control`. Deprecate:
+  `chat-agent-toolkit`'s live chat path, `write-language`, `shadcn-settings`.
+- ⬜ **5.2 Satellite apps.** Browser and VS Code extensions re-point to the
+  engine (`/webapi`, `/api/v1`); desktop picks Lobe's Electron app or keeps Tauri
+  as a webview.
+- ⬜ **5.3 Trim the prebuild chain** in `apps/qwksearch-web/package.json`.
+- ⬜ **5.4 Ops gaps**, all from `packages-lobe/README.md` § Known gaps:
+  - ⬜ Upstash HTTP Redis provider in `src/libs/redis` — without it, agent stream
+    fan-out, edit locks and some rate limits run on per-isolate memory.
+  - ⬜ Mobile SPA build (`build:spa:mobile`); mobile currently gets the desktop bundle.
+  - ⬜ Worker bundle size budget in CI (~7.4 MB gzipped against a 10 MB limit).
+  - ⬜ OIDC (`/oidc/*` returns 501) — blocks CLI and desktop sign-in.
+  - ⬜ SEO strings in the HTML shell are English-only (`worker/shims/serverTranslation.ts`).
+  - ⬜ No `sharp`; avatar processing falls back to the original image.
+
+## How to pick up the next item
+
+1. Prefer an item whose seam is already understood and whose "done" is testable
+   without Cloudflare credentials — those are the ones a code-only run can finish.
+2. Keep changes **additive**: new files under `worker/`, `src/features/QwkSearch/`
+   or a new `impls/` directory. Edits to upstream files are the merge cost against
+   LobeHub, so keep them to registration points (an enum, a switch, a route mount)
+   and list every one in `packages-lobe/README.md` § What changed vs. upstream.
+3. Ship a test with it. `bunx vitest run <path>` under `packages-lobe`.
+4. Update this page's status and add the seam to the integrations reference in
+   the same change.

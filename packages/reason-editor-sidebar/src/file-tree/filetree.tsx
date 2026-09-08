@@ -91,6 +91,41 @@ interface FileTreeProps {
 const ROOT_ID = "__root__";
 const INDENT = 20;
 
+type DropPlacement = {
+  targetId: string | null;
+  position: "before" | "after" | "child";
+};
+
+/**
+ * Turns a headless-tree reorder target into the sibling-relative move the
+ * `onMove` callback speaks.
+ *
+ * `insertionIndex` is the drop slot counted against the parent's children
+ * *after* the dragged nodes have been lifted out of them, so the anchor has to
+ * be looked up in that same lifted-out list — using the raw `childIndex`
+ * against it lands a downward drag one slot too far, which reads as the node
+ * refusing to move where it was dropped.
+ *
+ * Exported for tests.
+ */
+export function resolveDropPlacement(
+  parentChildren: string[],
+  draggedIds: string[],
+  insertionIndex: number,
+  parentId: string | null,
+): DropPlacement {
+  const siblings = parentChildren.filter((childId) => !draggedIds.includes(childId));
+
+  const siblingAtIndex = siblings[insertionIndex];
+  if (siblingAtIndex) return { targetId: siblingAtIndex, position: "before" };
+
+  const previousSibling = siblings[insertionIndex - 1];
+  if (previousSibling) return { targetId: previousSibling, position: "after" };
+
+  // Dropping into an empty parent (or past the end of an emptied one).
+  return { targetId: parentId, position: "child" };
+}
+
 function buildItems(documents: Document[]): Record<string, FileTreeItem> {
   const items: Record<string, FileTreeItem> = {
     [ROOT_ID]: {
@@ -200,27 +235,16 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
 
         if ("childIndex" in target) {
           const parentId = target.item.getId() === ROOT_ID ? null : target.item.getId();
-          const parentChildren = (items[target.item.getId()]?.children ?? []).filter(
-            (childId) => !draggedIds.includes(childId),
+          const placement = resolveDropPlacement(
+            items[target.item.getId()]?.children ?? [],
+            draggedIds,
+            target.insertionIndex,
+            parentId,
           );
 
-          const siblingAtIndex = parentChildren[target.childIndex];
-          if (siblingAtIndex) {
-            for (const draggedId of orderedDraggedIds) {
-              onMove(draggedId, siblingAtIndex, "before");
-            }
-            return;
+          for (const draggedId of orderedDraggedIds) {
+            onMove(draggedId, placement.targetId, placement.position);
           }
-
-          const previousSibling = parentChildren[target.childIndex - 1];
-          if (previousSibling) {
-            for (const draggedId of orderedDraggedIds) {
-              onMove(draggedId, previousSibling, "after");
-            }
-            return;
-          }
-
-          moveAsChild(parentId);
           return;
         }
 
@@ -313,6 +337,19 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
     };
 
     const deleteNodeName = deleteConfirmId ? items[deleteConfirmId]?.name : "";
+
+    // headless-tree caches the flattened item list and only rebuilds it by
+    // itself when the expanded set changes, so a move/add/delete that only
+    // reshapes the data would keep rendering the previous structure — a
+    // dragged node would snap straight back to where it came from. Ask for a
+    // rebuild whenever the derived items change, before reading getItems()
+    // (which performs any scheduled rebuild) on the very same render.
+    const lastItemsRef = useRef<Record<string, FileTreeItem> | null>(null);
+    if (lastItemsRef.current !== items) {
+      lastItemsRef.current = items;
+      tree.scheduleRebuildTree();
+    }
+
     const treeItems = tree.getItems();
 
     return (

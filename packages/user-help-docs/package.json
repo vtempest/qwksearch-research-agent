@@ -42,6 +42,12 @@
     "@types/mdx": "^2.0.13",
     "@types/react": "^19.2.7",
     "typescript": "^5.9.3",
-    "@types/node": "^24.10.1"
+    "@types/node": "^24.10.1",
+    "vitest": "^4.1.10"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   }
 }

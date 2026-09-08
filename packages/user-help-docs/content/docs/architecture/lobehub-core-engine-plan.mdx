@@ -37,7 +37,7 @@ well-bounded:
 |---|---|---|
 | Search fan-out across 100+ engines, 13 categories | `search-web-api`, `searxng-search-cloudflare`, `domain-rank` | LobeHub's `builtin-tool-web-browsing` ships 1 search provider; ours is the moat |
 | Article extraction + citation | `extract-webpage`, `extract-pdf`, `extract-youtube`, `render-url-to-html` | LobeHub's `web-crawler` has 7 generic backends but no cite-graph, no APA citations, no transcript extraction |
-| REASON writing editor | `reason-editor` (see [`REASON_EDITOR.md`](./reason-editor)) | LobeHub's editor is `@lobehub/editor` (chat input); REASON is a full document organizer |
+| REASON writing editor | `reason-editor` (see [`REASON_EDITOR.md`](/docs/reason-editor)) | LobeHub's editor is `@lobehub/editor` (chat input); REASON is a full document organizer |
 | Landing/marketing surface | `apps/qwksearch-web` app-router pages (`/`, `/features`, `/enterprise`, `/docs`) | LobeHub has no marketing shell — it *is* the app |
 
 Everything else — chat runtime, agent orchestration, model providers, settings,
@@ -106,7 +106,7 @@ Key structural facts about the engine (from the vendored tree and the fork's
 
 - **0.1** ✅ Vendor all LobeHub packages → `packages-third-party/` (unmodified,
   out of workspaces/turbo/vitest — see its README).
-- **0.2** ✅ This plan + [`REASON_EDITOR.md`](./reason-editor).
+- **0.2** ✅ This plan + [`REASON_EDITOR.md`](/docs/reason-editor).
 - **0.3** Send the commercial-license inquiry; record the answer in
   `packages-third-party/README.md`. **Phases 2–7 are gated on this.**
 
@@ -206,7 +206,7 @@ Two coexisting styling systems, each kept on its own side of the seam:
 
 ### Phase 6 — REASON editor as the writing surface 🔒
 
-Details in [`REASON_EDITOR.md`](./reason-editor); summary:
+Details in [`REASON_EDITOR.md`](/docs/reason-editor); summary:
 
 - **6.1** Mount REASON at a `/write` route in the engine SPA: route segment in
   `src/spa/router/desktopRouter.shared.tsx` + a thin `src/features/Reason/`

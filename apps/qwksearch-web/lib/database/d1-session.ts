@@ -22,7 +22,8 @@
  *
  * Requests that never touch D1 never open a session, and outside a session
  * scope (prerendering, scripts, unit tests) the wrapper is a pass-through to
- * the plain binding. The Sessions API is also a no-op on databases with read
+ * the plain binding. Authentication opts out of replica reads entirely — see
+ * `PRIMARY_ONLY_PATH_PREFIXES`. The Sessions API is also a no-op on databases with read
  * replication turned off, so this is safe to deploy before — and independently
  * of — flipping the switch in the D1 dashboard.
  *
@@ -143,14 +144,67 @@ function readClientBookmark(request: Request): string | null {
 }
 
 /**
- * Where this request's session should start. A bookmark always wins: it is
+ * Path prefixes whose reads must see the very latest version of the database,
+ * not merely a version at least as new as whatever this browser last saw.
+ *
+ * Authentication is the case that matters. Its short-lived rows (`verification`
+ * above all — OAuth state, magic-link tokens, e-mail verification tokens) are
+ * written by one request and read back by a *different* one seconds later, and
+ * the reader routinely arrives with no bookmark to resume from:
+ *
+ *   - the OAuth callback is a cross-site redirect back from the provider, and
+ *     if anything about the flow crosses hosts (an apex/`beta.`/preview split,
+ *     a sign-in started in one origin and finished in another) the host-scoped
+ *     `d1_bookmark` cookie simply is not sent;
+ *   - a magic link is clicked out of a mail client, often in a different
+ *     browser or on a different device, which has never held a bookmark at all;
+ *   - a bookmark that *is* present can be an older one, having been overwritten
+ *     by a concurrent request that started before the write landed.
+ *
+ * In every one of those cases `resolveStart` would otherwise pick
+ * `first-unconstrained` (or an out-of-date bookmark) and the read can be
+ * answered by a replica that has not caught up yet. The row is missing, and
+ * better-auth turns that into `State mismatch: verification not found` — a
+ * failed sign-in with `?error=state_mismatch`, intermittent by nature because
+ * it depends on replication lag at that instant.
+ *
+ * So these paths always start on the primary: correctness beats the round trip
+ * saved, and they are a small fraction of traffic (page renders read the
+ * session through the ordinary bookmarked path and are unaffected).
+ */
+const PRIMARY_ONLY_PATH_PREFIXES = ["/api/auth/"];
+
+/** Whether this request is one that must not read from a lagging replica. */
+function requiresPrimary(request: Request): boolean {
+  let pathname: string;
+  try {
+    pathname = new URL(request.url).pathname;
+  } catch {
+    // An unparseable URL is not worth guessing about; the caller's normal
+    // read/write heuristic still applies.
+    return false;
+  }
+  return PRIMARY_ONLY_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix.slice(0, -1) || pathname.startsWith(prefix),
+  );
+}
+
+/**
+ * Where this request's session should start. A bookmark normally wins: it is
  * both the fastest option (any replica that has caught up can answer it) and
  * the strictest one (never older than what this client already saw). Without
  * one, mutations start on the primary so a handler that writes and then reads
  * back cannot miss its own write, and plain reads start anywhere.
+ *
+ * Auth paths are the exception — see `PRIMARY_ONLY_PATH_PREFIXES`. They ignore
+ * both the client's bookmark and the `unconstrained` override, because for them
+ * "at least as new as what this client saw" is not a strong enough guarantee.
+ * Only `D1_SESSION_MODE=off`, which bypasses the Sessions API altogether (and
+ * so leaves every query on the primary), takes them off this path.
  */
 function resolveStart(request: Request, mode: D1SessionMode): string {
   if (mode === "primary") return FIRST_PRIMARY;
+  if (requiresPrimary(request)) return FIRST_PRIMARY;
   if (mode === "unconstrained") return FIRST_UNCONSTRAINED;
 
   const bookmark = readClientBookmark(request);

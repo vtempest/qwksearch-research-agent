@@ -3,8 +3,9 @@
  * @description Mobile-aware sidebar shell. Renders the toolbar and content
  * inside a Sheet on mobile and directly in the layout on desktop.
  */
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import type { DocumentTreeHandle } from './file-tree/filetree';
+import { expandToggleLabelFor, nextExpandLevel } from './file-tree/expandLevels';
 import type { OutlineViewHandle } from './search/OutlineView';
 import type { AnyFileSource } from './app-types/fileSource';
 import type { SidebarProps } from './layout/sidebar/types';
@@ -53,6 +54,7 @@ export const Sidebar = ({
   activeTab,
   onTabChange,
   onTabClose,
+  onTabsClose,
   onTabRename,
   onSplitRight,
   onReopenLastClosed,
@@ -69,41 +71,20 @@ export const Sidebar = ({
 
   const activeDocuments = useMemo(() => documents.filter(doc => !doc.isDeleted), [documents]);
 
-  // Display level for the expand-all button's tooltip: 0 = collapsed, then
-  // 1, 2, 3... one folder level at a time, up to the deepest nesting level,
-  // before wrapping back to collapsed. The authoritative current level is
-  // inferred from the tree's actual expansion state on each click.
-  const [expandLevel, setExpandLevel] = useState(0);
-  // Deepest folder nesting level currently in the tree (1 = only top-level
-  // folders). A document counts as a folder when flagged as one OR when it
-  // has children — the tree itself promotes any document with children to a
-  // folder, so the button must count them the same way.
-  const maxExpandLevel = useMemo(() => {
-    const byId = new Map(activeDocuments.map((doc) => [doc.id, doc]));
-    const parentIds = new Set(
-      activeDocuments.map((doc) => doc.parentId).filter((id): id is string => !!id),
-    );
-    const isFolderLike = (doc: (typeof activeDocuments)[number]) =>
-      !!doc.isFolder || parentIds.has(doc.id);
-    let max = 0;
-    for (const doc of activeDocuments) {
-      if (!isFolderLike(doc)) continue;
-      let depth = 1;
-      let parentId = doc.parentId;
-      const seen = new Set<string>();
-      while (parentId && byId.has(parentId) && !seen.has(parentId)) {
-        seen.add(parentId);
-        depth++;
-        parentId = byId.get(parentId)?.parentId ?? null;
-      }
-      max = Math.max(max, depth);
-    }
-    return max;
-  }, [activeDocuments]);
-  // Clamp to the current max depth if folders were deleted/collapsed elsewhere.
-  useEffect(() => {
-    setExpandLevel((prev) => Math.min(prev, maxExpandLevel));
-  }, [maxExpandLevel]);
+  // Expansion depth of the file tree, reported by the tree itself: 0 =
+  // fully collapsed, then 1, 2, 3... one folder level at a time up to the
+  // deepest nesting level, before wrapping back to collapsed. Sourcing it
+  // from the tree (rather than counting clicks) keeps the button honest
+  // when folders are opened by hand or restored from persisted state.
+  const [expandState, setExpandState] = useState({ level: 0, maxLevel: 0 });
+  const handleExpandStateChange = useCallback(
+    (next: { level: number; maxLevel: number }) => {
+      setExpandState((prev) =>
+        prev.level === next.level && prev.maxLevel === next.maxLevel ? prev : next,
+      );
+    },
+    [],
+  );
   // Track expand/collapse all state for outline
   const [outlineExpanded, setOutlineExpanded] = useState(true);
   // Ref for file tree
@@ -138,32 +119,26 @@ export const Sidebar = ({
   };
 
   const handleToggleAllExpanded = () => {
-    if (maxExpandLevel === 0) return;
+    const tree = treeRef.current;
+    if (!tree) return;
     // Cycle from the level the tree is actually at (folders may have been
     // expanded/collapsed by hand since the last click), not from a stale
     // local counter.
-    const currentLevel = treeRef.current?.getExpandLevel?.() ?? expandLevel;
-    const nextLevel = currentLevel >= maxExpandLevel ? 0 : currentLevel + 1;
-    setExpandLevel(nextLevel);
-    if (treeRef.current) {
-      if (nextLevel === 0) {
-        treeRef.current.cancelExpand?.();
-        treeRef.current.collapseAll();
-      } else {
-        treeRef.current.expandToLevel(nextLevel);
-      }
+    const currentLevel = tree.getExpandLevel?.() ?? expandState.level;
+    const maxLevel = tree.getMaxExpandLevel?.() ?? expandState.maxLevel;
+    if (maxLevel === 0) return;
+    const nextLevel = nextExpandLevel(currentLevel, maxLevel);
+    if (nextLevel === 0) {
+      tree.cancelExpand?.();
+      tree.collapseAll();
+    } else {
+      tree.expandToLevel(nextLevel);
     }
   };
 
-  const isFullyExpanded = expandLevel > 0 && expandLevel >= maxExpandLevel;
-  const expandToggleLabel =
-    expandLevel === 0
-      ? maxExpandLevel > 1
-        ? 'Expand Level 1'
-        : 'Expand All'
-      : isFullyExpanded
-        ? 'Collapse All'
-        : `Expand Level ${expandLevel + 1}`;
+  const isFullyExpanded =
+    expandState.maxLevel > 0 && expandState.level >= expandState.maxLevel;
+  const expandToggleLabel = expandToggleLabelFor(expandState.level, expandState.maxLevel);
 
   const handleToggleOutlineExpanded = () => {
     const newState = !outlineExpanded;
@@ -226,6 +201,7 @@ export const Sidebar = ({
   };
 
   const contentProps = {
+    onExpandStateChange: handleExpandStateChange,
     panels: leftPanels,
     persistenceKey: 'left',
     activeDocuments,
@@ -248,6 +224,7 @@ export const Sidebar = ({
     activeTab,
     onTabChange,
     onTabClose,
+    onTabsClose,
     onTabRename,
     onSplitRight,
     onReopenLastClosed,

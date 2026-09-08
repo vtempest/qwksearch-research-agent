@@ -135,6 +135,10 @@ export interface SidebarProps {
   activeTab?: string | null;
   onTabChange?: (id: string) => void;
   onTabClose?: (id: string) => void;
+  // Closes several tabs at once (e.g. "Close Other Tabs"). Supplied by hosts
+  // that can apply the whole batch in one state update; when omitted the
+  // panel falls back to calling `onTabClose` once per tab.
+  onTabsClose?: (ids: string[]) => void;
   onTabRename?: (id: string, newTitle: string) => void;
   onSplitRight?: (id: string) => void;
   onReopenLastClosed?: () => void;
@@ -188,6 +192,12 @@ export interface SidebarContentProps {
   onOpenChange?: (open: boolean) => void;
   /** Ref forwarded to the `FileTree` component for imperative control. */
   treeRef?: RefObject<DocumentTreeHandle | null>;
+  /**
+   * Reports the file tree's live expansion depth (and the tree's deepest
+   * folder level) so the toolbar's expand/collapse toggle can label the next
+   * step of its one-level-at-a-time cycle.
+   */
+  onExpandStateChange?: (state: { level: number; maxLevel: number }) => void;
   /** Ref forwarded to the `OutlineView` component for imperative control. */
   outlineRef?: RefObject<OutlineViewHandle | null>;
   /** Editor handle passed to `OutlineView` to scroll-spy the active heading. */
@@ -200,6 +210,13 @@ export interface SidebarContentProps {
   onTabChange?: (id: string) => void;
   /** Closes a tab. */
   onTabClose?: (id: string) => void;
+  /**
+   * Closes several tabs in one operation (used by "Close Tabs Below" and
+   * "Close Other Tabs"). When omitted the panel falls back to calling
+   * `onTabClose` once per tab, which only works if the host applies each
+   * close against the latest state.
+   */
+  onTabsClose?: (ids: string[]) => void;
   /** Renames a tab's document. */
   onTabRename?: (id: string, newTitle: string) => void;
   /** Opens a tab in a split view to the right. */

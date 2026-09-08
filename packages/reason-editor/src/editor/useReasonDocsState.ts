@@ -15,6 +15,7 @@ import {
   getActiveFileSource,
   defaultDocuments,
 } from "react-reason-editor-sidebar";
+import { closeTabs } from "./tabState";
 import { useLocalStorage } from "../app-hooks/useLocalStorage";
 import { useIsMobile } from "../app-hooks/use-mobile";
 import { useDocumentSync } from "../app-hooks/useDocumentSync";
@@ -628,6 +629,27 @@ export function useReasonDocsState(openFilesSidebarSignal?: number | string) {
   };
 
   /**
+   * Closes several tabs in one state update and records them in
+   * `closedTabsHistory` (most recent first, capped at 10) for reopen
+   * support. Activates the nearest surviving tab when the active document
+   * is among the closed ones.
+   *
+   * Batching matters: state here is read from the current render's closure,
+   * so closing tabs one call at a time would make every call start from the
+   * same pre-close tab list and only the last one would stick.
+   *
+   * @param tabIds - Document IDs of the tabs to close.
+   */
+  const handleTabsClose = (tabIds: string[]) => {
+    const result = closeTabs(openTabs, activeDocId, tabIds);
+    if (result.closed.length === 0) return;
+
+    setClosedTabsHistory([...result.closed, ...closedTabsHistory].slice(0, 10));
+    setOpenTabs(result.openTabs);
+    if (result.activeTabId !== activeDocId) setActiveDocId(result.activeTabId);
+  };
+
+  /**
    * Closes a tab by removing it from `openTabs` and records it in
    * `closedTabsHistory` for reopen support. Activates the nearest
    * remaining tab if the closed tab was active.
@@ -635,16 +657,7 @@ export function useReasonDocsState(openFilesSidebarSignal?: number | string) {
    * @param tabId - Document ID of the tab to close.
    */
   const handleTabClose = (tabId: string) => {
-    setClosedTabsHistory([tabId, ...closedTabsHistory.slice(0, 9)]);
-
-    const newOpenTabs = openTabs.filter((id) => id !== tabId);
-    setOpenTabs(newOpenTabs);
-
-    if (activeDocId === tabId) {
-      const closedIndex = openTabs.indexOf(tabId);
-      const newActiveIndex = Math.max(0, closedIndex - 1);
-      setActiveDocId(newOpenTabs[newActiveIndex] || null);
-    }
+    handleTabsClose([tabId]);
   };
 
   /** Creates a new untitled document and opens it in a new tab. */
@@ -836,6 +849,7 @@ export function useReasonDocsState(openFilesSidebarSignal?: number | string) {
     handlePermanentDelete,
     handleTabChange,
     handleTabClose,
+    handleTabsClose,
     handleTabAdd,
     handleTabDelete,
     handleReopenLastClosed,

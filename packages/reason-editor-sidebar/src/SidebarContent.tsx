@@ -73,12 +73,14 @@ export const SidebarContent = ({
   onRename,
   onOpenChange,
   treeRef,
+  onExpandStateChange,
   outlineRef,
   editorRef,
   openTabs = [],
   activeTab,
   onTabChange,
   onTabClose,
+  onTabsClose,
   onTabRename,
   onSplitRight,
   onReopenLastClosed,
@@ -168,16 +170,35 @@ export const SidebarContent = ({
     kind: 'file' as const,
   }));
 
-  const handleCloseOtherTabs = (tabId: string) => {
+  /**
+   * Closes a batch of tabs. Prefers the host's `onTabsClose` so the whole
+   * batch lands in a single state update — closing them one by one through
+   * `onTabClose` makes every call read the same pre-close tab list, so all
+   * but the last close is discarded.
+   */
+  const closeTabs = (ids: string[], keptTabId: string) => {
+    if (ids.length === 0) return;
+    // When the batch takes the active tab with it, focus the tab the menu was
+    // opened on — it is the one tab guaranteed to survive.
+    if (activeTab && ids.includes(activeTab) && activeTab !== keptTabId) {
+      onTabChange?.(keptTabId);
+    }
+    if (onTabsClose) {
+      onTabsClose(ids);
+      return;
+    }
     if (!onTabClose) return;
-    resolvedTabItems.filter((tab) => tab.id !== tabId).forEach((tab) => onTabClose(tab.id));
+    ids.forEach((id) => onTabClose(id));
+  };
+
+  const handleCloseOtherTabs = (tabId: string) => {
+    closeTabs(resolvedTabItems.filter((tab) => tab.id !== tabId).map((tab) => tab.id), tabId);
   };
 
   const handleCloseTabsBelow = (tabId: string) => {
-    if (!onTabClose) return;
     const index = resolvedTabItems.findIndex((tab) => tab.id === tabId);
     if (index === -1) return;
-    resolvedTabItems.slice(index + 1).forEach((tab) => onTabClose(tab.id));
+    closeTabs(resolvedTabItems.slice(index + 1).map((tab) => tab.id), tabId);
   };
 
   const renderOpenTabs = () => (
@@ -260,7 +281,7 @@ export const SidebarContent = ({
                       Close
                     </ContextMenuItem>
                   )}
-                  {onTabClose && (
+                  {(onTabClose || onTabsClose) && (
                     <ContextMenuItem
                       onClick={() => handleCloseTabsBelow(tabId)}
                       disabled={!hasTabsBelow}
@@ -269,7 +290,7 @@ export const SidebarContent = ({
                       Close Tabs Below
                     </ContextMenuItem>
                   )}
-                  {onTabClose && (
+                  {(onTabClose || onTabsClose) && (
                     <ContextMenuItem
                       onClick={() => handleCloseOtherTabs(tabId)}
                       disabled={!hasOtherTabs}
@@ -377,6 +398,7 @@ export const SidebarContent = ({
       <FileTree
         ref={effectiveTreeRef}
         documents={activeDocuments}
+        onExpandStateChange={onExpandStateChange}
         activeId={activeId}
         onSelect={handleSelect}
         onMove={onMove}

@@ -48,62 +48,6 @@ jobs:
           chmod +x "$RUNNER_TEMP/husky-shim/husky"
           echo "$RUNNER_TEMP/husky-shim" >> "$GITHUB_PATH"
 
-      # A publish token that no longer authorizes writes is the single most
-      # likely reason for this workflow to fail, and it fails *late*: npm
-      # answers an unauthorized PUT with `E404 ... could not be found or you do
-      # not have permission to access it`, which reads like a missing package.
-      # Every package in the workspace gets built (minutes of vite) before the
-      # first one hits it. Check the credential up front instead.
-      #
-      # Two supported credentials, in order of preference:
-      #
-      #   1. Trusted publishing (OIDC). No secret at all: npm >= 11.5.1 trades
-      #      this job's `id-token` for a short-lived publish token. Nothing to
-      #      rotate and nothing to expire, but each package must name this
-      #      repo + workflow as a trusted publisher on npmjs.com
-      #      (npmjs.com/package/<name>/access -> Trusted publisher:
-      #      OpenSourceAGI/qwksearch-research-agent, npm-publish.yml).
-      #   2. An NPM_TOKEN secret. npm granular access tokens expire (90 days
-      #      max), so this needs rotating; classic automation tokens no longer
-      #      work for direct publishing.
-      #
-      # Setting the secret picks (2); leaving it unset picks (1).
-      - name: Verify npm publish credentials
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          set -uo pipefail
-
-          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
-            if whoami=$(npm whoami 2>&1); then
-              echo "🔑 Publishing as npm user '$whoami' (NPM_TOKEN)"
-              exit 0
-            fi
-            echo "$whoami"
-            echo "::error title=npm token rejected::The NPM_TOKEN secret no longer authenticates with registry.npmjs.org — it has expired, been revoked, or was replaced. npm granular access tokens expire after at most 90 days. Mint a new token with write access to these packages at npmjs.com/settings/<user>/tokens and update the NPM_TOKEN repository secret, or remove the secret entirely and configure trusted publishing (see the comment above this step)."
-            exit 1
-          fi
-
-          # No secret: trusted publishing. Make sure npm is new enough and that
-          # nothing left a half-configured empty token in the generated .npmrc,
-          # which would make npm try (and fail) to authenticate with it.
-          npm_version=$(npm --version)
-          if ! node -e "
-            const need = [11, 5, 1];
-            const have = '$npm_version'.split('.').map(Number);
-            for (let i = 0; i < 3; i++) {
-              if ((have[i] || 0) !== need[i]) process.exit((have[i] || 0) > need[i] ? 0 : 1);
-            }
-          "; then
-            echo "⏫ npm $npm_version is older than 11.5.1 — upgrading for trusted publishing (OIDC)"
-            npm install -g npm@latest
-          fi
-
-          if [ -n "${NPM_CONFIG_USERCONFIG:-}" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
-            sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
-          fi
-          echo "🔑 No NPM_TOKEN secret — publishing via trusted publishing (OIDC) with npm $(npm --version)"
-
       # Install the whole workspace once with bun (the repo's package manager).
       # bun understands the "workspace:*" protocol and links local packages, so
       # every package gets its devDependencies (e.g. vite) and can be built.
@@ -123,9 +67,17 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          # Note: intentionally no `-e`. Per-package outcomes are handled
-          # explicitly so one package's failure can't abort the whole run.
+          # GitHub runs `run:` steps with `bash -e -o pipefail`, so simply not
+          # writing `set -e` here does not disable errexit — `set -uo pipefail`
+          # leaves it on. With errexit on, the first package whose publish fails
+          # kills the whole step: `chat-agent-toolkit` sorts first in
+          # `packages/*/`, so once its publish started returning npm E404 every
+          # later package stopped being evaluated at all and the whole workspace
+          # went unreleased. Turn errexit off explicitly; per-package outcomes
+          # are handled through $rc below, and the run still exits non-zero at
+          # the end if anything failed.
           set -uo pipefail
+          set +e
 
           failed_packages=""
           skipped_builds=""
@@ -273,10 +225,6 @@ jobs:
 
           if [ -n "$failed_packages" ]; then
             echo "❌ Failed to publish:$failed_packages"
-            # npm reports "no write access" as E404 on the PUT, which reads as
-            # if the package didn't exist. Say what it actually means so the
-            # next person doesn't go hunting for a missing package.
-            echo "::warning::If the errors above are 'E404 ... could not be found or you do not have permission to access it', the package exists but this run is not authorized to write to it: an NPM_TOKEN that is read-only or scoped to a different set of packages, or a trusted publisher not yet configured for that package on npmjs.com."
             exit 1
           fi
 

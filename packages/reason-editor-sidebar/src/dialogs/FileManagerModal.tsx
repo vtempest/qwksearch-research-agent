@@ -9,6 +9,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { Filemanager, Willow } from "@svar-ui/react-filemanager";
 import type { IApi } from "@svar-ui/react-filemanager";
 import "@svar-ui/react-filemanager/all.css";
+import "./filemanager.css";
 import {
   Dialog,
   DialogContent
@@ -65,14 +66,12 @@ export function FileManagerModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!max-w-[98vw] w-[98vw] h-[95vh] max-h-[95vh] p-0 flex flex-col overflow-hidden sm:!max-w-[98vw] !duration-0 data-[state=open]:!zoom-in-100 data-[state=closed]:!zoom-out-100 data-[state=open]:!animate-none data-[state=closed]:!animate-none">
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="h-[92vh] min-h-[300px] rounded-md overflow-hidden">
-            {open && (
-              <Willow>
-                <Filemanager data={data} mode="table" init={init} />
-              </Willow>
-            )}
-          </div>
+        <div className="qwk-filemanager-shell flex-1 min-h-0 overflow-hidden rounded-md">
+          {open && (
+            <Willow>
+              <Filemanager data={data} mode="table" init={init} />
+            </Willow>
+          )}
         </div>
       </DialogContent>
     </Dialog>

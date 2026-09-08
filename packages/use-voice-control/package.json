@@ -1,7 +1,7 @@
 {
   "name": "use-voice-control",
   "version": "0.1.86",
-  "description": "React voice control with speech transcription, vocalization, and interruption (STT/TTS/VAD) support.",
+  "description": "React voice control with speech transcription, vocalization, and interruption (STT/TTS/VAD) support, plus a CLI that reads Markdown and text files aloud to audio files.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/OpenSourceAGI/qwksearch-research-agent.git",
@@ -10,6 +10,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "use-voice-control": "./bin/use-voice-control.mjs"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -23,6 +26,14 @@
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react.js"
     },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node.js"
+    },
+    "./markdown": {
+      "types": "./dist/utils/markdown-to-speech.d.ts",
+      "import": "./dist/markdown.js"
+    },
     "./api-client": {
       "types": "./speech/api-client.ts",
       "import": "./speech/api-client.ts"
@@ -31,6 +42,7 @@
   "files": [
     "dist",
     "speech",
+    "bin",
     "README.md"
   ],
   "scripts": {
@@ -43,9 +55,11 @@
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
     "lucide-react": "^0.344.0",
-    "@moonshine-ai/moonshine-js": "^0.1.29"
+    "@moonshine-ai/moonshine-js": "^0.1.29",
+    "kokoro-js": "^1.2.1"
   },
   "devDependencies": {
+    "@types/node": "^22.10.2",
     "@types/react": "^19.2.17",
     "@vitejs/plugin-react": "^4.3.4",
     "@types/react-dom": "^19.2.3",

@@ -6,7 +6,9 @@ import dts from "vite-plugin-dts";
 // Library build for the published entry points. The source lives under `speech/`:
 // `speech/index.ts` is the server-side TTS API (`generateSpeech` + types),
 // `speech/client` the framework-agnostic browser engines (read-aloud playback,
-// live dictation), and `speech/react` the hooks and overlay that wrap them.
+// live dictation), `speech/react` the hooks and overlay that wrap them, and
+// `speech/node` the document-to-audio renderer behind the `use-voice-control`
+// command (`bin/use-voice-control.mjs` loads the `cli` entry built here).
 export default defineConfig({
   plugins: [
     react(),
@@ -17,6 +19,9 @@ export default defineConfig({
         "speech/types",
         "speech/client",
         "speech/react",
+        "speech/node",
+        "speech/utils/markdown-to-speech.ts",
+        "speech/utils/wav.ts",
         "speech/utils/*.d.ts",
       ],
     }),
@@ -33,6 +38,9 @@ export default defineConfig({
         index: resolve(__dirname, "speech/index.ts"),
         client: resolve(__dirname, "speech/client/index.ts"),
         react: resolve(__dirname, "speech/react/index.ts"),
+        node: resolve(__dirname, "speech/node/index.ts"),
+        markdown: resolve(__dirname, "speech/utils/markdown-to-speech.ts"),
+        cli: resolve(__dirname, "speech/node/cli.ts"),
       },
       formats: ["es"],
       fileName: (_format, entryName) => `${entryName}.js`,
@@ -40,6 +48,10 @@ export default defineConfig({
     rollupOptions: {
       // Keep runtime/optional peers out of the bundle so consumers provide them.
       external: [
+        // Node builtins are only reached from the `node`/`cli` entries.
+        /^node:/,
+        // Runs the Kokoro model locally; never wanted in a browser bundle.
+        "kokoro-js",
         "react",
         "react-dom",
         "react/jsx-runtime",

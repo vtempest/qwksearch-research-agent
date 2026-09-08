@@ -13,6 +13,11 @@
  * `speechSynthesis` rather than failing, so the feature still works everywhere.
  */
 import type { TTSProvider } from "../types/types";
+import {
+  looksLikeMarkdown,
+  markdownToSpeech,
+  type MarkdownToSpeechOptions,
+} from "../utils/markdown-to-speech";
 import { splitTextSmart } from "../utils/semantic-split.js";
 
 export type ReadAloudState = "idle" | "loading" | "speaking" | "paused";
@@ -44,6 +49,14 @@ export interface ReadAloudOptions {
    * seams between chunks more audible. Default 240.
    */
   maxChunkLength?: number;
+  /**
+   * How to read the text handed to `speak()`. `auto` (default) converts text
+   * that looks like Markdown so "##" and "**" are not read out; `markdown`
+   * always converts; `text` never does.
+   */
+  format?: "auto" | "markdown" | "text";
+  /** Markdown conversion options, when the text is read as Markdown. */
+  markdown?: MarkdownToSpeechOptions;
   /** Override synthesis entirely (tests, a bring-your-own-TTS host app). */
   synthesize?: SynthesizeFn;
   /** Called as each chunk starts playing. */
@@ -102,7 +115,7 @@ export class ReadAloudController {
     this.stop();
 
     const maxChunkLength = this.options.maxChunkLength ?? DEFAULT_MAX_CHUNK;
-    const chunks = splitTextSmart(text ?? "", maxChunkLength)
+    const chunks = splitTextSmart(this.toSpeakableText(text ?? ""), maxChunkLength)
       .map((chunk) => chunk.trim())
       .filter((chunk) => chunk.length > 0);
 
@@ -185,6 +198,19 @@ export class ReadAloudController {
       this.setState("idle");
       this.options.onEnd?.("stopped");
     }
+  }
+
+  /**
+   * Converts Markdown to spoken words before chunking, so a document read out
+   * of an editor does not have its syntax read back to the listener.
+   */
+  private toSpeakableText(text: string): string {
+    const format = this.options.format ?? "auto";
+    if (format === "text") return text;
+    if (format === "markdown" || looksLikeMarkdown(text)) {
+      return markdownToSpeech(text, this.options.markdown);
+    }
+    return text;
   }
 
   private setState(state: ReadAloudState): void {

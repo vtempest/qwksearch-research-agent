@@ -7,6 +7,12 @@
  *     control version.
  *   - `ReasonPlateEditor`  — the Plate starter's editor UI and plugin set.
  *
+ * `ReasonPlaygroundEditor` is a third *surface*, not a third engine: the same
+ * Plate editor and the same collaboration room as `ReasonPlateEditor`, wearing
+ * the Plate playground's full toolbar instead of `ReasonToolbar`. It is what the
+ * demo opens by default; the two toolbar-schema editors above are untouched and
+ * stay reachable so the three can be compared side by side.
+ *
  * Both render the same `REASON_TOOLBAR` schema through the same
  * `ReasonToolbar` renderer, and differ only in which `EditorToolbarAdapter`
  * they hand it — including the dictation button (`transcribe`), the
@@ -78,3 +84,12 @@ export {
   ReasonPlateEditor,
   type ReasonPlateEditorProps,
 } from './docs-agent/plate/editor';
+export {
+  ReasonPlaygroundEditor,
+  type ReasonPlaygroundEditorProps,
+} from './docs-agent/plate/playground-editor';
+export { REASON_TOOLBAR_SKIN } from './docs-agent/plate/ui/reason-toolbar-skin';
+export { FixedToolbar } from './docs-agent/plate/ui/fixed-toolbar';
+export { FixedToolbarButtons } from './docs-agent/plate/ui/fixed-toolbar-buttons';
+export { FloatingToolbar } from './docs-agent/plate/ui/floating-toolbar';
+export { FloatingToolbarButtons } from './docs-agent/plate/ui/floating-toolbar-buttons';

@@ -220,4 +220,10 @@ export interface SidebarContentProps {
   tabItems?: OpenTabItem[];
   /** Opens a new chat tab from the "Open Tabs" panel header. */
   onNewChat?: () => void;
+  /** Opens the file manager modal from the "Files" panel header. */
+  onFileManagerOpen?: () => void;
+  /** Soft-deleted documents listed in the "Files" panel header trash menu. */
+  deletedDocs?: Document[];
+  /** Restores a soft-deleted document by ID (from the trash menu). */
+  onRestore?: (id: string) => void;
 }

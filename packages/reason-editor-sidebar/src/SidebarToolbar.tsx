@@ -2,7 +2,9 @@
  * @module SidebarToolbar
  * @description Compact icon toolbar rendered at the top of the sidebar. Shows
  * context-sensitive controls based on `leftPanels`: file-source switcher, search,
- * file manager, new file/folder, and expand/collapse buttons.
+ * and expand/collapse buttons. The file-tree actions (new file/folder, trash,
+ * file manager) render here only when the "Files" panel — which hosts them in
+ * its own header — is hidden.
  */
 import { RefObject } from 'react';
 import type { AnyFileSource } from './app-types/fileSource';
@@ -133,6 +135,10 @@ export const SidebarToolbar = ({
   documents = [],
   tabItems,
 }: SidebarToolbarProps) => {
+  // File-tree actions (new file/folder, trash, file manager) live in the
+  // "Files" panel header when that panel is on screen, so the toolbar only
+  // offers them as a fallback when the tree isn't visible.
+  const filesPanelVisible = leftPanels.includes('files');
   const getDocTitle = (id: string) => documents.find(d => d.id === id)?.title || 'Untitled';
   const resolvedTabItems: OpenTabItem[] = tabItems ?? openTabs.map((tabId) => ({
     id: tabId,
@@ -217,53 +223,57 @@ export const SidebarToolbar = ({
                 </TooltipContent>
               </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onFileManagerOpen}
-                    className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                  >
-                    <Folders className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>File Manager</p>
-                </TooltipContent>
-              </Tooltip>
+              {!filesPanelVisible && (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onFileManagerOpen}
+                        className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                      >
+                        <Folders className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>File Manager</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onAdd(activeId, false)}
-                    className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                  >
-                    <FilePlus className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>New File</p>
-                </TooltipContent>
-              </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onAdd(activeId, false)}
+                        className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                      >
+                        <FilePlus className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>New File</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onAdd(activeId, true)}
-                    className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                  >
-                    <FolderPlus className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>New Folder</p>
-                </TooltipContent>
-              </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onAdd(activeId, true)}
+                        className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                      >
+                        <FolderPlus className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>New Folder</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              )}
 
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -286,52 +296,54 @@ export const SidebarToolbar = ({
               </Tooltip>
 
               {/* Trash Dropdown */}
-              <DropdownMenu>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>Trash</p>
-                  </TooltipContent>
-                </Tooltip>
-                <DropdownMenuContent align="end" className="w-56">
-                  {deletedDocs.length > 0 ? (
-                    <>
-                      {deletedDocs.slice(0, 5).map((doc) => (
-                        <DropdownMenuItem
-                          key={doc.id}
-                          className="flex items-center justify-between"
-                          onClick={() => onRestore?.(doc.id)}
+              {!filesPanelVisible && (
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                         >
-                          <span className="truncate flex-1">{doc.title || 'Untitled'}</span>
-                          <RotateCcw className="h-3 w-3 ml-2 opacity-60" />
-                        </DropdownMenuItem>
-                      ))}
-                      {deletedDocs.length > 5 && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem disabled className="text-xs text-center">
-                            {deletedDocs.length - 5} more in trash...
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Trash</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {deletedDocs.length > 0 ? (
+                      <>
+                        {deletedDocs.slice(0, 5).map((doc) => (
+                          <DropdownMenuItem
+                            key={doc.id}
+                            className="flex items-center justify-between"
+                            onClick={() => onRestore?.(doc.id)}
+                          >
+                            <span className="truncate flex-1">{doc.title || 'Untitled'}</span>
+                            <RotateCcw className="h-3 w-3 ml-2 opacity-60" />
                           </DropdownMenuItem>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <DropdownMenuItem disabled className="text-center text-muted-foreground">
-                      Trash is empty
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                        ))}
+                        {deletedDocs.length > 5 && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem disabled className="text-xs text-center">
+                              {deletedDocs.length - 5} more in trash...
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <DropdownMenuItem disabled className="text-center text-muted-foreground">
+                        Trash is empty
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
 
               {/* All Tabs Dropdown */}
               {resolvedTabItems.length > 0 && onTabChange && (

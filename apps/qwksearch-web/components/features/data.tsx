@@ -416,7 +416,8 @@ export const COMPARISON_COLUMNS: {
   { name: "ChatGPT" },
   { name: "Claude" },
   { name: "Google", detail: "Search / Gemini" },
-  { name: "Other OSS", detail: "SearXNG, GPT Researcher…" },
+  { name: "Grok" },
+  { name: "Venice.ai" },
 ];
 
 export const COMPARISON_ROWS: ComparisonRow[] = [
@@ -428,7 +429,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       { status: "no" },
       { status: "no" },
       { status: "no" },
-      { status: "yes", note: "Varies" },
+      { status: "no" },
+      { status: "partial", note: "Runs open models, platform is closed" },
     ],
   },
   {
@@ -439,7 +441,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       { status: "no" },
       { status: "no" },
       { status: "no" },
-      { status: "yes", note: "Varies" },
+      { status: "no" },
+      { status: "no" },
     ],
   },
   {
@@ -450,7 +453,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       { status: "no", note: "OpenAI only" },
       { status: "no", note: "Anthropic only" },
       { status: "no", note: "Gemini only" },
-      { status: "partial", note: "Varies by project" },
+      { status: "no", note: "Grok only" },
+      { status: "yes", note: "Multiple open models (Llama, Qwen, DeepSeek…)" },
     ],
   },
   {
@@ -464,7 +468,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       { status: "partial", note: "Bing-backed, limited" },
       { status: "partial", note: "Web search (beta)" },
       { status: "yes", note: "Broad web index, no AI synthesis by default" },
-      { status: "partial", note: "Meta-search only, no built-in AI" },
+      { status: "partial", note: "X posts + web (via Grok search)" },
+      { status: "no", note: "Chat-focused, no built-in search" },
     ],
   },
   {
@@ -475,6 +480,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       { status: "partial", note: "Inconsistent" },
       { status: "partial", note: "Inconsistent" },
       { status: "no" },
+      { status: "partial", note: "Inconsistent" },
       { status: "no" },
     ],
   },
@@ -486,13 +492,15 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       { status: "partial", note: "Limited" },
       { status: "partial", note: "Limited" },
       { status: "no" },
-      { status: "no" },
+      { status: "partial", note: "Limited" },
+      { status: "partial", note: "File upload, limited" },
     ],
   },
   {
     feature: "Research writing / notes editor",
     cells: [
       { status: "yes", note: "Full Lexical-based editor with outline notation (REASON)" },
+      { status: "no" },
       { status: "no" },
       { status: "no" },
       { status: "no" },
@@ -508,7 +516,20 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       { status: "partial", note: "Limited" },
       { status: "no" },
       { status: "yes", note: "Yes" },
-      { status: "partial", note: "Varies" },
+      { status: "no" },
+      { status: "no" },
+    ],
+  },
+  {
+    feature: "Desktop app",
+    cells: [
+      { status: "yes", note: "Tauri-based" },
+      { status: "yes", note: "Yes" },
+      { status: "yes", note: "Yes" },
+      { status: "yes", note: "Yes" },
+      { status: "no" },
+      { status: "no" },
+      { status: "no" },
     ],
   },
   {
@@ -519,7 +540,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       { status: "partial", note: "Copilot (separate product)" },
       { status: "partial", note: "Claude Code (separate product)" },
       { status: "no" },
-      { status: "partial", note: "Varies" },
+      { status: "no" },
+      { status: "no" },
     ],
   },
   {
@@ -530,7 +552,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       { status: "partial", note: "Limited" },
       { status: "partial", note: "Limited" },
       { status: "partial", note: "Limited" },
-      { status: "yes", note: "Often, if self-hosted" },
+      { status: "partial", note: "Limited" },
+      { status: "yes", note: "No logging, privacy-first" },
     ],
   },
   {
@@ -541,7 +564,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
       { status: "paid", note: "Subscription" },
       { status: "paid", note: "Subscription" },
       { status: "paid", note: "Freemium" },
-      { status: "yes", note: "Usually free, self-hosted" },
+      { status: "paid", note: "Subscription (X Premium)" },
+      { status: "paid", note: "Freemium / pay-per-use" },
     ],
   },
 ];

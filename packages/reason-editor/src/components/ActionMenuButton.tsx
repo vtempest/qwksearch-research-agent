@@ -72,7 +72,7 @@ const ActionMenuButton = React.forwardRef<HTMLButtonElement, ActionMenuButtonPro
         </TooltipTrigger>
 
         {tooltip && (
-          <TooltipContent {...props?.tooltipOptions} className='richtext-tooltip'>
+          <TooltipContent {...props?.tooltipOptions} className='richtext-max-w-[18rem]'>
             <div className='richtext-flex richtext-flex-col richtext-items-center richtext-text-center'>
               {tooltip && <div>{tooltip}</div>}
 

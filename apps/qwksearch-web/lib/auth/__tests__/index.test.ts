@@ -99,4 +99,43 @@ describe("auth configuration", () => {
       vi.unstubAllEnvs();
     });
   });
+
+  describe("google sign-in scopes", () => {
+    const buildConfig = async () => {
+      // initAuth memoizes its instance at module scope, so the config has to
+      // be rebuilt to observe a fresh betterAuth() call.
+      vi.resetModules();
+      const { initAuth } = await import("../index");
+      await initAuth();
+      return betterAuthMock.mock.calls.at(-1)![0];
+    };
+
+    it("asks Google for identity only, never for Drive or Docs", async () => {
+      // The same OAuth client backs sign-in and the optional Drive connector.
+      // If a connector scope reached the sign-in request, a first-time Google
+      // sign-in would ask the user to hand over their whole Drive.
+      vi.stubEnv("GOOGLE_CLIENT_ID", "client-id");
+      vi.stubEnv("GOOGLE_CLIENT_SECRET", "client-secret");
+
+      const { socialProviders } = await buildConfig();
+
+      expect(socialProviders.google.scope).toEqual(["openid", "email", "profile"]);
+      expect(socialProviders.google.scope.join(" ")).not.toMatch(
+        /drive|documents/,
+      );
+
+      vi.unstubAllEnvs();
+    });
+
+    it("leaves Google unconfigured when no credentials are set", async () => {
+      vi.stubEnv("GOOGLE_CLIENT_ID", "");
+      vi.stubEnv("GOOGLE_CLIENT_SECRET", "");
+
+      const { socialProviders } = await buildConfig();
+
+      expect(socialProviders.google).toBeUndefined();
+
+      vi.unstubAllEnvs();
+    });
+  });
 });

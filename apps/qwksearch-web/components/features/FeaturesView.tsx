@@ -39,6 +39,7 @@ import {
   PROVIDERS,
   SEARCH_CATEGORIES,
   STATS,
+  faviconUrl,
   type ComparisonStatus,
 } from "@/components/features/data";
 import { config } from "@/lib/config/site";
@@ -369,14 +370,32 @@ function Comparison() {
                             column.highlight && "qs-accent-soft",
                           )}
                         >
-                          <div
+                          <a
+                            href={column.href}
+                            target="_blank"
+                            rel="noreferrer noopener"
                             className={cn(
-                              "font-semibold",
+                              "flex items-center justify-center gap-1.5 font-semibold hover:underline",
                               column.highlight && "qs-accent-text",
                             )}
                           >
+                            <img
+                              src={faviconUrl(column.domain)}
+                              alt=""
+                              aria-hidden
+                              width={16}
+                              height={16}
+                              loading="lazy"
+                              className="size-4 shrink-0 rounded-[3px]"
+                              onError={(event) => {
+                                // Ad blockers routinely block the Google
+                                // favicon endpoint. Drop the mark rather than
+                                // leaving a broken-image glyph in the header.
+                                event.currentTarget.style.display = "none";
+                              }}
+                            />
                             {column.name}
-                          </div>
+                          </a>
                           {column.detail && (
                             <div className="text-muted-foreground text-[11px] font-normal">
                               {column.detail}

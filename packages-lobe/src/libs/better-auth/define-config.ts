@@ -226,6 +226,17 @@ export function defineConfig(customOptions: CustomBetterAuthOptions) {
       // Keep a DB-backed fallback when Redis secondary storage entries are unexpectedly missing.
       storeSessionInDatabase: true,
     },
+    /**
+     * Verification rows (OAuth `state`, email verification links, password resets, OTPs) are
+     * written to `secondaryStorage` only unless this is set, and `findVerificationValue` then
+     * returns `null` without ever consulting the database. On Workers that secondary storage is
+     * Cloudflare KV, which is eventually consistent: the sign-in request that writes the state
+     * and the provider callback that reads it back routinely land in different colos, so the
+     * read can miss a state written seconds earlier and the callback dies with
+     * `State mismatch: verification not found`. Mirror `storeSessionInDatabase` and keep a
+     * DB-backed copy — KV still answers the hit path, Postgres covers the miss.
+     */
+    verification: { storeInDatabase: true },
     database: drizzleAdapter(serverDB, {
       provider: 'pg',
       // experimental joins feature needs schema to pass full relation

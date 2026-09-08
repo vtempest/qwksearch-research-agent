@@ -19,6 +19,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import OrbitingCirclesGlobe from "@/components/ui/orbiting-circles-02";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AuroraBackdrop,
@@ -116,7 +117,16 @@ function Hero() {
           </div>
         </Reveal>
 
-        <Reveal delay={320}>
+      </div>
+
+      {/* Search engines QwkSearch queries, orbiting the index. Deliberately
+          outside the max-w-5xl column so the widest ring isn't clipped. */}
+      <Reveal delay={320}>
+        <OrbitingCirclesGlobe className="-mx-4 mt-10 -mb-6 sm:-mx-6 sm:mt-14 lg:-mx-8" />
+      </Reveal>
+
+      <div className="mx-auto max-w-5xl text-center">
+        <Reveal delay={400}>
           <dl className="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border sm:grid-cols-3 lg:grid-cols-5">
             {STATS.map((stat) => (
               <div

@@ -48,6 +48,82 @@ jobs:
           chmod +x "$RUNNER_TEMP/husky-shim/husky"
           echo "$RUNNER_TEMP/husky-shim" >> "$GITHUB_PATH"
 
+      # A publish credential that no longer authorizes writes is the single
+      # most likely reason for this workflow to fail, and it fails *late*: npm
+      # answers an unauthorized PUT with `E404 ... could not be found or you do
+      # not have permission to access it`, which reads like a missing package.
+      # Every package in the workspace gets built (minutes of vite) before the
+      # first one hits it, and each failed attempt still signs a provenance
+      # statement into the public sigstore transparency log. Check the
+      # credential up front instead.
+      #
+      # Two supported credentials, in order of preference:
+      #
+      #   1. Trusted publishing (OIDC). No secret at all: npm >= 11.5.1 trades
+      #      this job's `id-token` for a short-lived publish token. Nothing to
+      #      rotate and nothing to expire, but each package must name this
+      #      repo + workflow as a trusted publisher on npmjs.com
+      #      (npmjs.com/package/<name>/access -> Trusted publisher:
+      #      OpenSourceAGI/qwksearch-research-agent, npm-publish.yml).
+      #   2. An NPM_TOKEN secret. npm granular access tokens expire (90 days
+      #      max), so this needs rotating; classic automation tokens no longer
+      #      work for direct publishing.
+      #
+      # Setting the secret picks (2); leaving it unset picks (1).
+      - name: Verify npm publish credentials
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -uo pipefail
+
+          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            if whoami=$(npm whoami 2>&1); then
+              echo "🔑 Publishing as npm user '$whoami' (NPM_TOKEN)"
+              # The token authenticates, but that says nothing about *write*
+              # access: a read-only or differently scoped granular token gets
+              # the same E404 on PUT. Report what it can actually write to,
+              # without failing the run — `npm access` is not available to
+              # every token type, and the publish loop reports the truth.
+              if writable=$(npm access list packages --json 2>/dev/null); then
+                echo "$writable" | node -e "
+                  let s = '';
+                  process.stdin.on('data', d => s += d).on('end', () => {
+                    let perms = {};
+                    try { perms = JSON.parse(s) || {}; } catch { return; }
+                    const rw = Object.keys(perms).filter(k => perms[k] === 'read-write');
+                    console.log(rw.length
+                      ? '🔓 Token has write access to ' + rw.length + ' package(s)'
+                      : '::warning title=npm token may be read-only::The NPM_TOKEN secret authenticates but reports no packages with read-write access. Publishes will fail with E404.');
+                  });
+                "
+              fi
+              exit 0
+            fi
+            echo "$whoami"
+            echo "::error title=npm token rejected::The NPM_TOKEN secret no longer authenticates with registry.npmjs.org — it has expired, been revoked, or was replaced. npm granular access tokens expire after at most 90 days. Mint a new token with write access to these packages at npmjs.com/settings/<user>/tokens and update the NPM_TOKEN repository secret, or remove the secret entirely and configure trusted publishing (see the comment above this step)."
+            exit 1
+          fi
+
+          # No secret: trusted publishing. Make sure npm is new enough and that
+          # nothing left a half-configured empty token in the generated .npmrc,
+          # which would make npm try (and fail) to authenticate with it.
+          npm_version=$(npm --version)
+          if ! node -e "
+            const need = [11, 5, 1];
+            const have = '$npm_version'.split('.').map(Number);
+            for (let i = 0; i < 3; i++) {
+              if ((have[i] || 0) !== need[i]) process.exit((have[i] || 0) > need[i] ? 0 : 1);
+            }
+          "; then
+            echo "⏫ npm $npm_version is older than 11.5.1 — upgrading for trusted publishing (OIDC)"
+            npm install -g npm@latest
+          fi
+
+          if [ -n "${NPM_CONFIG_USERCONFIG:-}" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
+            sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
+          fi
+          echo "🔑 No NPM_TOKEN secret — publishing via trusted publishing (OIDC) with npm $(npm --version)"
+
       # Install the whole workspace once with bun (the repo's package manager).
       # bun understands the "workspace:*" protocol and links local packages, so
       # every package gets its devDependencies (e.g. vite) and can be built.
@@ -81,6 +157,9 @@ jobs:
 
           failed_packages=""
           skipped_builds=""
+          unauthorized_packages=""
+          unattempted_packages=""
+          auth_broken=""
 
           for dir in packages/*/; do
             pkg="${dir}package.json"
@@ -95,6 +174,17 @@ jobs:
 
             if [ "$is_private" = "true" ]; then
               echo "⏭ Skipping $name (private)"
+              continue
+            fi
+
+            # One rejected PUT means the credential cannot write, and every
+            # remaining package would fail the same way — after another vite
+            # build each, and after signing a provenance statement into the
+            # public sigstore transparency log for a version that will never
+            # exist. Stop attempting them; the run still fails at the end.
+            if [ -n "$auth_broken" ]; then
+              echo "⏭ Skipping $name (npm rejected the publish credential — see above)"
+              unattempted_packages="$unattempted_packages $name"
               continue
             fi
 
@@ -208,12 +298,26 @@ jobs:
 
               echo "Publishing $name@$version"
               # Already built above; skip prepare/prepublish hooks re-running it.
-              npm publish --provenance --access public --ignore-scripts
+              # Exit 43 for an authorization failure so the loop can stop early:
+              # npm reports "no write access" as E404 on the PUT, which reads as
+              # if the package did not exist.
+              log="$RUNNER_TEMP/npm-publish.log"
+              if npm publish --provenance --access public --ignore-scripts 2>&1 | tee "$log"; then
+                exit 0
+              fi
+              if grep -qE "npm error code (E401|E404|ENEEDAUTH|EAUTHUNKNOWN|EOTP)" "$log" ||
+                 { grep -q "npm error code E403" "$log" && ! grep -qi "cannot publish over" "$log"; }; then
+                exit 43
+              fi
+              exit 1
             )
             rc=$?
 
             if [ "$rc" = "42" ]; then
               skipped_builds="$skipped_builds $name"
+            elif [ "$rc" = "43" ]; then
+              unauthorized_packages="$unauthorized_packages $name"
+              auth_broken="1"
             elif [ "$rc" != "0" ]; then
               failed_packages="$failed_packages $name"
             fi
@@ -223,8 +327,20 @@ jobs:
             echo "::warning::Skipped (build failed, not published):$skipped_builds"
           fi
 
+          if [ -n "$unattempted_packages" ]; then
+            echo "⏭ Not attempted (the credential was already rejected):$unattempted_packages"
+          fi
+
+          if [ -n "$unauthorized_packages" ]; then
+            echo "❌ Not authorized to publish:$unauthorized_packages"
+            echo "::error title=npm rejected the publish credential::npm answers an unauthorized PUT with E404 ('could not be found or you do not have permission to access it'), so this reads as a missing package — the packages exist, the write was refused. The NPM_TOKEN secret is read-only, scoped to a different set of packages, or expired (granular tokens last 90 days at most); or, if trusted publishing is in use, this repo + workflow is not yet named as the trusted publisher for these packages on npmjs.com."
+          fi
+
           if [ -n "$failed_packages" ]; then
             echo "❌ Failed to publish:$failed_packages"
+          fi
+
+          if [ -n "$failed_packages" ] || [ -n "$unauthorized_packages" ] || [ -n "$unattempted_packages" ]; then
             exit 1
           fi
 

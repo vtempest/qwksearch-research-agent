@@ -34,6 +34,7 @@
       "binding": "DB",
       "database_name": "qwksearch-new",
       "database_id": "b0ba9a66-e256-43dd-9083-062977c282a4",
+      "migrations_dir": "drizzle",
     },
   ],
   "r2_buckets": [
@@ -65,6 +66,7 @@
           "binding": "DB",
           "database_name": "qwksearch-new",
           "database_id": "b0ba9a66-e256-43dd-9083-062977c282a4",
+          "migrations_dir": "drizzle",
         },
       ],
     },

@@ -167,25 +167,10 @@ export default function ChatHomepage() {
             <RecentHistoryChips />
             {(showWeatherWidget || showTrendingNewsWidget) && (
               <div className="flex flex-col gap-2 w-full">
-                {/* The compact weather widget is fluid, so it spans the full
+                {/* Trending news sits on top, with the compact weather widget
+                    below it. The weather widget is fluid, so it spans the full
                     column width on its own row (current conditions on the left,
-                    the next days on the right), with trending news below it. */}
-                {showWeatherWidget && (
-                  <WeatherForecast
-                    compact
-                    forecastDays={weatherForecastDays}
-                    forecastHours={weatherForecastHours}
-                    temperatureUnit={weatherTemperatureUnit}
-                    locations={weatherLocations.length > 0 ? weatherLocations : undefined}
-                    className="rounded-2xl w-full"
-                    style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      color: 'inherit',
-                      backdropFilter: 'blur(8px)',
-                    }}
-                  />
-                )}
+                    the next days on the right). */}
                 {showTrendingNewsWidget && (
                   <TrendingNews
                     compact
@@ -200,6 +185,22 @@ export default function ChatHomepage() {
                       color: 'inherit',
                       backdropFilter: 'blur(8px)',
                       maxWidth: '100%',
+                    }}
+                  />
+                )}
+                {showWeatherWidget && (
+                  <WeatherForecast
+                    compact
+                    forecastDays={weatherForecastDays}
+                    forecastHours={weatherForecastHours}
+                    temperatureUnit={weatherTemperatureUnit}
+                    locations={weatherLocations.length > 0 ? weatherLocations : undefined}
+                    className="rounded-2xl w-full"
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      color: 'inherit',
+                      backdropFilter: 'blur(8px)',
                     }}
                   />
                 )}

@@ -32,7 +32,6 @@ export type DocumentTreeHandle = {
   edit: (nodeId: string) => void;
   expandAll: () => void;
   expandToLevel: (level: number) => void;
-  cancelExpand: () => void;
   /** Deepest folder level currently fully expanded (0 = fully collapsed). */
   getExpandLevel: () => number;
   /** Deepest folder nesting level in the tree (0 = no folders at all). */
@@ -86,6 +85,13 @@ interface FileTreeProps {
    * depth or the tree's own depth changes, and with zeroes on unmount.
    */
   onExpandStateChange?: (state: { level: number; maxLevel: number }) => void;
+  /**
+   * Reports the folder ids bulk expansion wants open — expand-to-level,
+   * expand-all and collapse-all — so the host can persist them onto the
+   * documents. Without it the stepped expansion lives only in the tree and
+   * is thrown away the next time the persisted flags re-sync.
+   */
+  onExpandedFoldersChange?: (folderIds: string[]) => void;
 }
 
 const ROOT_ID = "__root__";
@@ -161,14 +167,17 @@ function buildItems(documents: Document[]): Record<string, FileTreeItem> {
 }
 
 const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
-  ({ activeId, documents, onMove, onRename, onSelect, onDelete, onDuplicate, onAddChild, onAddChildFolder, onAddSibling, onAddSiblingFolder, onCopy, onPaste, onNewFile: _onNewFile, onNewFolder: _onNewFolder, onManageTags, onExpandStateChange }, ref) => {
+  ({ activeId, documents, onMove, onRename, onSelect, onDelete, onDuplicate, onAddChild, onAddChildFolder, onAddSibling, onAddSiblingFolder, onCopy, onPaste, onNewFile: _onNewFile, onNewFolder: _onNewFolder, onManageTags, onExpandStateChange, onExpandedFoldersChange }, ref) => {
     const items = useMemo(() => {
       const built = buildItems(documents);
       return built;
     }, [documents]);
+    // Use the tree's own notion of a folder (`buildItems` promotes any item
+    // with children) so an id set written back by the host round-trips
+    // instead of dropping entries the tree still draws as folders.
     const expandedItems = useMemo(
-      () => documents.filter((doc) => doc.isFolder && doc.isExpanded).map((doc) => doc.id),
-      [documents],
+      () => documents.filter((doc) => items[doc.id]?.isFolder && doc.isExpanded).map((doc) => doc.id),
+      [documents, items],
     );
 
     const [state, setState] = useState<Partial<TreeState<FileTreeItem>>>({
@@ -177,8 +186,6 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
     });
     const [copiedNodeId, setCopiedNodeId] = useState<string | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-    // Must survive re-renders so a queued expandAll can actually be cancelled.
-    const expandCancelToken = useRef(false);
 
     const tree = useTree<FileTreeItem>({
       canReorder: true,
@@ -297,10 +304,18 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
       [],
     );
 
+    /**
+     * Applies a bulk expansion: the local state write keeps the repaint
+     * instant, and the callback hands the same set to the host to persist.
+     */
+    const applyExpandedFolders = (folderIds: string[]) => {
+      setState((prev) => ({ ...prev, expandedItems: folderIds }));
+      onExpandedFoldersChange?.(folderIds);
+    };
+
     useImperativeHandle(ref, () => ({
       collapseAll: () => {
-        expandCancelToken.current = true;
-        tree.collapseAll();
+        applyExpandedFolders([]);
       },
       edit: (nodeId: string) => {
         if (onRename) {
@@ -308,16 +323,12 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
         }
       },
       expandAll: () => {
-        expandCancelToken.current = false;
-        tree.expandAll(expandCancelToken);
+        applyExpandedFolders(getFolderIdsUpToLevel(items, ROOT_ID, maxExpandLevel));
       },
       expandToLevel: (level: number) => {
-        expandCancelToken.current = true;
-        const ids = getFolderIdsUpToLevel(items, ROOT_ID, Math.min(level, maxExpandLevel));
-        setState((prev) => ({ ...prev, expandedItems: ids }));
-      },
-      cancelExpand: () => {
-        expandCancelToken.current = true;
+        applyExpandedFolders(
+          getFolderIdsUpToLevel(items, ROOT_ID, Math.min(level, maxExpandLevel)),
+        );
       },
       getExpandLevel: () => expandLevel,
       getMaxExpandLevel: () => maxExpandLevel,

@@ -140,15 +140,24 @@ LobeHub web-browsing tool
 |---|---|
 | Enable | `SEARCH_PROVIDERS=qwksearch` (set in `wrangler.jsonc` vars) |
 | Endpoint | `QWKSEARCH_SEARCH_URL`, default `https://qwksearch.com/api/agent/search`; optional `QWKSEARCH_API_KEY` sent as a bearer token |
-| Categories | Three vocabularies are normalized onto the endpoint's: LobeHub's manifest (`general/images/news/science/videos`), QwkSearch's 13-category registry (`academic`, `social`, `tech`, `torrents`, …) and SearXNG's. Unknown names fall back to `general` rather than returning an empty page |
+| Categories | Three vocabularies are normalized onto the endpoint's ten SearXNG names: LobeHub's manifest, QwkSearch's 13-category registry (`academic`, `social`, `tech`, `torrents`, …) and SearXNG's. Unknown names fall back to `general` rather than returning an empty page |
+| Advertised categories | The manifest enum is resolved at module evaluation by `packages/builtin-tool-web-browsing/src/searchCategories.ts`. With `SEARCH_PROVIDERS=qwksearch` and nothing else, the model is offered all ten (`files`, `it`, `map`, `music`, `social+media` on top of LobeHub's five); any other configuration keeps LobeHub's five, so no backend is asked for a category it cannot serve |
 | Fan-out | One request per category, capped at 3, issued in parallel |
 | Merge | Deduplicated by URL — highest score wins, engine lists union, a missing snippet is backfilled from the duplicate |
 | Engines | Never forwarded. `useAutoSearchEngineSelection = true` tells `SearchService` not to retry by stripping engine restrictions, because QwkSearch already picks engines per category |
 | Failure | Any category request failing raises `TRPCError SERVICE_UNAVAILABLE`, so `SearchService` can fail over to the next configured provider |
 
-Only two upstream files are edited for this: the `SearchImplType` enum and the
-factory switch in `apps/server/src/services/search/impls/index.ts`. Everything
-else is new files under `impls/qwksearch/`.
+Four upstream lines are edited for this, all registration points: the
+`SearchImplType` enum, the factory switch in
+`apps/server/src/services/search/impls/index.ts`, and in
+`packages/builtin-tool-web-browsing/` the manifest's import + enum expression
+and one export line in `src/index.ts`. Everything else is new files —
+`impls/qwksearch/` and `builtin-tool-web-browsing/src/searchCategories.ts`.
+
+Note that `packages/**` is excluded from the root Vitest config and the
+web-browsing tool package has no config of its own, so a test placed beside
+`searchCategories.ts` would never run. Its coverage lives in
+`impls/qwksearch/index.test.ts` instead, which imports the package by name.
 
 ## 3. Shared infrastructure
 

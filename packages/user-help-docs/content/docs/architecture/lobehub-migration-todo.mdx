@@ -56,12 +56,25 @@ is written up in §F5 of the integrations reference.
 
 Follow-ups that are deliberately *not* in that change:
 
-- ⬜ **Extend the tool manifest's category enum** from LobeHub's five
-  (`general/images/news/science/videos`) to QwkSearch's thirteen.
-  `packages/builtin-tool-web-browsing/src/manifest.ts` is static and shared by
-  every provider, so widening it blind would let the model ask SearXNG or Brave
-  for `torrents` and get nothing. Do it by making the manifest categories
-  provider-aware, or only once `qwksearch` is the sole configured provider.
+- ✅ **Extend the tool manifest's category enum.** Done the second way the
+  option offered: `packages/builtin-tool-web-browsing/src/searchCategories.ts`
+  (new file) resolves the enum at module evaluation and widens it *only* when
+  `SEARCH_PROVIDERS` names `qwksearch` and nothing else, so no other backend is
+  ever asked for a category it cannot serve. `manifest.ts` gains an import and
+  swaps the literal for `resolveSearchCategories()`; the package index gains one
+  export line. Those three lines are the whole upstream edit.
+
+  The widening is to **ten**, not thirteen — the fan-out endpoint takes SearXNG
+  spellings, and QwkSearch's 13-name registry aliases onto those ten in
+  `normalizeCategories`. The five the model gains are `files`, `it`, `map`,
+  `music` and `social+media`. Drift between the advertised list and the accepted
+  one now fails a test in `impls/qwksearch/index.test.ts` (27 cases, was 20).
+
+  Two caveats worth knowing: the enum is fixed at module evaluation, which is
+  safe on the Worker only because `worker/cf/globals.ts` mirrors vars onto
+  `process.env` before anything else evaluates; and in the SPA there is no
+  `process`, so the client-side copy of the manifest always reports LobeHub's
+  five. Nothing on the client reads the enum today.
 - ⬜ **Service binding instead of HTTPS.** `QwkSearchImpl` calls Worker A over
   the public internet. Once both Workers deploy together, a Cloudflare service
   binding removes a hop and the need for `QWKSEARCH_API_KEY`.

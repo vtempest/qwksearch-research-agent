@@ -66,7 +66,11 @@ data is reused as-is.
   (`QWKSEARCH_SEARCH_URL`, default `https://qwksearch.com/api/agent/search`, optional
   `QWKSEARCH_API_KEY`). Requested categories are normalized across three vocabularies
   (LobeHub's manifest, QwkSearch's 13-category registry, SearXNG's), fanned out one request per
-  category (max 3) and merged by URL — highest score wins, engine lists union.
+  category (max 3) and merged by URL — highest score wins, engine lists union. When `qwksearch` is
+  the *sole* configured provider the tool manifest offers the model all ten categories the endpoint
+  accepts (`files`, `it`, `map`, `music`, `social+media` on top of LobeHub's five); with any other
+  provider configured it keeps LobeHub's five, so no backend is asked for a category it cannot serve
+  (`packages/builtin-tool-web-browsing/src/searchCategories.ts`).
 - **Extraction chain** (`worker/qwksearch/extract.ts`): the chain is picked per URL kind by
   `defaultTiersFor`.
   - *Web pages* — Cloudflare Puppeteer scraper (`SCRAPER_URL`, 8s deadline) → Tavily
@@ -171,7 +175,10 @@ Hyperdrive bridge, and rendered-component tests for the article panel and the do
 - `src/libs/better-auth/utils/config.ts`: KV-backed `secondaryStorage` (`createKVSecondaryStorage`).
 - `apps/server/src/services/email/*`: `cloudflare` provider (Email Routing binding), default on Workers.
 - `apps/server/src/services/search/impls/`: new `qwksearch` provider (`SearchImplType.QwkSearch`);
-  the factory switch and enum are the only edits to upstream files.
+  the factory switch and enum are the only edits to upstream files there.
+- `packages/builtin-tool-web-browsing/`: new `src/searchCategories.ts`; `manifest.ts` swaps the
+  hard-coded `searchCategories` enum for `resolveSearchCategories()` (import + expression) and
+  `src/index.ts` gains one export line.
 - `packages/env/src/email.ts`: accepts `EMAIL_SERVICE_PROVIDER=cloudflare`.
 - `packages/business/const/src/branding.ts`, `packages/const/src/url.ts`: QwkSearch branding.
 - `packages/locales/src/default/{electron,qwksearch}.ts` + `locales/{en-US,zh-CN}`: new keys.

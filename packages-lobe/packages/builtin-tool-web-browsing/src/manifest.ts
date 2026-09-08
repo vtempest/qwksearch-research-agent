@@ -1,6 +1,7 @@
 import type { BuiltinToolManifest } from '@lobechat/types';
 import dayjs from 'dayjs';
 
+import { resolveSearchCategories } from './searchCategories';
 import { systemPrompt } from './systemRole';
 import { WebBrowsingApiName } from './types';
 
@@ -19,7 +20,7 @@ export const WebBrowsingManifest: BuiltinToolManifest = {
           searchCategories: {
             description: 'The search categories you can set:',
             items: {
-              enum: ['general', 'images', 'news', 'science', 'videos'],
+              enum: resolveSearchCategories(),
               type: 'string',
             },
             type: 'array',

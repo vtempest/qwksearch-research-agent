@@ -106,6 +106,65 @@ already reached, and then went past by appending the `(merged)` marker.
 
 ## Completed
 
+## Offer QwkSearch's full category set to the model in the web-browsing tool
+
+**Status:** Completed
+**Source:** TODO.md — the open follow-up left by "Search LobeHub's web-browsing
+tool through QwkSearch's engine fan-out" (#333), tracked as phase 1.2's first
+bullet in the LobeHub Migration To-Do.
+**Branch:** `claude/charming-johnson-8hpsq1`
+**PR:** Not created yet
+**Started:** 2026-09-08
+**Completed:** 2026-09-08
+
+### Goal
+`QwkSearchImpl` accepts ten SearXNG category names, but LobeHub's tool manifest
+only ever offered the model five (`general/images/news/science/videos`). The
+other five — `files`, `it`, `map`, `music`, `social+media` — were reachable by
+the normalizer and unreachable by the model, so QwkSearch's category breadth was
+wired up but not exposed.
+
+### What changed
+`packages-lobe/packages/builtin-tool-web-browsing/src/searchCategories.ts` (new)
+resolves the enum at module evaluation and widens it **only** when
+`SEARCH_PROVIDERS` names `qwksearch` and nothing else. The manifest is static and
+shared by every provider, so an unconditional widening would let the model ask
+SearXNG or Brave for `music` and get an empty page — which is the failure the
+enum exists to prevent.
+
+Upstream edit is three lines: an import and the enum expression in `manifest.ts`,
+and one export in `src/index.ts`. Everything else is the new file.
+
+### Correction to the plan
+The migration doc said "QwkSearch's thirteen" categories. The endpoint takes
+**ten** — SearXNG spellings — and QwkSearch's 13-name registry (`academic`,
+`tech`, `torrents`, `social`, …) aliases onto those ten in
+`normalizeCategories`. The doc has been corrected.
+
+### Verification
+- [x] `bunx vitest run apps/server/src/services/search/impls/qwksearch` — 27
+      passed (was 20). New cases: every advertised category survives
+      `normalizeCategories` unchanged (the drift guard between the two halves of
+      the seam), `SEARCH_PROVIDERS` parsing incl. full-width commas, the
+      sole-provider condition, the no-`process` fallback, and that the manifest
+      really hands the model what the resolver returns.
+- [x] `bun run check` on all four touched files — lint clean, 27 tests pass.
+- [x] Scoped `tsgo --noEmit` over the four files — clean.
+
+### Notes for the next run
+- The enum is fixed at module evaluation. That is safe on the Worker only
+  because `worker/cf/globals.ts` mirrors vars onto `process.env` before anything
+  else evaluates — see R2 in the integrations reference. If that import order
+  ever changes, the enum silently narrows to five.
+- In the SPA there is no `process`, so the client-side copy of the manifest
+  always reports LobeHub's five. Nothing on the client reads the enum today; if
+  something starts to, it needs the server value passed down.
+- A test placed next to `searchCategories.ts` would never run: the root Vitest
+  config excludes `**/packages/**` and that package has no config of its own.
+  (The upstream `ExecutionRuntime/index.test.ts` there is dead for the same
+  reason.) Coverage lives in `impls/qwksearch/index.test.ts`, which imports the
+  package by name.
+
 ## Extract through QwkSearch's own extractors inside the LobeHub engine
 
 **Status:** Completed

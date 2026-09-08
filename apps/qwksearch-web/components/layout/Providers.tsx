@@ -57,7 +57,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <CategoryDockProvider>
               <SettingsModalProvider>
                 <MainViewProvider>
-                  <div className="w-screen h-screen overflow-auto pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0">
+                  {/* The app's single scroll container. `overflow-x` is clipped
+                      rather than auto because full-bleed `w-screen` children
+                      (the workspace shell) measure 100vw, which overhangs this
+                      box by the scrollbar's width as soon as a page — the
+                      homepage, now that /features stacks below it — actually
+                      scrolls. Identified so scroll-driven UI can listen here
+                      instead of on `window`, which never scrolls. */}
+                  <div
+                    id="app-scroll-root"
+                    className="w-screen h-screen overflow-y-auto overflow-x-hidden pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0"
+                  >
                     <CategoryDock />
                     <main className="bg-light-primary dark:bg-dark-primary min-h-screen">
                       {children}

@@ -16,6 +16,7 @@ import {
   defaultDocuments,
 } from "react-reason-editor-sidebar";
 import { closeTabs } from "./tabState";
+import { collectDescendantIds, moveDocumentInList } from "./moveDocument";
 import { useLocalStorage } from "../app-hooks/useLocalStorage";
 import { useIsMobile } from "../app-hooks/use-mobile";
 import { useDocumentSync } from "../app-hooks/useDocumentSync";
@@ -340,7 +341,8 @@ export function useReasonDocsState(openFilesSidebarSignal?: number | string) {
 
   /**
    * Reorders documents in the flat list to implement drag-and-drop.
-   * Prevents moving a document into one of its own descendants.
+   * Moves the dragged document together with its whole subtree and prevents
+   * moving a document into one of its own descendants.
    *
    * @param draggedId - ID of the document being dragged.
    * @param targetId - ID of the drop target, or `null` for root.
@@ -351,79 +353,27 @@ export function useReasonDocsState(openFilesSidebarSignal?: number | string) {
     targetId: string | null,
     position: "before" | "after" | "child",
   ) => {
-    const draggedDoc = documents.find((d) => d.id === draggedId);
-    const targetDoc = documents.find((d) => d.id === targetId);
+    if (draggedId === targetId) return;
 
-    if (!draggedDoc || draggedId === targetId) return;
-
-    const isDescendant = (parentId: string, childId: string): boolean => {
-      const children = documents.filter((d) => d.parentId === parentId);
-      return children.some(
-        (child) => child.id === childId || isDescendant(child.id, childId),
-      );
-    };
-
-    if (targetId && isDescendant(draggedId, targetId)) {
+    if (
+      targetId &&
+      collectDescendantIds(documents, draggedId).includes(targetId)
+    ) {
       toast.error("Cannot move a note into its own child");
       return;
     }
 
-    let newParentId: string | null;
+    const reordered = moveDocumentInList(documents, draggedId, targetId, position);
+    if (reordered === documents) return;
 
-    if (position === "child") {
-      newParentId = targetId;
-    } else {
-      newParentId = targetDoc?.parentId || null;
+    setDocuments(reordered);
+
+    if (enableDatabaseSync) {
+      // The move changes the dragged document's parent, so it has to reach the
+      // database too — otherwise it snaps back to the old place on next load.
+      const updated = reordered.find((doc) => doc.id === draggedId);
+      if (updated) queueDocumentForSync(updated);
     }
-
-    setDocuments((docs) => {
-      const withoutDragged = docs.filter((d) => d.id !== draggedId);
-      const updatedDragged = { ...draggedDoc, parentId: newParentId };
-
-      let insertIndex: number;
-
-      if (position === "child") {
-        const targetIndex = withoutDragged.findIndex((d) => d.id === targetId);
-        const firstChildIndex = withoutDragged.findIndex(
-          (d, i) => i > targetIndex && d.parentId === targetId,
-        );
-        insertIndex =
-          firstChildIndex !== -1 ? firstChildIndex : targetIndex + 1;
-      } else if (position === "before") {
-        insertIndex = withoutDragged.findIndex((d) => d.id === targetId);
-      } else {
-        const targetIndex = withoutDragged.findIndex((d) => d.id === targetId);
-        let lastDescendantIndex = targetIndex;
-        const findLastDescendant = (
-          parentId: string,
-          startIndex: number,
-        ): number => {
-          let lastIndex = startIndex;
-          for (let i = startIndex + 1; i < withoutDragged.length; i++) {
-            if (withoutDragged[i].parentId === parentId) {
-              lastIndex = i;
-              const childLastIndex = findLastDescendant(
-                withoutDragged[i].id,
-                i,
-              );
-              if (childLastIndex > lastIndex) {
-                lastIndex = childLastIndex;
-                i = childLastIndex;
-              }
-            }
-          }
-          return lastIndex;
-        };
-        lastDescendantIndex = findLastDescendant(targetId!, targetIndex);
-        insertIndex = lastDescendantIndex + 1;
-      }
-
-      return [
-        ...withoutDragged.slice(0, insertIndex),
-        updatedDragged,
-        ...withoutDragged.slice(insertIndex),
-      ];
-    });
 
     toast.success("Note moved");
   };

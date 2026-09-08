@@ -469,7 +469,7 @@ export function useReasonDocsState(openFilesSidebarSignal?: number | string) {
     setLeftPanels((prev) =>
       prev.includes("openTabs") ? prev : [...prev, "openTabs"],
     );
-    setLeftSplit(true);
+    // No split flag to set: two or more panels already render as a split.
     // Runs once on mount only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

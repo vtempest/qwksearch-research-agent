@@ -35,11 +35,11 @@ export const config: Config = {
 };
 
 export const listFooterLinks: FooterLink[] = [
-  // {
-  //   url: "https://airesearch.js.org/docs/functions",
-  //   text: "Docs",
-  //   icon: "HelpCircle",
-  // },
+  {
+    url: "/docs",
+    text: "Docs",
+    icon: "HelpCircle",
+  },
   {
     url: "https://www.linkedin.com/company/qwksearch/posts/",
     text: "Blog",

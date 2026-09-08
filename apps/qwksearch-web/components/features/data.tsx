@@ -410,15 +410,43 @@ export const COMPARISON_COLUMNS: {
   name: string;
   detail?: string;
   highlight?: boolean;
+  /** Homepage the column header links to. */
+  href: string;
+  /** Domain handed to the Google favicon service for the header icon. */
+  domain: string;
 }[] = [
-  { name: "QwkSearch", highlight: true },
-  { name: "Perplexity" },
-  { name: "ChatGPT" },
-  { name: "Claude" },
-  { name: "Google", detail: "Search / Gemini" },
-  { name: "Grok" },
-  { name: "Venice.ai" },
+  {
+    name: "QwkSearch",
+    highlight: true,
+    href: "https://qwksearch.com",
+    domain: "qwksearch.com",
+  },
+  {
+    name: "Perplexity",
+    href: "https://www.perplexity.ai",
+    domain: "perplexity.ai",
+  },
+  { name: "ChatGPT", href: "https://chatgpt.com", domain: "chatgpt.com" },
+  { name: "Claude", href: "https://claude.ai", domain: "claude.ai" },
+  {
+    name: "Google",
+    detail: "Search / Gemini",
+    href: "https://gemini.google.com",
+    domain: "google.com",
+  },
+  { name: "Grok", href: "https://grok.com", domain: "grok.com" },
+  { name: "Venice.ai", href: "https://venice.ai", domain: "venice.ai" },
 ];
+
+/**
+ * Google's public favicon service. Used rather than checking a dozen logo files
+ * into `public/` — it follows each site's own favicon, so the marks stay current
+ * when a competitor rebrands. Rendered with a plain <img> for the same reason as
+ * the login logo: the Worker's image optimizer only proxies local assets.
+ */
+export function faviconUrl(domain: string, size = 64): string {
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}`;
+}
 
 export const COMPARISON_ROWS: ComparisonRow[] = [
   {

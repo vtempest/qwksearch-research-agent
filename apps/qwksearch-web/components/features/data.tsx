@@ -449,7 +449,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     feature: "Choice of LLM provider",
     cells: [
       { status: "yes", note: "Claude, GPT, Gemini, Grok, Llama & more" },
-      { status: "no", note: "Fixed / limited" },
+      { status: "no", note: "Perplexity-controlled model selection" },
       { status: "no", note: "OpenAI only" },
       { status: "no", note: "Anthropic only" },
       { status: "no", note: "Gemini only" },
@@ -513,8 +513,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     cells: [
       { status: "yes", note: "AI tab manager" },
       { status: "yes", note: "Yes" },
+      { status: "yes", note: "Yes" },
       { status: "partial", note: "Limited" },
-      { status: "no" },
       { status: "yes", note: "Yes" },
       { status: "no" },
       { status: "no" },
@@ -560,8 +560,8 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     feature: "Pricing",
     cells: [
       { status: "yes", note: "Free & open-source, pay-per-use API" },
-      { status: "paid", note: "Subscription" },
-      { status: "paid", note: "Subscription" },
+      { status: "paid", note: "Subscription / freemium" },
+      { status: "paid", note: "Subscription / freemium" },
       { status: "paid", note: "Subscription" },
       { status: "paid", note: "Freemium" },
       { status: "paid", note: "Subscription (X Premium)" },

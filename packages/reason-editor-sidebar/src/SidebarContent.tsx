@@ -5,6 +5,8 @@
  * vertically — Open Tabs always above the Files tree — in a resizable split
  * inferred whenever two or more panels are active, matching whatever
  * `panels` list the {@link SidebarViewMenu} has configured for that side.
+ * The "Open Tabs" and "Files" panels each carry their own header strip of
+ * quick actions (new file/chat, new folder, trash, file manager).
  */
 import { RefObject, useState, useCallback, useMemo, useRef } from 'react';
 import type { OutlineViewHandle } from './search/OutlineView';
@@ -27,9 +29,16 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from './app-ui/context-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './app-ui/dropdown-menu';
 import { SplitPane, Pane } from 'react-split-pane';
 import { usePersistence } from 'react-split-pane/persistence';
-import { X, XCircle, ArrowDownFromLine, Edit2, RotateCcw, SplitSquareVertical, Loader2, Search, MessageSquare, FilePlus2, MessageSquarePlus, Link2, Tag, Sparkles, Lightbulb } from 'lucide-react';
+import { X, XCircle, ArrowDownFromLine, Edit2, RotateCcw, SplitSquareVertical, Loader2, Search, MessageSquare, FilePlus2, FolderPlus, Folders, Trash2, MessageSquarePlus, Link2, Tag, Sparkles, Lightbulb } from 'lucide-react';
 import './split-pane.css';
 
 import type { DocumentTreeHandle } from './file-tree/filetree';
@@ -80,6 +89,9 @@ export const SidebarContent = ({
   topicsProps,
   tabItems,
   onNewChat,
+  onFileManagerOpen,
+  deletedDocs = [],
+  onRestore,
 }: SidebarContentProps) => {
   // Track copied document for copy/paste operations
   const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
@@ -291,8 +303,77 @@ export const SidebarContent = ({
     </div>
   );
 
+  /** Compact icon button used by the panel headers (matches the Open Tabs header). */
+  const panelHeaderButtonClass =
+    'h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:bg-sidebar-accent hover:text-foreground';
+
   const renderFiles = () => (
     <div className="h-full overflow-auto">
+      <div className="flex items-center justify-between px-3 py-1">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Files</p>
+        <div className="flex items-center gap-0.5">
+          <button
+            className={panelHeaderButtonClass}
+            title="New File"
+            onClick={() => onAdd(activeId, false)}
+          >
+            <FilePlus2 className="h-3.5 w-3.5" />
+          </button>
+          <button
+            className={panelHeaderButtonClass}
+            title="New Folder"
+            onClick={() => onAdd(activeId, true)}
+          >
+            <FolderPlus className="h-3.5 w-3.5" />
+          </button>
+          {onRestore && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={panelHeaderButtonClass} title="Trash">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {deletedDocs.length > 0 ? (
+                  <>
+                    {deletedDocs.slice(0, 5).map((doc) => (
+                      <DropdownMenuItem
+                        key={doc.id}
+                        className="flex items-center justify-between"
+                        onClick={() => onRestore?.(doc.id)}
+                      >
+                        <span className="truncate flex-1">{doc.title || 'Untitled'}</span>
+                        <RotateCcw className="h-3 w-3 ml-2 opacity-60" />
+                      </DropdownMenuItem>
+                    ))}
+                    {deletedDocs.length > 5 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem disabled className="text-xs text-center">
+                          {deletedDocs.length - 5} more in trash...
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <DropdownMenuItem disabled className="text-center text-muted-foreground">
+                    Trash is empty
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {onFileManagerOpen && (
+            <button
+              className={panelHeaderButtonClass}
+              title="File Manager"
+              onClick={onFileManagerOpen}
+            >
+              <Folders className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
       <FileTree
         ref={effectiveTreeRef}
         documents={activeDocuments}

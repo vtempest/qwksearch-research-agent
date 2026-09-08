@@ -258,6 +258,9 @@ export const Sidebar = ({
     topicsProps,
     tabItems,
     onNewChat,
+    onFileManagerOpen: () => setIsFileManagerOpen(true),
+    deletedDocs,
+    onRestore,
   };
 
   const footerProps = {

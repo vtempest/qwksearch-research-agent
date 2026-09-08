@@ -5,7 +5,7 @@
  * AI rewrite state, file-source switching, and optional database synchronisation.
  */
 import { useState, useMemo, useEffect, useRef } from "react";
-import type { TiptapEditorHandle } from "./TiptapEditorWrapper";
+import type { ReasonEditorHandle } from "./editor-contract";
 import {
   type TocEntry,
   type Document,
@@ -71,7 +71,7 @@ export function useReasonDocsState(openFilesSidebarSignal?: number | string) {
     mode?: string;
   } | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const editorRef = useRef<TiptapEditorHandle | null>(null);
+  const editorRef = useRef<ReasonEditorHandle | null>(null);
   const [headings, setHeadings] = useState<TocEntry[]>([]);
 
   const [documents, setDocuments] = useLocalStorage<Document[]>(

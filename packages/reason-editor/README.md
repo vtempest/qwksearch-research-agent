@@ -49,6 +49,13 @@ export function FullApp() {
 }
 ```
 
+Its editing area runs **Plate** by default — the plugin set, node components and
+toolbar in `src/docs-agent/plate`, with documents still stored as HTML. Pass
+`editorEngine="tiptap"` for the previous engine, which keeps the features not
+yet ported to Plate (inline comments among them). Everything else on this page —
+`RichTextProvider`, the toolbars, the extensions — is the Tiptap side and is
+unchanged.
+
 ### 2. Editor — full toolbar & bubble menus
 
 A config-driven editor with the complete `RichTextToolbar` and all `BubbleMenus`. Extensions are built from an `EditorConfig` object so plugins can be toggled at runtime.

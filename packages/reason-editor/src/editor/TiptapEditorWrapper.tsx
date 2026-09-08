@@ -34,6 +34,12 @@ import 'katex/contrib/mhchem';
 
 import type { Editor } from '@tiptap/core';
 import type { TocEntry } from 'react-reason-editor-sidebar';
+import {
+  parseTocHeadingKey,
+  tocHeadingKey,
+  type ReasonEditorHandle,
+  type ReasonEditorProps,
+} from './editor-contract';
 import { useSyncStore } from './useSyncStore';
 
 /** Debounce interval (ms) before flushing pending HTML to the parent `onChange` handler. */
@@ -45,43 +51,18 @@ const HEADINGS_THROTTLE_MS = 300;
 /** Local commenting identity. Real apps would source this from auth/session. */
 const CURRENT_AUTHOR = { id: 'local-user', name: 'You', color: '#4F46E5' } as const;
 
-/** Imperative handle exposed via `ref` on {@link TiptapEditorWrapper}. */
-export type TiptapEditorHandle = {
-  /** Smoothly scrolls the editor viewport to the heading identified by `key`. */
-  scrollToHeading: (key: string) => void;
-  /** Returns the DOM element for the heading with the given key, or null. */
-  getElementByKey: (key: string) => HTMLElement | null;
-};
+/**
+ * Imperative handle exposed via `ref` on {@link TiptapEditorWrapper}. Alias of
+ * the engine-neutral {@link ReasonEditorHandle} — kept under its original name
+ * for the hosts that already import it.
+ */
+export type TiptapEditorHandle = ReasonEditorHandle;
 
-interface TiptapEditorWrapperProps {
-  content: string;
-  /** Change this when switching documents to force a reload */
-  contentKey?: string;
-  onChange: (content: string) => void;
-  title: string;
-  onTitleChange: (title: string) => void;
-  scrollToHeading?: (headingText: string) => void;
-  onHeadingsChange?: (headings: TocEntry[]) => void;
-  readOnly?: boolean;
-  aiSuggestion?: {
-    originalText: string;
-    suggestedText: string;
-    range: { from: number; to: number };
-    mode?: string;
-  } | null;
-  isAiLoading?: boolean;
-  onAiRewrite?: (customPrompt?: string, modeId?: string) => void;
-  onAiApprove?: () => void;
-  onAiReject?: () => void;
-  onAiRegenerate?: (mode: any) => void;
-  onInviteClick?: () => void;
-  onShareClick?: () => void;
-  documentId?: string;
-}
+type TiptapEditorWrapperProps = ReasonEditorProps;
 
 /**
- * Extracts heading entries from the editor's JSON document as TocEntry tuples.
- * Key format: `"${level}:${index}:${text}"` — level and index allow unambiguous DOM lookup.
+ * Extracts heading entries from the editor's JSON document as TocEntry tuples,
+ * in the shared `tocHeadingKey` format.
  */
 function extractTocHeadings(editor: Editor | null): TocEntry[] {
   if (!editor) return [];
@@ -90,7 +71,7 @@ function extractTocHeadings(editor: Editor | null): TocEntry[] {
   (json.content ?? []).forEach((node: any, i: number) => {
     if (node.type === 'heading' && node.attrs?.level) {
       const text = (node.content ?? []).map((c: any) => c.text ?? '').join('');
-      entries.push([`${node.attrs.level}:${i}:${text}`, text, `h${node.attrs.level}`]);
+      entries.push([tocHeadingKey(node.attrs.level, i, text), text, `h${node.attrs.level}`]);
     }
   });
   return entries;
@@ -232,11 +213,7 @@ export const TiptapEditorWrapper = forwardRef<TiptapEditorHandle, TiptapEditorWr
 
     const findHeadingEl = useCallback((key: string): HTMLElement | null => {
       if (!editor) return null;
-      // key format: "{level}:{index}:{text}"
-      const first = key.indexOf(':');
-      const second = key.indexOf(':', first + 1);
-      const level = key.slice(0, first);
-      const text = key.slice(second + 1);
+      const { level, text } = parseTocHeadingKey(key);
       for (const h of editor.view.dom.querySelectorAll<HTMLElement>(`h${level}`)) {
         if (h.textContent?.trim() === text) return h;
       }

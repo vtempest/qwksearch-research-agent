@@ -4,7 +4,7 @@
  * Assembles the resizable sidebar, document tabs, editor area, right-panel outline,
  * and all application-level dialogs into a single responsive shell.
  */
-import { EditorArea } from './EditorArea';
+import { EditorArea, type ReasonEditorEngine } from './EditorArea';
 import { RightPanel } from './RightPanel';
 import { ReasonDocsDialogs } from './ReasonDocsDialogs';
 import { useReasonDocsState } from './useReasonDocsState';
@@ -55,6 +55,13 @@ interface ReasonDocsProps {
    * request the sidebar open.
    */
   openFilesSidebarSignal?: number | string;
+  /**
+   * Which editor to mount in the editing area. Defaults to `'plate'`, the
+   * Plate stack in `PlateEditorWrapper`. Pass `'tiptap'` for the previous
+   * engine — it still carries the features not yet ported to Plate, inline
+   * comments among them.
+   */
+  editorEngine?: ReasonEditorEngine;
   /** Host-supplied non-document tabs (e.g. open chats) merged into the Open Tabs panel. */
   extraTabs?: ReasonDocsExtraTab[];
   /** ID of the currently active extra tab, if one is active instead of a document. */
@@ -123,6 +130,7 @@ const Index = ({
   mainContent,
   belowMainContent,
   openFilesSidebarSignal,
+  editorEngine,
   extraTabs,
   activeExtraTabId,
   onExtraTabSelect,
@@ -357,6 +365,7 @@ const Index = ({
 
   const editorProps = {
     activeDocument: state.activeDocument,
+    engine: editorEngine,
     documents: state.documents,
     splitViewDocId: state.splitViewDocId,
     activeDocId: state.activeDocId,

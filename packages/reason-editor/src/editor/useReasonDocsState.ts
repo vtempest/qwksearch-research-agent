@@ -339,6 +339,28 @@ export function useReasonDocsState(openFilesSidebarSignal?: number | string) {
   };
 
   /**
+   * Replaces the whole set of expanded folders at once, used by the sidebar's
+   * expand/collapse toggle as it steps the tree through one folder level per
+   * click. Persisting it here (rather than leaving it in the tree's local
+   * state) is what makes a stepped expansion survive the next document
+   * change and a reload.
+   *
+   * @param folderIds - IDs of every folder that should be expanded; all other
+   *   folders are collapsed.
+   */
+  const handleSetExpandedFolders = (folderIds: string[]) => {
+    const expanded = new Set(folderIds);
+    setDocuments((docs) =>
+      docs.map((doc) => {
+        const shouldExpand = expanded.has(doc.id);
+        // Compare loosely so notes (which never carry the flag) aren't
+        // rewritten on every click and marked dirty for sync.
+        return !!doc.isExpanded === shouldExpand ? doc : { ...doc, isExpanded: shouldExpand };
+      }),
+    );
+  };
+
+  /**
    * Reorders documents in the flat list to implement drag-and-drop.
    * Prevents moving a document into one of its own descendants.
    *
@@ -839,6 +861,7 @@ export function useReasonDocsState(openFilesSidebarSignal?: number | string) {
     handleDuplicateDocument,
     handleUpdateDocument,
     handleToggleExpand,
+    handleSetExpandedFolders,
     handleMoveDocument,
     handleAddTag,
     handleRemoveTag,

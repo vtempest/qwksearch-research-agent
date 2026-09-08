@@ -308,6 +308,7 @@ const Index = ({
     onDelete: state.handleDeleteDocument,
     onDuplicate: state.handleDuplicateDocument,
     onToggleExpand: state.handleToggleExpand,
+    onSetExpandedFolders: state.handleSetExpandedFolders,
     onMove: state.handleMoveDocument,
     onManageTags: state.handleManageTags,
     onRename: (id: string, title: string) => state.handleUpdateDocument(id, { title }),

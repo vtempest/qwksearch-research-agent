@@ -74,6 +74,7 @@ export const SidebarContent = ({
   onOpenChange,
   treeRef,
   onExpandStateChange,
+  onSetExpandedFolders,
   outlineRef,
   editorRef,
   openTabs = [],
@@ -399,6 +400,7 @@ export const SidebarContent = ({
         ref={effectiveTreeRef}
         documents={activeDocuments}
         onExpandStateChange={onExpandStateChange}
+        onExpandedFoldersChange={onSetExpandedFolders}
         activeId={activeId}
         onSelect={handleSelect}
         onMove={onMove}

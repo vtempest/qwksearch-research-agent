@@ -26,6 +26,10 @@ configureResearchAgentUI({
   downloadWindowsStoreId: config.downloadWindowsStoreId,
   footerLinks: listFooterLinks,
   googleApiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '',
+  // Cloud project number the Drive picker identifies this app by. It is the
+  // numeric prefix of the OAuth client ID, so it needs no separate secret.
+  googleAppId:
+    process.env.NEXT_PUBLIC_GOOGLE_APP_ID || config.googleClientId.split('-')[0],
   getAutoMediaSearch: () => true,
 });
 

@@ -38,6 +38,14 @@ export interface ResearchAgentUIConfig {
   footerLinks: FooterLink[];
   /** Google API key used by the Google Drive file picker. */
   googleApiKey: string;
+  /**
+   * Google Cloud project number, passed to the Drive picker as its app ID.
+   * The connector holds the per-file `drive.file` scope rather than blanket
+   * Drive access, and Google only grants the app a picked file when the
+   * picker knows which app is asking — so leaving this empty means picked
+   * files come back but downloading them 403s.
+   */
+  googleAppId: string;
   /** Whether to auto-trigger image/video media search after a response completes. */
   getAutoMediaSearch: () => boolean;
   /**
@@ -69,6 +77,7 @@ export const researchAgentUIConfig: ResearchAgentUIConfig = {
   downloadWindowsStoreId: '9PCGF9GNK460',
   footerLinks: [],
   googleApiKey: '',
+  googleAppId: '',
   getAutoMediaSearch: () => true,
 };
 

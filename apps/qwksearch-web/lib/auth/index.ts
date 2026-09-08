@@ -50,12 +50,24 @@ function originOfRequest(request: Request | undefined): string | undefined {
 async function authBuilder() {
   const db = getDB();
 
-  const socialProviders: Record<string, { clientId: string; clientSecret: string }> = {};
+  const socialProviders: Record<
+    string,
+    { clientId: string; clientSecret: string; scope?: string[] }
+  > = {};
 
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     socialProviders.google = {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Signing in asks for identity only. The same OAuth client also backs
+      // the optional Google Drive connector (lib/integrations/googleDocsService),
+      // and none of that connector's scopes may leak into the login consent
+      // screen: a first-time Google sign-in should read "name, email address,
+      // profile picture", never "see and download all your Google Drive
+      // files". Drive access is granted separately and incrementally, the
+      // first time the user actually connects Drive. Pinning the list here
+      // (rather than relying on the provider default) keeps it that way.
+      scope: ["openid", "email", "profile"],
     };
   }
 

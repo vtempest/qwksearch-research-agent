@@ -86,6 +86,14 @@ export interface SidebarProps {
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
   onToggleExpand: (id: string) => void;
+  /**
+   * Replaces the set of expanded folders wholesale, used by the toolbar's
+   * expand/collapse toggle as it steps through folder levels. Hosts should
+   * persist it the same way they persist `onToggleExpand`; without it the
+   * stepped expansion lives only in the tree and is lost on the next
+   * document change.
+   */
+  onSetExpandedFolders?: (folderIds: string[]) => void;
   onMove: (
     draggedId: string,
     targetId: string | null,
@@ -198,6 +206,11 @@ export interface SidebarContentProps {
    * step of its one-level-at-a-time cycle.
    */
   onExpandStateChange?: (state: { level: number; maxLevel: number }) => void;
+  /**
+   * Replaces the set of expanded folders wholesale when the toolbar steps the
+   * tree to a new expansion level, so the host can persist it.
+   */
+  onSetExpandedFolders?: (folderIds: string[]) => void;
   /** Ref forwarded to the `OutlineView` component for imperative control. */
   outlineRef?: RefObject<OutlineViewHandle | null>;
   /** Editor handle passed to `OutlineView` to scroll-spy the active heading. */

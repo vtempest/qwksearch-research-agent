@@ -29,6 +29,7 @@ export const Sidebar = ({
   onAdd,
   onDelete,
   onDuplicate,
+  onSetExpandedFolders,
   onMove,
   onManageTags,
   onRename,
@@ -129,7 +130,6 @@ export const Sidebar = ({
     if (maxLevel === 0) return;
     const nextLevel = nextExpandLevel(currentLevel, maxLevel);
     if (nextLevel === 0) {
-      tree.cancelExpand?.();
       tree.collapseAll();
     } else {
       tree.expandToLevel(nextLevel);
@@ -202,6 +202,7 @@ export const Sidebar = ({
 
   const contentProps = {
     onExpandStateChange: handleExpandStateChange,
+    onSetExpandedFolders,
     panels: leftPanels,
     persistenceKey: 'left',
     activeDocuments,

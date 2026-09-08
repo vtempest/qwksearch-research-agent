@@ -93,6 +93,8 @@ export function useReadAloud(options: UseReadAloudOptions = {}): UseReadAloudRet
     options.voice,
     options.endpoint,
     options.maxChunkLength,
+    options.format,
+    options.markdown,
     options.synthesize,
   ]);
 

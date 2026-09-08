@@ -14,9 +14,14 @@ export default defineConfig({
       // phonemize.js is deliberately absent: it imports espeak-ng from a
       // jsDelivr URL at module scope, so it cannot be loaded outside a browser.
       include: [
+        'speech/node/cli.ts',
+        'speech/node/document.ts',
+        'speech/node/render.ts',
         'speech/utils/audio-utils.js',
+        'speech/utils/markdown-to-speech.ts',
         'speech/utils/semantic-split.js',
         'speech/utils/sentence-detector.js',
+        'speech/utils/wav.ts',
       ],
       exclude: ['node_modules/**', 'dist/**', '**/*.test.js', '**/*.test.ts'],
     },

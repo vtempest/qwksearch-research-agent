@@ -106,6 +106,95 @@ already reached, and then went past by appending the `(merged)` marker.
 
 ## Completed
 
+## Extract through QwkSearch's own extractors inside the LobeHub engine
+
+**Status:** Completed
+**Source:** Scheduled task — "merge lobehub and qwksearch.com so that lobehub is
+the core engine but the elements of qwksearch are then added"; picked up
+phase 1.3 of the LobeHub Migration To-Do, the next item whose "done" is testable
+without Cloudflare credentials.
+**Branch:** `claude/charming-johnson-8hpsq1`
+**PR:** Not created yet
+**Started:** 2026-09-08
+**Completed:** 2026-09-08
+
+### Goal
+The engine's article side panel extracted through Puppeteer → Tavily →
+`@lobechat/web-crawler`. None of those is a QwkSearch extractor, so the engine
+lost QwkSearch's citation extraction, sent YouTube watch pages to a scraper that
+returns page chrome, and had no PDF path at all.
+
+### What changed
+`packages-lobe/worker/qwksearch/extract.ts` now picks its chain per URL kind
+(`defaultTiersFor`) and builds articles with the three published QwkSearch
+extractors, consumed from npm — never as workspace links:
+
+- **`extract-webpage`** — `extractContentAndCite` is the primary HTML → article
+  path in `articleFromHtml`; LobeHub's readability pass
+  (`articleFromHtmlViaCrawler`) is the fallback. This restores `author_cite`,
+  `author_short`, `author_type` and chrono-parsed dates, and keeps images, links
+  and headings in the HTML written to D1 `articleCache` — all columns that
+  already existed, so no schema change.
+- **`extract-youtube`** — YouTube is its own `UrlKind` (`youTubeVideoId` covers
+  watch, `youtu.be`, `embed`, `shorts`, `live`); transcripts are regrouped into
+  ~90-word paragraphs and titled from YouTube's oEmbed endpoint. The web chain
+  stays underneath for captions-disabled videos.
+- **`extract-pdf`** — PDF and arXiv URLs lead with the pdfjs text-layer pipeline
+  and fall back to Tavily; `pdfUrlFor` rewrites arXiv `/abs/` to `/pdf/`.
+  `PDF_PROCESSOR_URL` opts into `hybrid` Granite Docling OCR.
+
+All three load with `import()` so they stay off the Worker's cold-start path, and
+a failed import degrades to `{ error }` rather than throwing.
+
+### Deliberate deviation from the plan
+The migration doc said "add `extract-webpage` as tier 0 of `extractArticle`,
+ahead of the scraper". It is instead the *converter* every HTML-bearing tier
+uses. `extractContent`'s own fetch stack would have duplicated the Puppeteer
+scraper and put an unrendered fetch in front of it — which is exactly the tier
+the chain already ends with. As a converter it upgrades the scraper tier too,
+rather than racing it. Recorded in the migration doc under 1.3.
+
+### Also in this change
+- `packages-lobe/src/types/shim-extract-youtube.d.ts` — `extract-youtube@1.0.256`
+  ships no `.d.ts`, so the tier would otherwise resolve as `any`. Stopgap; delete
+  once a release ships declarations.
+- `packages/extract-youtube/package.json` gained the `files` field its two
+  sibling packages already have. Tarball hygiene (it currently publishes `test/`,
+  `jest.config.js`, `tsconfig*.json`, `vite.config.ts`) — **not** a fix for the
+  missing types; see Remaining work.
+
+### Verification
+- [x] `bunx vitest run worker/qwksearch/extract.test.ts` — 35 passed (was 14).
+      Covers the two new classifiers, both `articleFromHtml` paths and its three
+      fallback cases, transcript regrouping, the YouTube and PDF tiers with their
+      error paths, and the per-kind chain selection. One case runs the *real*
+      `extract-webpage` extractor rather than a stub.
+- [x] `bunx vitest run worker src/features/QwkSearch` — 74 passed, 8 files.
+- [x] `bun run check worker/qwksearch/extract.ts worker/qwksearch/extract.test.ts
+      src/types/shim-extract-youtube.d.ts` — lint clean, tests pass.
+- [x] Scoped `tsgo --noEmit` over `extract.ts`, `extract.test.ts`,
+      `routes/qwksearch/article.ts` and the shim — clean. The repo-wide
+      `bun run check --type` is OOM-killed in this environment (15 GB box, whole
+      LobeHub monorepo), so it was not run.
+- [ ] Worker bundle size not measured — see Remaining work.
+
+### Remaining work
+- **Measure the Worker bundle.** `extract-webpage` is ~1 MB unminified (linkedom,
+  chrono-node, a 92k-name corpus). `import()` keeps it off cold start but does not
+  reduce the total, and the budget is ~7.4 MB gzipped against Cloudflare's 10 MB
+  limit. Run `bun run build:worker` and record the number in
+  `packages-lobe/README.md` before the next deploy.
+- **`extract-youtube` publishing.** Why `1.0.256` shipped without `dist/*.d.ts`
+  or `dist/react/` is not determinable from the repo: `npm pack` includes the
+  declarations from a local build with or without the `files` field, and
+  `.github/workflows/npm-publish.yml` refuses to publish a package whose `build`
+  fails. It needs the publish logs.
+- **DOCX and Google Docs.** `extract-webpage` handles both; neither is wired into
+  `defaultTiersFor` yet.
+- **Cache the extractor's `via`.** `articleCache` has no column recording which
+  tier produced a row, so cached articles cannot be selectively re-extracted when
+  a tier improves.
+
 ## Fix `img_src` dropped from paginated Images "load more" results
 
 **Status:** Completed

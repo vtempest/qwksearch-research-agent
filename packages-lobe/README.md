@@ -67,9 +67,22 @@ data is reused as-is.
   `QWKSEARCH_API_KEY`). Requested categories are normalized across three vocabularies
   (LobeHub's manifest, QwkSearch's 13-category registry, SearXNG's), fanned out one request per
   category (max 3) and merged by URL — highest score wins, engine lists union.
-- **Extraction chain** (`worker/qwksearch/extract.ts`): Cloudflare Puppeteer scraper
-  (`SCRAPER_URL`, 8s deadline) → Tavily (`TAVILY_API_KEY`) → LobeHub's own `@lobechat/web-crawler`
-  (fetch + readability). Search-engine result pages and video hosts are rejected up front.
+- **Extraction chain** (`worker/qwksearch/extract.ts`): the chain is picked per URL kind by
+  `defaultTiersFor`.
+  - *Web pages* — Cloudflare Puppeteer scraper (`SCRAPER_URL`, 8s deadline) → Tavily
+    (`TAVILY_API_KEY`) → LobeHub's own `@lobechat/web-crawler` (fetch + readability).
+  - *YouTube* — `extract-youtube` transcripts (title and channel from YouTube's oEmbed endpoint),
+    with the web chain kept underneath for videos whose captions are disabled.
+  - *PDF and arXiv* — `extract-pdf`'s pdfjs text-layer pipeline, then Tavily. arXiv `/abs/` URLs
+    resolve to the paper. Set `PDF_PROCESSOR_URL` to send pages with no usable text layer to a
+    Granite Docling OCR processor.
+
+  Rendered HTML becomes an article through QwkSearch's `extract-webpage` extractor
+  (`extractContentAndCite`), which is what supplies citation-grade metadata — `author_cite`,
+  `author_short`, `author_type`, parsed dates, publisher name — and keeps images, links and
+  headings in the stored HTML; LobeHub's readability pass is the fallback. All three packages are
+  loaded with `import()` so they stay off the Worker's cold-start path. Search-engine result pages
+  and non-YouTube video hosts are still rejected up front.
 - **Branding**: `BRANDING_NAME`/`ORG_NAME` = QwkSearch, QwkSearch favicons under `public/`,
   support/social URLs point at qwksearch.com.
 
@@ -130,7 +143,8 @@ Secrets (`wrangler secret put …`):
 | `QSTASH_TOKEN`, `QSTASH_*_SIGNING_KEY` | LobeHub workflows (Upstash QStash) |
 
 Plain vars (`APP_URL`, `DATABASE_DRIVER`, `DISABLE_REDIS`, `EMAIL_SERVICE_PROVIDER`, `SMTP_FROM`,
-`SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`) are in `wrangler.jsonc`; `keep_vars` keeps dashboard-entered vars across deploys. Run
+`SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`) are in `wrangler.jsonc`; `PDF_PROCESSOR_URL`
+is optional and unset by default. `keep_vars` keeps dashboard-entered vars across deploys. Run
 LobeHub's Postgres migrations once against the database: `bun run db:migrate` with `DATABASE_URL` set.
 
 ## Tests
@@ -166,7 +180,9 @@ Hyperdrive bridge, and rendered-component tests for the article panel and the do
 - `packages/file-loaders`, `packages/eval-dataset-parser`: `xlsx` pinned to the npm registry build
   (the SheetJS CDN tarball is not reachable from the build environment).
 - `package.json`: `build:worker*`, `cf:*` scripts; `wrangler`/`@cloudflare/workers-types` dev deps;
-  `worker/cf/globals.ts` registered in `sideEffects`.
+  `worker/cf/globals.ts` registered in `sideEffects`; the `extract-webpage`, `extract-youtube` and
+  `extract-pdf` deps used by the extraction chain (published from `../packages/`, consumed from npm —
+  never as workspace links, see the integrations reference).
 
 Everything under `worker/` and `src/features/QwkSearch/` is new.
 

@@ -512,17 +512,6 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
     ],
   },
   {
-    feature: "Desktop app",
-    cells: [
-      { status: "yes", note: "Tauri-based" },
-      { status: "yes", note: "Yes" },
-      { status: "yes", note: "Yes" },
-      { status: "yes", note: "Yes" },
-      { status: "no" },
-      { status: "partial", note: "Varies" },
-    ],
-  },
-  {
     feature: "Editor / IDE integration",
     cells: [
       { status: "yes", note: "VS Code extension" },

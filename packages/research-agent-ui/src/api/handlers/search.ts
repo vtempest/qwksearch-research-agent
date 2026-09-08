@@ -43,7 +43,8 @@ export function createSearchHandler(deps: SearchDeps = {}) {
 
     const query = searchParams.get("q");
     const cat = searchParams.get("cat") || "general";
-    const page = parseInt(searchParams.get("page") || "1", 10);
+    const requestedPage = parseInt(searchParams.get("page") || "1", 10);
+    const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
     const lang = searchParams.get("lang") || "en-US";
     const safesearch = searchParams.get("safesearch") === "true";
     const recency = searchParams.get("recency") || undefined;
@@ -98,7 +99,13 @@ export function createSearchHandler(deps: SearchDeps = {}) {
         return Response.json({ ...results, elapsedTime });
       }
     } catch (error) {
-      console.error("Search error:", error);
+      // Log the message explicitly: logging the Error alone showed only a
+      // bare stack in the Workers logs, with no indication of what failed.
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(
+        `Search error for q="${query}" cat="${cat}" page=${page}: ${message}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return Response.json({ error: "Search failed", results: [] }, { status: 500 });
     }
   };

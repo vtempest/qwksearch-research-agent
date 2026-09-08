@@ -188,6 +188,12 @@ export interface SidebarContentProps {
   onOpenChange?: (open: boolean) => void;
   /** Ref forwarded to the `FileTree` component for imperative control. */
   treeRef?: RefObject<DocumentTreeHandle | null>;
+  /**
+   * Reports the file tree's live expansion depth (and the tree's deepest
+   * folder level) so the toolbar's expand/collapse toggle can label the next
+   * step of its one-level-at-a-time cycle.
+   */
+  onExpandStateChange?: (state: { level: number; maxLevel: number }) => void;
   /** Ref forwarded to the `OutlineView` component for imperative control. */
   outlineRef?: RefObject<OutlineViewHandle | null>;
   /** Editor handle passed to `OutlineView` to scroll-spy the active heading. */

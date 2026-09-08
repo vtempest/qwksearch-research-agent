@@ -61,7 +61,7 @@ interface SidebarToolbarProps {
   expandToggleLabel: string;
   /** Whether all outline entries are currently expanded. */
   outlineExpanded: boolean;
-  /** Toggles expand/collapse of all tree nodes. */
+  /** Steps the tree to its next expansion level (wraps to fully collapsed). */
   onToggleAllExpanded: () => void;
   /** Toggles expand/collapse of all outline entries. */
   onToggleOutlineExpanded: () => void;
@@ -281,12 +281,14 @@ export const SidebarToolbar = ({
                     variant="ghost"
                     size="sm"
                     onClick={onToggleAllExpanded}
+                    aria-label={expandToggleLabel}
                     className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                   >
+                    {/* The icon shows the action the next click performs. */}
                     {allExpanded ? (
-                      <ChevronsUpDown className="h-4 w-4" />
-                    ) : (
                       <ChevronsDownUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronsUpDown className="h-4 w-4" />
                     )}
                   </Button>
                 </TooltipTrigger>

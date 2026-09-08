@@ -6,4 +6,5 @@
 export { default as FileTree } from "./filetree";
 export { FileTreeContextMenu } from "./FileTreeContextMenu";
 export { useFileTreeOperations } from "./useFileTreeOperations";
+export * from "./expandLevels";
 export * from "./documentUtils";

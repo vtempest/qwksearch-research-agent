@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { listFooterLinks, config } from '@/lib/config/site';
 
 export function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const cookieConsent = localStorage.getItem('cookie-consent');
@@ -14,6 +15,34 @@ export function CookieConsent() {
       setIsVisible(true);
     }
   }, []);
+
+  // This banner parks in the bottom-right corner, on top of anything else
+  // anchored there (the homepage's scroll cue). Publish its height while it
+  // is up so that chrome can sit above it rather than underneath it.
+  useEffect(() => {
+    const root = document.documentElement;
+    const card = cardRef.current;
+    if (!isVisible || !card) {
+      root.style.removeProperty('--qs-bottom-right-inset');
+      return;
+    }
+
+    const sync = () =>
+      root.style.setProperty(
+        '--qs-bottom-right-inset',
+        `${Math.ceil(card.getBoundingClientRect().height) + 16}px`,
+      );
+
+    sync();
+    const observer =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(sync);
+    observer?.observe(card);
+
+    return () => {
+      observer?.disconnect();
+      root.style.removeProperty('--qs-bottom-right-inset');
+    };
+  }, [isVisible]);
 
   const handleAcceptAll = () => {
     localStorage.setItem('cookie-consent', JSON.stringify({
@@ -43,7 +72,7 @@ export function CookieConsent() {
 
   return (
     <div className="fixed bottom-0 right-0 m-4 max-w-sm z-50">
-      <div className="bg-light-secondary dark:bg-dark-secondary rounded-lg shadow-lg border border-light-tertiary dark:border-dark-tertiary p-4 space-y-3">
+      <div ref={cardRef} className="bg-light-secondary dark:bg-dark-secondary rounded-lg shadow-lg border border-light-tertiary dark:border-dark-tertiary p-4 space-y-3">
         <div className="flex justify-between items-start gap-3">
           <div className="flex-1">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-2">

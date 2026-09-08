@@ -1,9 +1,9 @@
 'use client';
 
-import { MainWorkspaceView } from '@/components/layout/MainWorkspaceView';
+import { HomeScrollStack } from '@/components/layout/HomeScrollStack';
 
 const Home = () => {
-  return <MainWorkspaceView />;
+  return <HomeScrollStack />;
 };
 
 export default Home;

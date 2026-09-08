@@ -599,6 +599,37 @@ pre[class*="language-"] {
   }
 }
 
+/* Homepage scroll cue — nudges downward to advertise that the page continues
+   past the workspace into the features sections. */
+@keyframes qs-scroll-cue-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+.qs-scroll-cue-bob {
+  animation: qs-scroll-cue-bob 1.8s ease-in-out infinite;
+}
+
+/* Bottom-right, clearing the mobile dock — and lifted further by
+   `--qs-bottom-right-inset` while the cookie-consent banner (which claims the
+   same corner, see components/layout/CookieConsent.tsx) is showing. */
+.qs-scroll-cue {
+  bottom: calc(
+    72px + env(safe-area-inset-bottom, 0px) + var(--qs-bottom-right-inset, 0px)
+  );
+}
+
+@media (min-width: 48rem) {
+  .qs-scroll-cue {
+    bottom: calc(2rem + var(--qs-bottom-right-inset, 0px));
+  }
+}
+
 @keyframes qs-float {
   0%,
   100% {
@@ -668,7 +699,8 @@ pre[class*="language-"] {
   .qs-marquee-track,
   .qs-aurora-blob,
   .qs-border-beam::before,
-  .qs-shimmer-text {
+  .qs-shimmer-text,
+  .qs-scroll-cue-bob {
     animation: none !important;
   }
 

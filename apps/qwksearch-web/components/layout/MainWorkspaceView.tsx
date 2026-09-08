@@ -18,7 +18,7 @@ import 'katex/contrib/mhchem';
 
 export function MainWorkspaceView() {
   const { activeView, toggleToDocs, toggleToResearch, filesSidebarRequestId } = useMainView();
-  const { chatTabs, activeChatId, openChat, newChat, closeChat } = useChatTabs();
+  const { chatTabs, activeChatId, openChat, newChat, closeChat, closeChats } = useChatTabs();
   const { sendMessage } = useChat();
   const { signIn } = useSession();
   const searchParams = useSearchParams();
@@ -85,6 +85,14 @@ export function MainWorkspaceView() {
     if (closedWasActive && !nextActiveId) toggleToDocs();
   };
 
+  // "Close Other Tabs"/"Close Tabs Below" hand the whole batch over at once —
+  // closing them one at a time would apply each close to the same pre-close
+  // tab list and leave all but the last chat tab open.
+  const handleExtraTabsClose = (ids: string[]) => {
+    const { closedWasActive, nextActiveId } = closeChats(ids);
+    if (closedWasActive && !nextActiveId) toggleToDocs();
+  };
+
   const handleExtraTabAdd = () => {
     newChat();
     toggleToResearch();
@@ -135,6 +143,7 @@ export function MainWorkspaceView() {
     activeExtraTabId: activeView === 'research' ? activeChatId ?? undefined : undefined,
     onExtraTabSelect: handleExtraTabSelect,
     onExtraTabClose: handleExtraTabClose,
+    onExtraTabsClose: handleExtraTabsClose,
     onExtraTabAdd: handleExtraTabAdd,
     onFileTabSelect: toggleToDocs,
     initialDocId,

@@ -63,6 +63,14 @@ interface ReasonDocsProps {
   onExtraTabSelect?: (id: string) => void;
   /** Called when an extra tab is closed from the Open Tabs panel. */
   onExtraTabClose?: (id: string) => void;
+  /**
+   * Called when several extra tabs are closed at once (e.g. "Close Other
+   * Tabs"). Hosts that keep extra tabs in React state should implement this
+   * and apply the whole batch in one update; without it the batch falls back
+   * to repeated `onExtraTabClose` calls, which a host reading pre-close state
+   * would collapse into a single close.
+   */
+  onExtraTabsClose?: (ids: string[]) => void;
   /** Called when the "new chat" action is triggered from the Open Tabs panel header. */
   onExtraTabAdd?: () => void;
   /** Called whenever a document/file tab becomes active, so the host can switch away from an extra tab. */
@@ -119,6 +127,7 @@ const Index = ({
   activeExtraTabId,
   onExtraTabSelect,
   onExtraTabClose,
+  onExtraTabsClose,
   onExtraTabAdd,
   onFileTabSelect,
   initialDocId,
@@ -254,6 +263,28 @@ const Index = ({
     }
   };
 
+  /**
+   * Closes a batch of tabs (e.g. "Close Tabs Below"/"Close Other Tabs") in
+   * one pass: document tabs go to a single `handleTabsClose` state update and
+   * host-owned extra tabs go to `onExtraTabsClose`. Both sides read their tab
+   * list from the current render, so closing one id at a time would apply
+   * every close to the same stale list and drop all but the last.
+   */
+  const handleTabsClose = (ids: string[]) => {
+    const extraIds = ids.filter((id) => extraTabs?.some((t) => t.id === id));
+    const fileIds = ids.filter((id) => !extraIds.includes(id));
+
+    if (fileIds.length > 0) state.handleTabsClose(fileIds);
+
+    if (extraIds.length > 0) {
+      if (onExtraTabsClose) {
+        onExtraTabsClose(extraIds);
+      } else {
+        extraIds.forEach((id) => onExtraTabClose?.(id));
+      }
+    }
+  };
+
   // Creating a note (not a folder) opens it as the active document, so
   // switch away from whatever extra tab (e.g. a chat) was showing.
   const handleAdd = (parentId: string | null, isFolder?: boolean) => {
@@ -306,6 +337,7 @@ const Index = ({
     activeTab: activeTabId,
     onTabChange: handleTabChange,
     onTabClose: handleTabClose,
+    onTabsClose: handleTabsClose,
     onTabRename: (id: string, title: string) => state.handleUpdateDocument(id, { title }),
     onSplitRight: state.handleSplitRight,
     onReopenLastClosed: state.handleReopenLastClosed,
@@ -364,6 +396,7 @@ const Index = ({
       activeTab={activeTabId}
       onTabChange={handleTabChange}
       onTabClose={handleTabClose}
+      onTabsClose={handleTabsClose}
       onTabRename={(id: string, title: string) => state.handleUpdateDocument(id, { title })}
       onSplitRight={state.handleSplitRight}
       onReopenLastClosed={state.handleReopenLastClosed}

@@ -53,6 +53,7 @@ interface RightPanelProps {
   activeTab?: string | null;
   onTabChange?: (id: string) => void;
   onTabClose?: (id: string) => void;
+  onTabsClose?: (ids: string[]) => void;
   onTabRename?: (id: string, newTitle: string) => void;
   onSplitRight?: (id: string) => void;
   onReopenLastClosed?: () => void;
@@ -115,6 +116,7 @@ export function RightPanel({
   activeTab,
   onTabChange,
   onTabClose,
+  onTabsClose,
   onTabRename,
   onSplitRight,
   onReopenLastClosed,
@@ -169,6 +171,7 @@ export function RightPanel({
           activeTab={activeTab}
           onTabChange={onTabChange}
           onTabClose={onTabClose}
+          onTabsClose={onTabsClose}
           onTabRename={onTabRename}
           onSplitRight={onSplitRight}
           onReopenLastClosed={onReopenLastClosed}

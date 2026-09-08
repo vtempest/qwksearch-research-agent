@@ -86,25 +86,42 @@ export function useChatTabs() {
   }, [startNewChat]);
 
   /**
-   * Closes a chat tab. If the closed tab was the active chat, switches to
-   * its nearest remaining neighbor and reports that in `nextActiveId`; if
-   * it was active and no chat tabs remain, `closedWasActive` is `true` and
-   * `nextActiveId` is `null` — the caller should fall back to a different
-   * view in that case. Closing an inactive tab never changes the active chat.
+   * Closes a batch of chat tabs in a single state update. If the active chat
+   * is among them, switches to its nearest remaining neighbor and reports
+   * that in `nextActiveId`; if it was active and no chat tabs remain,
+   * `closedWasActive` is `true` and `nextActiveId` is `null` — the caller
+   * should fall back to a different view in that case. Closing only inactive
+   * tabs never changes the active chat.
+   *
+   * Closing several tabs must go through one call: `chatTabs` is read from
+   * the current render, so repeated single closes would each start from the
+   * same pre-close list and only the last would survive.
    */
-  const closeChat = useCallback((id: string) => {
-    const index = chatTabs.findIndex((t) => t.id === id);
-    const remaining = chatTabs.filter((t) => t.id !== id);
+  const closeChats = useCallback((ids: string[]) => {
+    const closing = new Set(ids);
+    const remaining = chatTabs.filter((t) => !closing.has(t.id));
     setChatTabs(remaining);
 
-    const closedWasActive = id === chatId;
-    if (!closedWasActive) return { closedWasActive, nextActiveId: null };
+    const closedWasActive = chatId != null && closing.has(chatId);
+    if (!closedWasActive) return { closedWasActive: false, nextActiveId: null };
     if (remaining.length === 0) return { closedWasActive, nextActiveId: null };
 
-    const nextActiveId = remaining[Math.max(0, index - 1)]?.id ?? remaining[0].id;
+    // Nearest survivor to the closed active tab: scan left, then right.
+    const activeIndex = chatTabs.findIndex((t) => t.id === chatId);
+    const survives = (tab: ChatTab | undefined) => tab != null && !closing.has(tab.id);
+    let nextTab: ChatTab | undefined;
+    for (let i = activeIndex - 1; i >= 0 && !nextTab; i--) {
+      if (survives(chatTabs[i])) nextTab = chatTabs[i];
+    }
+    for (let i = activeIndex + 1; i < chatTabs.length && !nextTab; i++) {
+      if (survives(chatTabs[i])) nextTab = chatTabs[i];
+    }
+    const nextActiveId = (nextTab ?? remaining[0]).id;
     activateChat(nextActiveId, remaining);
     return { closedWasActive, nextActiveId };
   }, [chatTabs, chatId, activateChat]);
+
+  const closeChat = useCallback((id: string) => closeChats([id]), [closeChats]);
 
   return {
     chatTabs,
@@ -112,5 +129,6 @@ export function useChatTabs() {
     openChat,
     newChat,
     closeChat,
+    closeChats,
   };
 }

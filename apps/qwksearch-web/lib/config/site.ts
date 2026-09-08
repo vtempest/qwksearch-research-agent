@@ -41,7 +41,7 @@ export const listFooterLinks: FooterLink[] = [
   //   icon: "HelpCircle",
   // },
   {
-    url: "https://www.linkedin.com/company/104158840/admin/page-posts/published/",
+    url: "https://www.linkedin.com/company/qwksearch/posts/",
     text: "Blog",
     icon: "Newspaper",
   },

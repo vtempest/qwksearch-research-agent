@@ -19,6 +19,34 @@ export interface Env {
   };
 }
 
+/**
+ * Reduces a configured entry to the bare origin better-auth compares against.
+ * Non-wildcard entries are matched by exact string equality with the request's
+ * origin, so a stray trailing slash or path (`https://qwksearch.com/`) would
+ * silently never match. Wildcard patterns are passed through untouched — they
+ * are glob-matched, not parsed as URLs.
+ */
+function normalizeTrustedOrigin(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.includes("*") || trimmed.includes("?")) return trimmed;
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return trimmed.replace(/\/+$/, "");
+  }
+}
+
+/** The origin this request was actually addressed to, or undefined if unparseable. */
+function originOfRequest(request: Request | undefined): string | undefined {
+  if (!request?.url) return undefined;
+  try {
+    return new URL(request.url).origin;
+  } catch {
+    return undefined;
+  }
+}
+
 async function authBuilder() {
   const db = getDB();
 
@@ -52,7 +80,7 @@ async function authBuilder() {
   // and omits the CORS headers, which surfaced as a blocked preflight when
   // signing in from beta.qwksearch.com. Extra origins can be supplied via the
   // BETTER_AUTH_TRUSTED_ORIGINS env var (comma-separated).
-  const trustedOrigins = Array.from(
+  const staticTrustedOrigins = Array.from(
     new Set(
       [
         config.baseUrl,
@@ -61,14 +89,25 @@ async function authBuilder() {
         "http://localhost:3000",
         ...(process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(",") ?? []),
       ]
-        .map((origin) => origin?.trim())
+        .map(normalizeTrustedOrigin)
         .filter((origin): origin is string => Boolean(origin)),
     ),
   );
 
   return betterAuth({
     baseURL: config.baseUrl || "http://localhost:3000",
-    trustedOrigins,
+    // Resolved per request so the origin the app is actually being served from
+    // is always trusted. The static list can only ever name hosts known at
+    // build time, so any other one (a *.workers.dev deploy, a preview URL, a
+    // dev server on a port other than 3000, an apex/`www.` variant) had its
+    // POST /api/auth/sign-in/social rejected with a 403 by better-auth's
+    // origin check, which is what broke the login page. Echoing the request's
+    // own origin does not weaken CSRF protection: a cross-site request carries
+    // the attacker's `Origin` header, never this host's, so it still fails.
+    trustedOrigins: (request: Request) => {
+      const self = originOfRequest(request);
+      return self ? [...staticTrustedOrigins, self] : staticTrustedOrigins;
+    },
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema,

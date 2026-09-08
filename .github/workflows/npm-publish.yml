@@ -67,9 +67,17 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          # Note: intentionally no `-e`. Per-package outcomes are handled
-          # explicitly so one package's failure can't abort the whole run.
+          # GitHub runs `run:` steps with `bash -e -o pipefail`, so simply not
+          # writing `set -e` here does not disable errexit — `set -uo pipefail`
+          # leaves it on. With errexit on, the first package whose publish fails
+          # kills the whole step: `chat-agent-toolkit` sorts first in
+          # `packages/*/`, so once its publish started returning npm E404 every
+          # later package stopped being evaluated at all and the whole workspace
+          # went unreleased. Turn errexit off explicitly; per-package outcomes
+          # are handled through $rc below, and the run still exits non-zero at
+          # the end if anything failed.
           set -uo pipefail
+          set +e
 
           failed_packages=""
           skipped_builds=""

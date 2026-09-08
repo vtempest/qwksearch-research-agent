@@ -21,6 +21,11 @@ import { FileTypeIcon } from "../app-ui/FileTypeIcon";
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
 import type { Document } from "../documents/DocumentTree";
+import {
+  getExpandedLevel,
+  getFolderIdsUpToLevel,
+  getMaxFolderLevel,
+} from "./expandLevels";
 
 export type DocumentTreeHandle = {
   collapseAll: () => void;
@@ -30,6 +35,8 @@ export type DocumentTreeHandle = {
   cancelExpand: () => void;
   /** Deepest folder level currently fully expanded (0 = fully collapsed). */
   getExpandLevel: () => number;
+  /** Deepest folder nesting level in the tree (0 = no folders at all). */
+  getMaxExpandLevel: () => number;
 };
 import { Tree, TreeDragLine, TreeItem, TreeItemLabel } from "../app-ui/tree";
 import {
@@ -73,51 +80,16 @@ interface FileTreeProps {
   onNewFile?: (parentId: string | null) => void;
   onNewFolder?: (parentId: string | null) => void;
   onManageTags?: (id: string) => void;
+  /**
+   * Reports the tree's live expansion depth so the toolbar's expand/collapse
+   * toggle can label its next step. Fires on mount, whenever the expanded
+   * depth or the tree's own depth changes, and with zeroes on unmount.
+   */
+  onExpandStateChange?: (state: { level: number; maxLevel: number }) => void;
 }
 
 const ROOT_ID = "__root__";
 const INDENT = 20;
-
-/** Folder ids grouped by nesting depth (index 0 = top-level folders). */
-function getFolderIdsByLevel(items: Record<string, FileTreeItem>): string[][] {
-  const levels: string[][] = [];
-  let frontier = [ROOT_ID];
-
-  while (frontier.length > 0) {
-    const next: string[] = [];
-    for (const id of frontier) {
-      for (const childId of items[id]?.children ?? []) {
-        if (items[childId]?.isFolder) next.push(childId);
-      }
-    }
-    if (next.length === 0) break;
-    levels.push(next);
-    frontier = next;
-  }
-
-  return levels;
-}
-
-/** Folder ids reachable within `level` levels of nesting (1 = top-level folders). */
-function getFolderIdsUpToLevel(items: Record<string, FileTreeItem>, level: number): string[] {
-  if (level <= 0) return [];
-  return getFolderIdsByLevel(items).slice(0, level).flat();
-}
-
-/**
- * Infers the deepest folder level that is currently fully expanded: the
- * largest depth `L` such that every folder at depth <= L is expanded.
- * Returns 0 when any top-level folder is collapsed.
- */
-function getExpandedLevel(items: Record<string, FileTreeItem>, expandedItems: string[]): number {
-  const expanded = new Set(expandedItems);
-  let level = 0;
-  for (const idsAtDepth of getFolderIdsByLevel(items)) {
-    if (!idsAtDepth.every((id) => expanded.has(id))) break;
-    level++;
-  }
-  return level;
-}
 
 function buildItems(documents: Document[]): Record<string, FileTreeItem> {
   const items: Record<string, FileTreeItem> = {
@@ -154,7 +126,7 @@ function buildItems(documents: Document[]): Record<string, FileTreeItem> {
 }
 
 const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
-  ({ activeId, documents, onMove, onRename, onSelect, onDelete, onDuplicate, onAddChild, onAddChildFolder, onAddSibling, onAddSiblingFolder, onCopy, onPaste, onNewFile: _onNewFile, onNewFolder: _onNewFolder, onManageTags }, ref) => {
+  ({ activeId, documents, onMove, onRename, onSelect, onDelete, onDuplicate, onAddChild, onAddChildFolder, onAddSibling, onAddSiblingFolder, onCopy, onPaste, onNewFile: _onNewFile, onNewFolder: _onNewFolder, onManageTags, onExpandStateChange }, ref) => {
     const items = useMemo(() => {
       const built = buildItems(documents);
       return built;
@@ -279,6 +251,28 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [expandedItemsKey]);
 
+    // The toggle cycles one folder level at a time, so it needs the level the
+    // tree is *actually* at — folders can also be opened by hand or restored
+    // from persisted state, not just by the toggle.
+    const maxExpandLevel = useMemo(() => getMaxFolderLevel(items, ROOT_ID), [items]);
+    const expandLevel = useMemo(
+      () => getExpandedLevel(items, ROOT_ID, state.expandedItems ?? []),
+      [items, state.expandedItems],
+    );
+
+    const onExpandStateChangeRef = useRef(onExpandStateChange);
+    useEffect(() => {
+      onExpandStateChangeRef.current = onExpandStateChange;
+    }, [onExpandStateChange]);
+    useEffect(() => {
+      onExpandStateChangeRef.current?.({ level: expandLevel, maxLevel: maxExpandLevel });
+    }, [expandLevel, maxExpandLevel]);
+    // Without a mounted tree there is nothing to expand; let the toolbar know.
+    useEffect(
+      () => () => onExpandStateChangeRef.current?.({ level: 0, maxLevel: 0 }),
+      [],
+    );
+
     useImperativeHandle(ref, () => ({
       collapseAll: () => {
         expandCancelToken.current = true;
@@ -295,13 +289,14 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
       },
       expandToLevel: (level: number) => {
         expandCancelToken.current = true;
-        const ids = getFolderIdsUpToLevel(items, level);
+        const ids = getFolderIdsUpToLevel(items, ROOT_ID, Math.min(level, maxExpandLevel));
         setState((prev) => ({ ...prev, expandedItems: ids }));
       },
       cancelExpand: () => {
         expandCancelToken.current = true;
       },
-      getExpandLevel: () => getExpandedLevel(items, state.expandedItems ?? []),
+      getExpandLevel: () => expandLevel,
+      getMaxExpandLevel: () => maxExpandLevel,
     }));
 
     const handleDeleteConfirm = () => {

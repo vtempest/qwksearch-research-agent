@@ -55,7 +55,7 @@ export default function PlateDemoPage({
     <DemoShell
       collaborative={Boolean(authToken)}
       documentId={documentId}
-      engine="plate"
+      surface="plate"
       title={document.title}
     >
       <ReasonPlateEditor

@@ -1,10 +1,12 @@
 /**
- * The one document source both demo routes read from.
+ * The one document source every demo route reads from.
  *
- * `/workspace/demo/tiptap/:id` and `/workspace/demo/plate/:id` are backed by this module,
- * so the two engines are always compared against the same document. Only their
- * *collaboration* state is separate — see `collaborationRoom()` in
- * `react-reason-editor/docs-agent`.
+ * `/workspace/demo/playground/:id`, `/workspace/demo/plate/:id` and
+ * `/workspace/demo/tiptap/:id` are all backed by this module, so the surfaces
+ * are always compared against the same document. Only their *collaboration*
+ * state is separate, and only per engine: the playground and plate routes are
+ * the same Plate editor and share a room, while Tiptap has its own — see
+ * `collaborationRoom()` in `react-reason-editor/docs-agent`.
  *
  * Documents live where the REASON docs app already keeps them: the
  * `REASON-documents` localStorage entry.

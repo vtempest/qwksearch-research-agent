@@ -3,9 +3,14 @@
  *
  * Everything below the toolbar is the Plate starter: its plugin kits, node
  * components, floating link/media controls, and slash menu. Above it sits the
- * *same* `ReasonToolbar` the Tiptap route renders — Plate's own fixed toolbar is
- * deliberately not mounted, because the toolbar is the product contract and must
- * not fork per engine.
+ * *same* `ReasonToolbar` the Tiptap route renders by default — one toolbar, two
+ * engines, so the product contract does not fork per engine.
+ *
+ * `renderToolbar` is the one supported way to put a different toolbar on this
+ * editor, and `./playground-editor.tsx` is its only caller: the Plate
+ * playground's full button set, which is a *different product surface* rather
+ * than a second implementation of the same one. Everything else — the plugin
+ * set, the Yjs handshake, the adapter — stays shared, so the two never drift.
  *
  * Collaboration follows Plate's Yjs contract: `skipInitialization: true` at
  * construction, an explicit `yjs.init()` after mount, and `yjs.destroy()` on
@@ -43,6 +48,16 @@ export interface ReasonPlateEditorProps {
   /** Session token handed to Hocuspocus. Collaboration is off when omitted. */
   authToken?: string;
   className?: string;
+  /**
+   * Replaces the shared `ReasonToolbar`. Receives the same adapter the shared
+   * toolbar drives, so a replacement can still issue `ToolbarCommand`s.
+   */
+  renderToolbar?: (adapter: EditorToolbarAdapter) => React.ReactNode;
+  /**
+   * Rendered inside the editor container, after the editable — where Plate's
+   * floating toolbars expect to sit so they can position against it.
+   */
+  overlays?: React.ReactNode;
 }
 
 export function ReasonPlateEditor({
@@ -51,6 +66,8 @@ export function ReasonPlateEditor({
   user,
   authToken,
   className,
+  renderToolbar,
+  overlays,
 }: ReasonPlateEditorProps) {
   const room = collaborationRoom('plate', documentId);
   const color = user.color ?? cursorColorFor(user.id);
@@ -119,11 +136,12 @@ export function ReasonPlateEditor({
   return (
     <div className={`flex h-full min-h-0 w-full flex-col ${className ?? ''}`} data-room={room}>
       <Plate editor={editor}>
-        <ReasonToolbar adapter={adapter} />
+        {renderToolbar ? renderToolbar(adapter) : <ReasonToolbar adapter={adapter} />}
         {/* Positioned container so the remote cursor overlay can absolutely
             position carets and selection rects over the editable area. */}
         <EditorContainer className="relative min-h-0 flex-1">
           <Editor placeholder="Start writing…" variant="default" />
+          {overlays}
         </EditorContainer>
       </Plate>
     </div>

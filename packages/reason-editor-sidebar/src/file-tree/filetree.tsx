@@ -32,7 +32,6 @@ export type DocumentTreeHandle = {
   edit: (nodeId: string) => void;
   expandAll: () => void;
   expandToLevel: (level: number) => void;
-  cancelExpand: () => void;
   /** Deepest folder level currently fully expanded (0 = fully collapsed). */
   getExpandLevel: () => number;
   /** Deepest folder nesting level in the tree (0 = no folders at all). */
@@ -86,6 +85,15 @@ interface FileTreeProps {
    * depth or the tree's own depth changes, and with zeroes on unmount.
    */
   onExpandStateChange?: (state: { level: number; maxLevel: number }) => void;
+  /**
+   * Reports the folder set a bulk expansion wants open, so the host can
+   * persist it onto the documents' `isExpanded` flags the way a hand toggle
+   * is persisted. Fired by `expandToLevel`, `expandAll` and `collapseAll`
+   * alongside the local state write that keeps the repaint instant; without
+   * it a stepped expansion lives only in this tree and is thrown away by the
+   * re-sync below on the next document change.
+   */
+  onExpandedFoldersChange?: (folderIds: string[]) => void;
 }
 
 const ROOT_ID = "__root__";
@@ -161,14 +169,18 @@ function buildItems(documents: Document[]): Record<string, FileTreeItem> {
 }
 
 const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
-  ({ activeId, documents, onMove, onRename, onSelect, onDelete, onDuplicate, onAddChild, onAddChildFolder, onAddSibling, onAddSiblingFolder, onCopy, onPaste, onNewFile: _onNewFile, onNewFolder: _onNewFolder, onManageTags, onExpandStateChange }, ref) => {
+  ({ activeId, documents, onMove, onRename, onSelect, onDelete, onDuplicate, onAddChild, onAddChildFolder, onAddSibling, onAddSiblingFolder, onCopy, onPaste, onNewFile: _onNewFile, onNewFolder: _onNewFolder, onManageTags, onExpandStateChange, onExpandedFoldersChange }, ref) => {
     const items = useMemo(() => {
       const built = buildItems(documents);
       return built;
     }, [documents]);
+    // `buildItems` promotes any item with children to a folder, so read the
+    // flag from there rather than from `doc.isFolder`: an id set handed back
+    // by the host otherwise loses every entry the tree still draws as a
+    // folder but the document doesn't declare as one.
     const expandedItems = useMemo(
-      () => documents.filter((doc) => doc.isFolder && doc.isExpanded).map((doc) => doc.id),
-      [documents],
+      () => documents.filter((doc) => doc.isExpanded && items[doc.id]?.isFolder).map((doc) => doc.id),
+      [documents, items],
     );
 
     const [state, setState] = useState<Partial<TreeState<FileTreeItem>>>({
@@ -177,8 +189,6 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
     });
     const [copiedNodeId, setCopiedNodeId] = useState<string | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-    // Must survive re-renders so a queued expandAll can actually be cancelled.
-    const expandCancelToken = useRef(false);
 
     const tree = useTree<FileTreeItem>({
       canReorder: true,
@@ -297,27 +307,31 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
       [],
     );
 
+    // Each bulk expansion writes the tree's own state (so the repaint is
+    // immediate) and reports the same id set to the host (so it survives the
+    // documents re-sync above).
+    const applyExpandedFolders = (ids: string[]) => {
+      setState((prev) => ({ ...prev, expandedItems: ids }));
+      onExpandedFoldersChange?.(ids);
+    };
+
     useImperativeHandle(ref, () => ({
       collapseAll: () => {
-        expandCancelToken.current = true;
-        tree.collapseAll();
+        applyExpandedFolders([]);
       },
       edit: (nodeId: string) => {
         if (onRename) {
           tree.getItemInstance(nodeId).startRenaming();
         }
       },
+      // Every folder at once, taken from the level math rather than
+      // headless-tree's asynchronous walk: the set has to be known
+      // synchronously to be handed to the host.
       expandAll: () => {
-        expandCancelToken.current = false;
-        tree.expandAll(expandCancelToken);
+        applyExpandedFolders(getFolderIdsUpToLevel(items, ROOT_ID, maxExpandLevel));
       },
       expandToLevel: (level: number) => {
-        expandCancelToken.current = true;
-        const ids = getFolderIdsUpToLevel(items, ROOT_ID, Math.min(level, maxExpandLevel));
-        setState((prev) => ({ ...prev, expandedItems: ids }));
-      },
-      cancelExpand: () => {
-        expandCancelToken.current = true;
+        applyExpandedFolders(getFolderIdsUpToLevel(items, ROOT_ID, Math.min(level, maxExpandLevel)));
       },
       getExpandLevel: () => expandLevel,
       getMaxExpandLevel: () => maxExpandLevel,

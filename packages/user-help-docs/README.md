@@ -85,11 +85,18 @@ ships TypeScript sources, not a build), and import fumadocs' CSS preset:
 | `/docs/llms-full.txt` | `getLLMFullText` |
 
 Changing `docsConfig.baseUrl` or `searchApi` means moving those route files to
-match — nothing rewrites them for you.
+match — nothing rewrites them for you. `apps/qwksearch-web`'s
+`app/docs/__tests__/docs-wiring.test.ts` holds that seam: it imports each of
+those route modules and checks them against `docsConfig`, along with the
+`transpilePackages` entry and the CSS imports above. Nothing in CI builds the
+web app, so that suite is what catches a `/docs` that would 404 or render
+unstyled.
 
 ## Checks
 
 ```bash
 bun install
 npx tsc --noEmit
+bun run test                                   # this package
+cd ../../apps/qwksearch-web && bun run test    # the /docs routes that mount it
 ```

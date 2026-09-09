@@ -8,7 +8,7 @@ the core engine but the elements of qwksearch are then added". Picked up the
 LobeHub Migration To-Do's own #1 suggested next: 2.2's Extraction pane, which
 1.6 had just unblocked by giving the resolver's user layer an API.
 **Branch:** `claude/magical-bohr-cg4yml`
-**PR:** Not created yet
+**PR:** #393
 **Started:** 2026-09-09
 **Completed:** 2026-09-09
 

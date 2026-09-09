@@ -21,6 +21,7 @@
     "deploy:test-reports": "cd apps/test-reports && wrangler deploy"
   },
   "devDependencies": {
+    "@typescript/typescript6": "^6.0.2",
     "@vitest/coverage-v8": "^5.0.0",
     "@vitest/ui": "^5.0.0",
     "turbo": "^2.10.12",

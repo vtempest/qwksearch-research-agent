@@ -56,7 +56,7 @@
     "./dist/workspace.cjs"
   ],
   "scripts": {
-    "build": "vite build && (tsc --project tsconfig.build.json || true)",
+    "build": "vite build && tsc --project tsconfig.build.json",
     "build:cloudflare": "tsc src/cloudflare/worker.ts --outDir dist/cloudflare --declaration --module esnext --target esnext --lib esnext --moduleResolution node",
     "dev:cloudflare": "npm run build:cloudflare && wrangler dev --config wrangler.local.jsonc",
     "deploy:cloudflare": "npm run build:cloudflare && wrangler deploy --config wrangler.local.jsonc",

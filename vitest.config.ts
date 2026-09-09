@@ -39,6 +39,7 @@ export default defineConfig({
       'packages/use-voice-control',
       'packages/user-help-docs',
       'packages/write-language',
+      'scripts',
     ],
     coverage: {
       provider: 'v8',

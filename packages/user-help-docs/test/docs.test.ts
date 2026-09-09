@@ -6,6 +6,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { icons } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
@@ -19,7 +20,14 @@ import {
   parseMarkdownSlug,
 } from '../src/llms';
 import { searchServer } from '../src/search';
-import { contentDir, source } from '../src/source';
+import { source } from '../src/source';
+
+/**
+ * `src/source.ts` deliberately no longer exposes a filesystem path — it has to
+ * run on a Cloudflare Worker, where there is none. These integrity checks do
+ * run in Node, so they resolve `content/docs` themselves.
+ */
+const contentDir = fileURLToPath(new URL('../content/docs', import.meta.url));
 
 const pages = source.getPages();
 
@@ -154,5 +162,39 @@ describe('search', () => {
 
     const results = await searchServer.search('pdf extraction');
     expect(results.length).toBeGreaterThan(0);
+  });
+});
+
+describe('worker compatibility', () => {
+  /**
+   * `content/docs` used to be scanned with `node:fs` at module scope, off a
+   * directory resolved with `fileURLToPath(import.meta.url)`. In the Cloudflare
+   * Worker bundle `import.meta.url` is undefined, so importing the module threw
+   * `TypeError: The "path" argument must be of type string or an instance of
+   * URL` before any request handler ran — 500ing `/docs` and every other route
+   * that shared the chunk.
+   */
+  it('builds the source without importing node builtins', () => {
+    const src = fs.readFileSync(
+      fileURLToPath(new URL('../src/source.ts', import.meta.url)),
+      'utf-8',
+    );
+
+    const builtins = [...src.matchAll(/^\s*import\s[^;]*?from\s+'(node:[^']+|fs|path|url)'/gm)].map(
+      (match) => match[1],
+    );
+
+    expect(builtins).toEqual([]);
+  });
+
+  it('inlines every content file at build time', () => {
+    const onDisk = fs
+      .readdirSync(contentDir, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name === 'meta.json').length;
+
+    // One page tree root per meta.json, and the pages themselves are covered
+    // by the `content` suite above.
+    expect(source.pageTree.children.length).toBeGreaterThan(0);
+    expect(onDisk).toBeGreaterThan(0);
   });
 });

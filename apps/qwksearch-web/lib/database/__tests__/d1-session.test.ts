@@ -121,6 +121,59 @@ describe("session constraints", () => {
     expect(d1.opened).toEqual(["first-unconstrained", "first-primary"]);
   });
 
+  it("starts auth requests on the primary, bookmark or not", async () => {
+    const d1 = fakeD1();
+    const db = sessionedD1(d1.binding);
+    // The OAuth callback reads the one-shot `verification` row that the
+    // sign-in POST wrote seconds earlier. A replica that has not caught up
+    // yet does not render something stale, it fails the sign-in outright with
+    // "State mismatch: verification not found" — so this read never starts
+    // anywhere but the primary, and a bookmark that could be older than the
+    // write does not get to weaken it.
+    const callback = (headers?: Record<string, string>) =>
+      new Request("https://example.test/api/auth/callback/google?state=abc&code=xyz", { headers });
+
+    await runWithD1Session(callback(), undefined, () => db.prepare("select 1").run());
+    await runWithD1Session(
+      callback({ cookie: `${D1_BOOKMARK_COOKIE}=0000001-0000002` }),
+      undefined,
+      () => db.prepare("select 1").run(),
+    );
+    await runWithD1Session(
+      new Request("https://example.test/api/auth/get-session"),
+      undefined,
+      () => db.prepare("select 1").run(),
+    );
+
+    expect(d1.opened).toEqual(["first-primary", "first-primary", "first-primary"]);
+  });
+
+  it("leaves non-auth reads on the nearest replica", async () => {
+    const d1 = fakeD1();
+    const db = sessionedD1(d1.binding);
+
+    await runWithD1Session(
+      new Request("https://example.test/api/authors"),
+      undefined,
+      () => db.prepare("select 1").run(),
+    );
+
+    expect(d1.opened).toEqual(["first-unconstrained"]);
+  });
+
+  it("still lets D1_SESSION_MODE unconstrain auth requests", async () => {
+    const d1 = fakeD1();
+    const db = sessionedD1(d1.binding);
+
+    await runWithD1Session(
+      new Request("https://example.test/api/auth/callback/google"),
+      "unconstrained",
+      () => db.prepare("select 1").run(),
+    );
+
+    expect(d1.opened).toEqual(["first-unconstrained"]);
+  });
+
   it("resumes from the client's bookmark, header or cookie", async () => {
     const d1 = fakeD1();
     const db = sessionedD1(d1.binding);

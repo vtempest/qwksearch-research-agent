@@ -18,6 +18,11 @@
     }
   },
   "bin": "dist/cli.js",
+  "//files": "Publish only what consumers resolve. Without this the tarball also carries test/, jest.config.js, tsconfig*.json and vite.config.ts. Matches extract-webpage and extract-pdf.",
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && npm run build:lib && npm run build:cli && npm run build:react && npm run build:types",

@@ -149,7 +149,8 @@ Secrets (`wrangler secret put …`):
 | `QSTASH_TOKEN`, `QSTASH_*_SIGNING_KEY` | LobeHub workflows (Upstash QStash) |
 
 Plain vars (`APP_URL`, `DATABASE_DRIVER`, `DISABLE_REDIS`, `EMAIL_SERVICE_PROVIDER`, `SMTP_FROM`,
-`SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`) are in `wrangler.jsonc`; `keep_vars` keeps dashboard-entered vars across deploys. Run
+`SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`) are in `wrangler.jsonc`; `PDF_PROCESSOR_URL`
+is optional and unset by default. `keep_vars` keeps dashboard-entered vars across deploys. Run
 LobeHub's Postgres migrations once against the database: `bun run db:migrate` with `DATABASE_URL` set.
 
 ## Tests
@@ -176,7 +177,10 @@ Hyperdrive bridge, and rendered-component tests for the article panel and the do
 - `src/libs/better-auth/utils/config.ts`: KV-backed `secondaryStorage` (`createKVSecondaryStorage`).
 - `apps/server/src/services/email/*`: `cloudflare` provider (Email Routing binding), default on Workers.
 - `apps/server/src/services/search/impls/`: new `qwksearch` provider (`SearchImplType.QwkSearch`);
-  the factory switch and enum are the only edits to upstream files.
+  the factory switch and enum are the only edits to upstream files there.
+- `packages/builtin-tool-web-browsing/`: new `src/searchCategories.ts`; `manifest.ts` swaps the
+  hard-coded `searchCategories` enum for `resolveSearchCategories()` (import + expression) and
+  `src/index.ts` gains one export line.
 - `packages/env/src/email.ts`: accepts `EMAIL_SERVICE_PROVIDER=cloudflare`.
 - `packages/business/const/src/branding.ts`, `packages/const/src/url.ts`: QwkSearch branding.
 - `packages/locales/src/default/{electron,qwksearch}.ts` + `locales/{en-US,zh-CN}`: new keys.

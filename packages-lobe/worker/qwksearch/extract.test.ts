@@ -8,6 +8,7 @@ import {
   classifyUrl,
   contentFromExtractedHtml,
   countWords,
+  defaultTiersFor,
   extractArticle,
   extractViaQwkSearch,
   extractViaScraper,
@@ -112,7 +113,15 @@ describe('buildCite / countWords', () => {
   });
 });
 
-describe('articleFromHtml', () => {
+const articleHtml = (body: string, head = '') =>
+  `<html><head><title>My Post</title>${head}</head><body><article><h1>My Post</h1><p>${body}</p></article></body></html>`;
+
+const longBody = Array.from(
+  { length: 40 },
+  (_, i) => `Sentence number ${i} of the article body.`,
+).join(' ');
+
+describe('articleFromHtmlViaCrawler', () => {
   it('extracts readable content with the LobeHub crawler utilities', () => {
     const body = Array.from(
       { length: 40 },

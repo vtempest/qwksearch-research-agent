@@ -28,6 +28,19 @@ The two workspaces stay separate (bun/turbo vs pnpm). The only bridges are
 **published npm packages** and **shared Cloudflare bindings** — never workspace
 links. See §1 of the migration plan for why merging them is not on the table.
 
+The npm bridges in place today, all declared in `packages-lobe/package.json` and
+resolved from the registry rather than `../packages/`:
+
+| Package | Source of truth | Used by |
+|---|---|---|
+| `extract-webpage` | `packages/extract-webpage` | F2 — `extractContentAndCite` over rendered HTML |
+| `extract-youtube` | `packages/extract-youtube` | F2 — the YouTube transcript tier |
+| `extract-pdf` | `packages/extract-pdf` | F2 — the PDF/arXiv tier |
+
+Publishing is the update path: a fix in `packages/extract-*` reaches the engine
+through `npm publish` (the `ship` script in each package) and a version bump in
+`packages-lobe/package.json`, not through a workspace link.
+
 ## 1. Runtime integrations — LobeHub on Cloudflare Workers
 
 These make upstream LobeHub run on workerd at all. They are ports, not features.
@@ -124,15 +137,24 @@ LobeHub web-browsing tool
 |---|---|
 | Enable | `SEARCH_PROVIDERS=qwksearch` (set in `wrangler.jsonc` vars) |
 | Endpoint | `QWKSEARCH_SEARCH_URL`, default `https://qwksearch.com/api/agent/search`; optional `QWKSEARCH_API_KEY` sent as a bearer token |
-| Categories | Three vocabularies are normalized onto the endpoint's: LobeHub's manifest (`general/images/news/science/videos`), QwkSearch's 13-category registry (`academic`, `social`, `tech`, `torrents`, …) and SearXNG's. Unknown names fall back to `general` rather than returning an empty page |
+| Categories | Three vocabularies are normalized onto the endpoint's ten SearXNG names: LobeHub's manifest, QwkSearch's 13-category registry (`academic`, `social`, `tech`, `torrents`, …) and SearXNG's. Unknown names fall back to `general` rather than returning an empty page |
+| Advertised categories | The manifest enum is resolved at module evaluation by `packages/builtin-tool-web-browsing/src/searchCategories.ts`. With `SEARCH_PROVIDERS=qwksearch` and nothing else, the model is offered all ten (`files`, `it`, `map`, `music`, `social+media` on top of LobeHub's five); any other configuration keeps LobeHub's five, so no backend is asked for a category it cannot serve |
 | Fan-out | One request per category, capped at 3, issued in parallel |
 | Merge | Deduplicated by URL — highest score wins, engine lists union, a missing snippet is backfilled from the duplicate |
 | Engines | Never forwarded. `useAutoSearchEngineSelection = true` tells `SearchService` not to retry by stripping engine restrictions, because QwkSearch already picks engines per category |
 | Failure | Any category request failing raises `TRPCError SERVICE_UNAVAILABLE`, so `SearchService` can fail over to the next configured provider |
 
-Only two upstream files are edited for this: the `SearchImplType` enum and the
-factory switch in `apps/server/src/services/search/impls/index.ts`. Everything
-else is new files under `impls/qwksearch/`.
+Four upstream lines are edited for this, all registration points: the
+`SearchImplType` enum, the factory switch in
+`apps/server/src/services/search/impls/index.ts`, and in
+`packages/builtin-tool-web-browsing/` the manifest's import + enum expression
+and one export line in `src/index.ts`. Everything else is new files —
+`impls/qwksearch/` and `builtin-tool-web-browsing/src/searchCategories.ts`.
+
+Note that `packages/**` is excluded from the root Vitest config and the
+web-browsing tool package has no config of its own, so a test placed beside
+`searchCategories.ts` would never run. Its coverage lives in
+`impls/qwksearch/index.test.ts` instead, which imports the package by name.
 
 ## 3. Shared infrastructure
 
@@ -161,6 +183,9 @@ would be a rewrite of the data layer, not a runtime port.
 Vars in `wrangler.jsonc` (both the default and `production` env):
 `APP_URL`, `DATABASE_DRIVER`, `DISABLE_REDIS`, `EMAIL_SERVICE_PROVIDER`,
 `SMTP_FROM`, `SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`.
+
+Optional, unset by default: `PDF_PROCESSOR_URL` (F2's Granite Docling OCR
+processor for scanned PDFs).
 
 Secrets (`wrangler secret put`): `KEY_VAULTS_SECRET`, `AUTH_SECRET`,
 `DATABASE_URL` (when not using Hyperdrive), `S3_*`, `TAVILY_API_KEY`,

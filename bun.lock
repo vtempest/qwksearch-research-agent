@@ -690,6 +690,7 @@
         "postcss-replace": "^2.0.1",
         "postcss-scss": "^4.0.9",
         "react": "^19.2.7",
+        "react-compiler-runtime": "^1.0.0",
         "react-dom": "^19.2.7",
         "sass": "^1.100.0",
         "tailwind-merge": "^3.6.0",

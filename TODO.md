@@ -114,7 +114,7 @@ the core engine…". The LobeHub Migration To-Do's own "suggested next" was 2.2'
 Extraction settings pane; this is the server half that item turned out to be
 missing.
 **Branch:** `claude/magical-bohr-ufz62v`
-**PR:** Not created yet
+**PR:** #385
 **Started:** 2026-09-09
 **Completed:** 2026-09-09
 

@@ -1,16 +1,18 @@
 /**
  * @fileoverview Render tests for the chat's randomized "thinking" loader:
- * that it mounts an SVG spinner, mounts the quantum sphere when that is the
- * pick, and exposes a status role for screen readers.
+ * that it mounts an SVG spinner, a `<Spinner>` variant, or the quantum sphere
+ * depending on the pick, and exposes a status role for screen readers.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import RandomLoadingAnimation from '../src/components/ChatConversation/RandomLoadingAnimation';
 import {
     QUANTUM_SPHERE_ANIMATION,
+    SPINNER_ANIMATION_PREFIX,
     SVG_LOADING_ANIMATIONS,
     getRandomLoadingAnimation,
 } from '../src/components/ChatConversation/loading-animations';
+import { SPINNER_VARIANTS } from '../src/ui/spinner';
 
 // The picker is random by design, so stub it to force each branch.
 vi.mock('../src/components/ChatConversation/loading-animations', async (importOriginal) => ({
@@ -46,6 +48,26 @@ describe('RandomLoadingAnimation', () => {
         // loadingSpinner is the multi-colour rotating dial.
         expect(container.innerHTML).toContain('animateTransform');
     });
+
+    it.each(SPINNER_VARIANTS)(
+        'renders the %s <Spinner> variant when that is the pick',
+        (variant) => {
+            pick(`${SPINNER_ANIMATION_PREFIX}${variant}`);
+
+            const { container } = render(<RandomLoadingAnimation size={48} />);
+
+            const svg = container.querySelector('svg');
+            expect(svg).toBeTruthy();
+            expect(svg?.getAttribute('width')).toBe('48');
+            // Spinner draws in the surrounding text colour rather than a fixed hex.
+            expect(svg?.getAttribute('stroke')).toBe('currentColor');
+            // Every variant animates, by CSS rotation or by SMIL.
+            expect(
+                container.innerHTML.includes('animate-spin') ||
+                    container.innerHTML.includes('<animate'),
+            ).toBe(true);
+        },
+    );
 
     it('renders the quantum sphere when that is the pick', () => {
         pick(QUANTUM_SPHERE_ANIMATION);

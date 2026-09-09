@@ -46,7 +46,10 @@ const unsupportedModules: Record<string, string> = {
   'readline': shim('node-readline'),
   'formidable': shim('formidable'),
   'ioredis': shim('ioredis'),
-  'linkedom': shim('linkedom'),
+  // `linkedom` is NOT shimmed: it is pure JS and runs on workerd, and the
+  // QwkSearch article extractor (`worker/qwksearch/extractQwkSearch.ts`) parses
+  // every page with it. It used to be stubbed because LobeHub only reached it
+  // from the dev-server template rewriter.
   'nodemailer': shim('nodemailer'),
   'oidc-provider': shim('oidc-provider'),
   'sharp': shim('sharp'),
@@ -207,7 +210,10 @@ export default defineConfig({
   build: {
     emptyOutDir: true,
     minify: process.env.WORKER_DEBUG_BUILD !== '1',
-    outDir: path.resolve(root, process.env.WORKER_DEBUG_BUILD === '1' ? 'dist/worker-debug' : 'dist/worker'),
+    outDir: path.resolve(
+      root,
+      process.env.WORKER_DEBUG_BUILD === '1' ? 'dist/worker-debug' : 'dist/worker',
+    ),
     reportCompressedSize: false,
     rolldownOptions: {
       external: ['cloudflare:workers'],

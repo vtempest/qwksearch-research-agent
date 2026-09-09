@@ -2,25 +2,27 @@
  * Article extraction for the extract side panel.
  *
  * Port of `apps/qwksearch-web/lib/scraper/scrape-url.ts` onto the LobeHub
- * foundation. The chain is picked per URL kind by {@link defaultTiersFor}:
- *
- * - **Web pages** — Cloudflare Puppeteer scraper (`SCRAPER_URL`, default
- *   proxy.qwksearch.com) with an 8s deadline → Tavily extract API
- *   (`TAVILY_API_KEY`) → LobeHub's `@lobechat/web-crawler` (naive fetch +
- *   readability).
- * - **YouTube** — `extract-youtube` transcripts, then the web chain as a floor
- *   for videos whose captions are disabled.
- * - **PDF / arXiv** — `extract-pdf` (pdfjs text-layer pipeline), then Tavily.
- *
- * Rendered HTML becomes an article through {@link articleFromHtml}, which runs
- * QwkSearch's `extract-webpage` extractor first — that is what supplies
- * citation-grade metadata (`author_cite`, `author_short`, `author_type`, parsed
- * dates, publisher name) — and falls back to the crawler's readability pass.
+ * foundation. Bounded fallback chain, routed per URL kind by {@link tiersForUrl}:
+ *   0. QwkSearch's own `extract-webpage` — citation extraction for articles,
+ *      `extract-youtube` transcripts for videos, `extract-pdf` for PDFs.
+ *   1. Cloudflare Puppeteer scraper (`SCRAPER_URL`, default proxy.qwksearch.com)
+ *      with an 8s deadline, then citation extraction over the rendered HTML
+ *      (falling back to LobeHub readability).
+ *   2. Tavily extract API (`TAVILY_API_KEY`).
+ *   3. LobeHub's own `@lobechat/web-crawler` (naive fetch + readability).
  *
  * Every tier returns `{ error }` instead of throwing so the caller can decide
  * whether to advance to the next one.
  */
 import { htmlToMarkdown } from '@lobechat/web-crawler/src/utils/htmlToMarkdown';
+
+import {
+  type ExtractWebpageLoader,
+  fromQwkArticle,
+  type QwkSearchExtractOptions,
+  runQwkSearchExtractor,
+  runQwkSearchHtmlExtractor,
+} from './extractQwkSearch';
 
 export interface ExtractedArticle {
   author?: string;
@@ -37,7 +39,7 @@ export interface ExtractedArticle {
   title?: string;
   url?: string;
   /** Which tier produced the article. */
-  via?: 'scraper' | 'tavily' | 'crawler' | 'youtube' | 'pdf';
+  via?: 'crawler' | 'qwksearch' | 'qwksearch-html' | 'scraper' | 'tavily';
   word_count?: number;
 }
 
@@ -51,12 +53,22 @@ const SEARCH_ENGINE_PATTERNS = [
   /^https?:\/\/(www\.)?duckduckgo\.com\/\?/i,
 ];
 
+/**
+ * Video hosts with no transcript path. YouTube is deliberately absent — it is
+ * classified as `youtube` and extracted through `extract-youtube` instead.
+ */
 const VIDEO_PATTERNS = [/vimeo\.com\//i, /dailymotion\.com\/video/i, /twitch\.tv\//i];
 
-const YOUTUBE_ID_PATTERN =
-  /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([\w-]{11})/;
+/** Mirrors `getURLYoutubeVideo` in `extract-webpage`, without loading it. */
+const YOUTUBE_PATTERN =
+  /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)[\w-]{11}/i;
 
-const ARXIV_ABS_PATTERN = /^https?:\/\/(?:www\.)?arxiv\.org\/abs\/(.+)$/i;
+/**
+ * URLs `extract-pdf` should handle. arXiv `/abs/` pages are HTML, so only the
+ * `/pdf/` form matches; the extractor also sniffs the `%PDF-` magic bytes at
+ * runtime, which catches PDFs served from extensionless URLs.
+ */
+const PDF_PATTERNS = [/\.pdf($|[#?])/i, /arxiv\.org\/pdf\//i];
 
 const CHALLENGE_MARKERS = [
   'Just a moment...',
@@ -71,29 +83,13 @@ const CHALLENGE_MARKERS = [
 
 export type UrlKind = 'article' | 'invalid' | 'pdf' | 'search-engine' | 'video' | 'youtube';
 
-/** The 11-character video id of a YouTube URL, or undefined for anything else. */
-export const youTubeVideoId = (url: string): string | undefined => {
-  if (!url || typeof url !== 'string') return undefined;
-  return YOUTUBE_ID_PATTERN.exec(url)?.[1];
-};
-
 /**
- * The URL to download PDF bytes from, or undefined when the URL is not a PDF.
- * arXiv abstract pages are rewritten to their `/pdf/` sibling so the paper
- * itself is extracted rather than the landing page.
+ * Classify a URL before hitting the cache.
+ *
+ * `youtube` and `pdf` are extractable — they route to a different tier chain
+ * (see {@link tiersForUrl}), not to the "no article here" response. Only
+ * `invalid`, `search-engine` and the transcript-less `video` hosts are refused.
  */
-export const pdfUrlFor = (url: string): string | undefined => {
-  const arxiv = ARXIV_ABS_PATTERN.exec(url);
-  if (arxiv) return `https://arxiv.org/pdf/${arxiv[1].replace(/\.pdf$/i, '')}`;
-  try {
-    if (/\.pdf$/i.test(new URL(url).pathname)) return url;
-  } catch {
-    return undefined;
-  }
-  return /^https?:\/\/(?:www\.)?arxiv\.org\/pdf\//i.test(url) ? url : undefined;
-};
-
-/** Classify a URL the way the qwksearch article route did before hitting the cache. */
 export const classifyUrl = (url: string): UrlKind => {
   if (!url || /\s/.test(url)) return 'invalid';
   try {
@@ -103,11 +99,15 @@ export const classifyUrl = (url: string): UrlKind => {
     return 'invalid';
   }
   if (SEARCH_ENGINE_PATTERNS.some((p) => p.test(url))) return 'search-engine';
-  if (youTubeVideoId(url)) return 'youtube';
-  if (pdfUrlFor(url)) return 'pdf';
+  if (YOUTUBE_PATTERN.test(url)) return 'youtube';
+  if (PDF_PATTERNS.some((p) => p.test(url))) return 'pdf';
   if (VIDEO_PATTERNS.some((p) => p.test(url))) return 'video';
   return 'article';
 };
+
+/** URL kinds the extraction chain can actually produce an article for. */
+export const isExtractableKind = (kind: UrlKind): boolean =>
+  kind === 'article' || kind === 'pdf' || kind === 'youtube';
 
 export const looksLikeChallenge = (html?: string | null): boolean => {
   if (!html || typeof html !== 'string') return true;
@@ -305,31 +305,87 @@ export const articleFromHtmlViaCrawler = (
   return article;
 };
 
-export interface ArticleFromHtmlOptions {
-  /**
-   * Injection seam. `undefined` loads `extract-webpage` lazily; `null` skips it
-   * and goes straight to the crawler path.
-   */
-  extractCite?: HtmlCiteExtractor | null;
-}
+/**
+ * Markdown body for HTML the QwkSearch extractor already reduced to the article.
+ * Readability is off — running it a second time over extracted content drops
+ * headings and lead paragraphs it no longer recognises as part of a page.
+ */
+export const contentFromExtractedHtml = (html: string, url: string): string | undefined => {
+  try {
+    const { content } = htmlToMarkdown(html, { filterOptions: { enableReadability: false }, url });
+    return content?.trim() || undefined;
+  } catch {
+    // A malformed fragment is not worth failing the extraction over; the panel
+    // renders `html`, and only the AI Q&A path reads `content`.
+    return undefined;
+  }
+};
+
+/** Fill in whatever the QwkSearch extractor did not resolve itself. */
+const completeQwkArticle = (
+  article: ExtractedArticle,
+  url: string,
+  html: string,
+): ExtractedArticle => {
+  article.content = contentFromExtractedHtml(html, article.url || url);
+  article.source ||= hostnameOf(article.url || url);
+  article.word_count ||= countWords(article.content || html);
+  article.cite ||= buildCite(article, article.url || url);
+  return article;
+};
 
 /**
- * Turn rendered HTML into the article shape the side panel expects.
+ * Tier 0: QwkSearch's own extractor.
  *
- * QwkSearch's `extract-webpage` runs first because it is the only path that
- * produces citation-grade metadata and preserves images, links and headings in
- * the HTML; LobeHub's readability pass is the fallback.
+ * One call covers three of the chain's jobs — article + citation extraction,
+ * YouTube transcripts and PDF conversion — because `extract-webpage` branches
+ * on the URL itself. See `extractQwkSearch.ts` for why it is loaded lazily.
  */
-export const articleFromHtml = async (
+export const extractViaQwkSearch = async (
+  url: string,
+  options: QwkSearchExtractOptions = {},
+): Promise<ExtractedArticle> => {
+  let raw;
+  try {
+    raw = await runQwkSearchExtractor(url, options);
+  } catch (error) {
+    return { error: (error as Error)?.message || 'QwkSearch extractor failed' };
+  }
+
+  const article = fromQwkArticle(raw, url, 'qwksearch') as ExtractedArticle;
+  if (article.error || !article.html) return article;
+  // Tier 0 fetches without a browser, so a bot check comes back as a page. The
+  // extractor keeps short pages verbatim rather than failing, which would let a
+  // challenge interstitial pass as an article and skip the Puppeteer tier that
+  // exists to get past it.
+  if (looksLikeChallenge(article.html)) {
+    return { error: 'QwkSearch extractor returned a challenge page' };
+  }
+  return completeQwkArticle(article, url, article.html);
+};
+
+/**
+ * Turn already-rendered HTML into an article, preferring QwkSearch's citation
+ * extraction and falling back to LobeHub readability when it yields nothing.
+ *
+ * This is what keeps the scraper tier from throwing away author/date metadata:
+ * the Puppeteer worker gets past the bot check, `extract-webpage` reads the
+ * byline off the rendered DOM.
+ */
+export const articleFromRenderedHtml = async (
   html: string,
   url: string,
-  via: ExtractedArticle['via'],
-  options: ArticleFromHtmlOptions = {},
+  fallbackVia: ExtractedArticle['via'],
+  loader?: ExtractWebpageLoader,
 ): Promise<ExtractedArticle> => {
-  const extractor =
-    options.extractCite === undefined ? await loadCiteExtractor() : options.extractCite;
-  const cited = extractor ? articleViaCiteExtractor(extractor, html, url, via) : undefined;
-  return cited ?? articleFromHtmlViaCrawler(html, url, via);
+  try {
+    const raw = await runQwkSearchHtmlExtractor(html, url, { loader });
+    const article = fromQwkArticle(raw, url, 'qwksearch-html') as ExtractedArticle;
+    if (!article.error && article.html) return completeQwkArticle(article, url, article.html);
+  } catch {
+    // Fall through to LobeHub readability below.
+  }
+  return articleFromHtml(html, url, fallbackVia);
 };
 
 export interface ScraperConfig {
@@ -337,6 +393,8 @@ export interface ScraperConfig {
   baseUrl?: string;
   deadlineMs?: number;
   fetcher?: typeof fetch;
+  /** Injected in tests; production uses the real `extract-webpage`. */
+  loader?: ExtractWebpageLoader;
 }
 
 /**
@@ -381,7 +439,7 @@ export const extractViaScraper = async (
       return { error: 'Scraper returned a challenge page or no content' };
     }
 
-    return await articleFromHtml(html, data?.url || url, 'scraper');
+    return await articleFromRenderedHtml(html, data?.url || url, 'scraper', config.loader);
   } catch (error) {
     const e = error as Error;
     const aborted = e?.name === 'AbortError' || controller.signal.aborted;
@@ -677,13 +735,35 @@ export const defaultTiersFor = (url: string): ExtractionTier[] => {
 
 const isUsable = (article: ExtractedArticle) => !!article.html && !article.error;
 
+export type ExtractionTier = (url: string) => Promise<ExtractedArticle>;
+
+/**
+ * The tier chain for a URL, by kind.
+ *
+ * YouTube and PDF get the QwkSearch extractor alone: the remaining tiers render
+ * or fetch HTML, which for a video page is the description and chrome rather
+ * than the transcript, and for a PDF is bytes readability cannot parse. Serving
+ * that would be worse than reporting the extraction failure.
+ */
+export const tiersForUrl = (url: string, kind: UrlKind = classifyUrl(url)): ExtractionTier[] => {
+  switch (kind) {
+    case 'pdf':
+    case 'youtube': {
+      return [extractViaQwkSearch];
+    }
+    default: {
+      return [extractViaQwkSearch, extractViaScraper, extractViaTavily, extractViaCrawler];
+    }
+  }
+};
+
 /**
  * Full fallback chain. Returns the first usable article, otherwise the last
  * tier's error.
  */
 export const extractArticle = async (
   url: string,
-  tiers: ExtractionTier[] = defaultTiersFor(url),
+  tiers: ExtractionTier[] = tiersForUrl(url),
 ): Promise<ExtractedArticle> => {
   let last: ExtractedArticle = { error: 'No extraction tier configured' };
   for (const tier of tiers) {

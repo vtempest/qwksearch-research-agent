@@ -3,22 +3,29 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   articleFromHtml,
-  articleFromHtmlViaCrawler,
+  articleFromRenderedHtml,
   buildCite,
   classifyUrl,
+  contentFromExtractedHtml,
   countWords,
   defaultTiersFor,
   extractArticle,
-  extractViaPdf,
+  extractViaQwkSearch,
   extractViaScraper,
   extractViaTavily,
-  extractViaYouTube,
+  isExtractableKind,
   looksLikeChallenge,
   markdownToSimpleHtml,
-  pdfUrlFor,
-  transcriptToParagraphs,
-  youTubeVideoId,
+  tiersForUrl,
 } from './extract';
+import type { ExtractWebpageModule } from './extractQwkSearch';
+
+/** A stand-in for `extract-webpage`, so tests never load the real extractor. */
+const fakeModule = (overrides: Partial<ExtractWebpageModule> = {}): ExtractWebpageModule => ({
+  extractContent: vi.fn(async () => ({ html: '<p>body</p>' })),
+  extractContentAndCite: vi.fn(() => ({ html: '<p>body</p>' })),
+  ...overrides,
+});
 
 describe('classifyUrl', () => {
   it('rejects malformed urls and search result pages', () => {
@@ -28,38 +35,48 @@ describe('classifyUrl', () => {
     expect(classifyUrl('https://duckduckgo.com/?q=x')).toBe('search-engine');
   });
 
-  it('flags video hosts and accepts everything else', () => {
+  it('flags transcript-less video hosts and accepts everything else', () => {
     expect(classifyUrl('https://vimeo.com/12345')).toBe('video');
+    expect(classifyUrl('https://www.twitch.tv/somebody')).toBe('video');
     expect(classifyUrl('https://example.com/article')).toBe('article');
   });
 
-  it('separates youtube and pdf from the generic article path', () => {
+  it('routes youtube to its own kind rather than rejecting it as a video', () => {
     expect(classifyUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('youtube');
     expect(classifyUrl('https://youtu.be/dQw4w9WgXcQ')).toBe('youtube');
+    expect(classifyUrl('https://www.youtube.com/embed/dQw4w9WgXcQ')).toBe('youtube');
+    // A YouTube page that is not a video keeps the article path.
+    expect(classifyUrl('https://www.youtube.com/about/')).toBe('article');
+  });
+
+  it('detects pdf urls, including arxiv', () => {
+    expect(classifyUrl('https://example.com/paper.pdf')).toBe('pdf');
     expect(classifyUrl('https://example.com/paper.pdf?download=1')).toBe('pdf');
-    expect(classifyUrl('https://arxiv.org/abs/2401.00001')).toBe('pdf');
+    expect(classifyUrl('https://arxiv.org/pdf/2401.00001')).toBe('pdf');
+    // arXiv abstract pages are HTML, so they stay on the article path.
+    expect(classifyUrl('https://arxiv.org/abs/2401.00001')).toBe('article');
   });
-});
 
-describe('youTubeVideoId', () => {
-  it('reads the id from every url shape youtube serves', () => {
-    expect(youTubeVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=3')).toBe('dQw4w9WgXcQ');
-    expect(youTubeVideoId('https://youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
-    expect(youTubeVideoId('https://www.youtube.com/embed/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
-    expect(youTubeVideoId('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
-    expect(youTubeVideoId('https://example.com/watch?v=dQw4w9WgXcQ')).toBeUndefined();
-  });
-});
-
-describe('pdfUrlFor', () => {
-  it('resolves arxiv abstracts to the paper and ignores non-pdf urls', () => {
-    expect(pdfUrlFor('https://arxiv.org/abs/2401.00001')).toBe('https://arxiv.org/pdf/2401.00001');
-    expect(pdfUrlFor('https://arxiv.org/pdf/2401.00001')).toBe('https://arxiv.org/pdf/2401.00001');
-    expect(pdfUrlFor('https://example.com/a/b.pdf?x=1#p2')).toBe(
-      'https://example.com/a/b.pdf?x=1#p2',
+  it('marks exactly the kinds the chain can extract', () => {
+    expect(['article', 'pdf', 'youtube'].every((k) => isExtractableKind(k as never))).toBe(true);
+    expect(['invalid', 'search-engine', 'video'].some((k) => isExtractableKind(k as never))).toBe(
+      false,
     );
-    expect(pdfUrlFor('https://example.com/pdf-viewer')).toBeUndefined();
-    expect(pdfUrlFor('not a url')).toBeUndefined();
+  });
+});
+
+describe('tiersForUrl', () => {
+  it('gives youtube and pdf the qwksearch extractor alone', () => {
+    // The remaining tiers render HTML, which for these URLs is page chrome
+    // rather than the transcript or the document.
+    expect(tiersForUrl('https://youtu.be/dQw4w9WgXcQ')).toEqual([extractViaQwkSearch]);
+    expect(tiersForUrl('https://example.com/paper.pdf')).toEqual([extractViaQwkSearch]);
+  });
+
+  it('gives articles the full chain, qwksearch first', () => {
+    const tiers = tiersForUrl('https://example.com/post');
+    expect(tiers[0]).toBe(extractViaQwkSearch);
+    expect(tiers).toHaveLength(4);
   });
 });
 
@@ -106,11 +123,12 @@ const longBody = Array.from(
 
 describe('articleFromHtmlViaCrawler', () => {
   it('extracts readable content with the LobeHub crawler utilities', () => {
-    const article = articleFromHtmlViaCrawler(
-      articleHtml(longBody),
-      'https://news.example.com/post',
-      'scraper',
-    );
+    const body = Array.from(
+      { length: 40 },
+      (_, i) => `Sentence number ${i} of the article body.`,
+    ).join(' ');
+    const html = `<html><head><title>My Post</title></head><body><article><h1>My Post</h1><p>${body}</p></article></body></html>`;
+    const article = articleFromHtml(html, 'https://news.example.com/post', 'scraper');
 
     expect(article.error).toBeUndefined();
     expect(article.content).toContain('Sentence number 3');
@@ -122,269 +140,142 @@ describe('articleFromHtmlViaCrawler', () => {
 
   it('reports an error for empty pages', () => {
     expect(
-      articleFromHtmlViaCrawler('<html><body></body></html>', 'https://x.com', 'scraper').error,
+      articleFromHtml('<html><body></body></html>', 'https://x.com', 'scraper').error,
     ).toBeDefined();
   });
 });
 
-describe('articleFromHtml', () => {
-  it('prefers the qwksearch extractor and keeps its citation metadata', async () => {
-    const extractCite = vi.fn(() => ({
-      author: 'Jane Q. Doe',
-      author_cite: 'Doe, J. Q.',
-      author_short: 'Doe',
-      author_type: 1,
-      date: '2024-03-05',
-      html: `<h1>My Post</h1><p>${longBody}</p>`,
-      source: 'Example News',
-      title: 'My Post',
-    }));
+describe('contentFromExtractedHtml', () => {
+  it('converts extracted html to markdown without re-running readability', () => {
+    const content = contentFromExtractedHtml(
+      '<h1>Title</h1><p>Short body.</p>',
+      'https://example.com/a',
+    );
+    // A second readability pass discards a fragment this small; without it the
+    // heading and the paragraph both survive.
+    expect(content).toContain('Title');
+    expect(content).toContain('Short body.');
+  });
+});
 
-    const article = await articleFromHtml(
-      articleHtml(longBody),
+describe('extractViaQwkSearch', () => {
+  it('keeps the citation metadata the extractor resolved and derives the rest', async () => {
+    const article = await extractViaQwkSearch('https://example.com/notes', {
+      loader: async () =>
+        fakeModule({
+          extractContent: vi.fn(async () => ({
+            author: 'Ada Lovelace',
+            author_cite: 'Lovelace, A.',
+            date: '1843-10-01',
+            html: '<h1>Notes</h1><p>On the Analytical Engine.</p>',
+            title: 'Notes',
+          })),
+        }),
+    });
+
+    expect(article.error).toBeUndefined();
+    expect(article.via).toBe('qwksearch');
+    expect(article.author_cite).toBe('Lovelace, A.');
+    // Not returned by the extractor, so the chain fills them in.
+    expect(article.source).toBe('example.com');
+    expect(article.content).toContain('Analytical Engine');
+    expect(article.word_count).toBeGreaterThan(0);
+    expect(article.cite).toContain('Lovelace, A.');
+  });
+
+  it('does not overwrite a citation the extractor already built', async () => {
+    const article = await extractViaQwkSearch('https://example.com/a', {
+      loader: async () =>
+        fakeModule({
+          extractContent: vi.fn(async () => ({ cite: 'Upstream cite', html: '<p>hi</p>' })),
+        }),
+    });
+    expect(article.cite).toBe('Upstream cite');
+  });
+
+  it('returns an error instead of throwing when the package cannot be loaded', async () => {
+    const article = await extractViaQwkSearch('https://example.com/a', {
+      loader: async () => {
+        throw new Error('Cannot find module extract-webpage');
+      },
+    });
+    // `{ error }` is the contract that lets `extractArticle` advance a tier.
+    expect(article.error).toMatch(/Cannot find module/);
+  });
+
+  it('rejects a bot-challenge page so the puppeteer tier still gets a turn', async () => {
+    const article = await extractViaQwkSearch('https://example.com/a', {
+      loader: async () =>
+        fakeModule({
+          // The extractor keeps short pages verbatim rather than failing, so a
+          // challenge interstitial arrives here as a successful extraction.
+          extractContent: vi.fn(async () => ({
+            html: '<h1>Just a moment...</h1>',
+            title: 'Just a moment...',
+          })),
+        }),
+    });
+    expect(article.error).toMatch(/challenge/);
+  });
+
+  it('surfaces an extractor error so the next tier runs', async () => {
+    const article = await extractViaQwkSearch('https://example.com/a', {
+      loader: async () =>
+        fakeModule({ extractContent: vi.fn(async () => ({ error: 'Failed to fetch HTML' })) }),
+    });
+    expect(article.error).toBe('Failed to fetch HTML');
+  });
+});
+
+describe('articleFromRenderedHtml', () => {
+  const body = Array.from(
+    { length: 40 },
+    (_, i) => `Sentence number ${i} of the article body.`,
+  ).join(' ');
+  const html = `<html><head><title>My Post</title></head><body><article><h1>My Post</h1><p>${body}</p></article></body></html>`;
+
+  it('prefers qwksearch citation extraction over readability', async () => {
+    const article = await articleFromRenderedHtml(
+      html,
       'https://news.example.com/post',
       'scraper',
-      { extractCite },
+      async () =>
+        fakeModule({
+          extractContentAndCite: vi.fn(() => ({
+            author_cite: 'Doe, J.',
+            html: '<h1>My Post</h1><p>Extracted body.</p>',
+            title: 'My Post',
+          })),
+        }),
     );
 
-    expect(extractCite).toHaveBeenCalledWith(expect.any(String), {
-      url: 'https://news.example.com/post',
-    });
-    expect(article.author_cite).toBe('Doe, J. Q.');
-    expect(article.author_short).toBe('Doe');
-    // Coerced to a string so the D1 `author_type` column stays text.
-    expect(article.author_type).toBe('1');
-    expect(article.source).toBe('Example News');
-    expect(article.cite).toContain('(2024, Mar 5)');
-    expect(article.content).toContain('Sentence number 3');
+    expect(article.via).toBe('qwksearch-html');
+    expect(article.author_cite).toBe('Doe, J.');
+  });
+
+  it('falls back to lobehub readability when the extractor yields nothing', async () => {
+    const article = await articleFromRenderedHtml(
+      html,
+      'https://news.example.com/post',
+      'scraper',
+      async () => fakeModule({ extractContentAndCite: vi.fn(() => ({ error: 'No HTML found' })) }),
+    );
+
     expect(article.via).toBe('scraper');
-  });
-
-  it('falls back to the crawler when the qwksearch extractor finds nothing', async () => {
-    const article = await articleFromHtml(
-      articleHtml(longBody),
-      'https://news.example.com/post',
-      'scraper',
-      { extractCite: () => ({ error: 'No HTML found' }) },
-    );
-
-    expect(article.error).toBeUndefined();
-    expect(article.source).toBe('news.example.com');
     expect(article.content).toContain('Sentence number 3');
   });
 
-  it('falls back to the crawler when the qwksearch extractor throws', async () => {
-    const article = await articleFromHtml(
-      articleHtml(longBody),
-      'https://news.example.com/post',
-      'crawler',
-      {
-        extractCite: () => {
-          throw new Error('linkedom blew up');
-        },
-      },
-    );
-
-    expect(article.error).toBeUndefined();
-    expect(article.via).toBe('crawler');
-  });
-
-  it('falls back when the extractor returns html with no readable text', async () => {
-    const article = await articleFromHtml(
-      articleHtml(longBody),
+  it('falls back to readability when the package will not load at all', async () => {
+    const article = await articleFromRenderedHtml(
+      html,
       'https://news.example.com/post',
       'scraper',
-      {
-        extractCite: () => ({ html: '<div></div>', title: 'My Post' }),
+      async () => {
+        throw new Error('boom');
       },
     );
-
+    expect(article.via).toBe('scraper');
     expect(article.error).toBeUndefined();
-    expect(article.content).toContain('Sentence number 3');
-  });
-
-  it('reports an error when neither path finds content', async () => {
-    const article = await articleFromHtml(
-      '<html><body></body></html>',
-      'https://x.com',
-      'scraper',
-      {
-        extractCite: null,
-      },
-    );
-    expect(article.error).toBeDefined();
-  });
-
-  it('runs the real extract-webpage extractor when none is injected', async () => {
-    const article = await articleFromHtml(
-      articleHtml(
-        longBody,
-        '<meta name="author" content="Jane Q. Doe"/><meta property="og:site_name" content="Example News"/>',
-      ),
-      'https://news.example.com/post',
-      'scraper',
-    );
-
-    expect(article.error).toBeUndefined();
-    expect(article.title).toBe('My Post');
-    expect(article.author).toBe('Jane Q. Doe');
-    expect(article.source).toBe('Example News');
-  }, 30_000);
-});
-
-describe('transcriptToParagraphs', () => {
-  it('regroups caption snippets into paragraphs', () => {
-    const snippets = Array.from({ length: 30 }, (_, i) => ({ text: `word${i} word${i}b` }));
-    const paragraphs = transcriptToParagraphs(snippets, 10);
-
-    expect(paragraphs).toHaveLength(6);
-    expect(paragraphs[0].split(' ')).toHaveLength(10);
-    expect(paragraphs.join(' ')).toContain('word29b');
-  });
-
-  it('returns nothing for empty captions', () => {
-    expect(transcriptToParagraphs([{ text: '   ' }])).toEqual([]);
-    expect(transcriptToParagraphs([])).toEqual([]);
-  });
-});
-
-describe('extractViaYouTube', () => {
-  const snippets = Array.from({ length: 60 }, (_, i) => ({ text: `transcript line ${i}` }));
-
-  it('turns a transcript into an article with oEmbed metadata', async () => {
-    const transcript = vi.fn(async () => ({ snippets }));
-    const fetcher = vi.fn(async () =>
-      Response.json({ author_name: 'Rick Astley', title: 'Never Gonna Give You Up' }),
-    );
-
-    const article = await extractViaYouTube('https://youtu.be/dQw4w9WgXcQ', {
-      fetcher,
-      transcript,
-    });
-
-    expect(transcript).toHaveBeenCalledWith('dQw4w9WgXcQ', ['en']);
-    expect(article.error).toBeUndefined();
-    expect(article.via).toBe('youtube');
-    expect(article.title).toBe('Never Gonna Give You Up');
-    expect(article.author_cite).toBe('Rick Astley');
-    expect(article.source).toBe('YouTube');
-    expect(article.html).toContain('transcript line 59');
-    expect(article.content).toContain('transcript line 0');
-  });
-
-  it('names the video by id when oEmbed is unavailable', async () => {
-    const article = await extractViaYouTube('https://youtu.be/dQw4w9WgXcQ', {
-      fetcher: vi.fn(async () => new Response('nope', { status: 404 })),
-      languages: ['de', 'en'],
-      transcript: vi.fn(async () => ({ snippets })),
-    });
-
-    expect(article.title).toBe('YouTube video dQw4w9WgXcQ');
-  });
-
-  it('passes the configured languages through', async () => {
-    const transcript = vi.fn(async () => ({ snippets }));
-    await extractViaYouTube('https://youtu.be/dQw4w9WgXcQ', {
-      fetcher: vi.fn(async () => Response.json({})),
-      languages: ['de', 'en'],
-      transcript,
-    });
-    expect(transcript).toHaveBeenCalledWith('dQw4w9WgXcQ', ['de', 'en']);
-  });
-
-  it('returns an error rather than throwing for videos without captions', async () => {
-    const noCaptions = await extractViaYouTube('https://youtu.be/dQw4w9WgXcQ', {
-      transcript: async () => ({ snippets: [] }),
-    });
-    expect(noCaptions.error).toMatch(/No transcript/);
-
-    const threw = await extractViaYouTube('https://youtu.be/dQw4w9WgXcQ', {
-      transcript: async () => {
-        throw new Error('TranscriptsDisabled');
-      },
-    });
-    expect(threw.error).toBe('TranscriptsDisabled');
-  });
-
-  it('rejects non-youtube urls without touching the network', async () => {
-    const transcript = vi.fn();
-    expect((await extractViaYouTube('https://example.com/a', { transcript })).error).toMatch(
-      /Not a YouTube/,
-    );
-    expect(transcript).not.toHaveBeenCalled();
-  });
-});
-
-describe('extractViaPdf', () => {
-  const pdfHtml = `<h1>A Paper</h1><p>${longBody}</p>`;
-
-  it('extracts a pdf and rewrites arxiv abstracts to the paper', async () => {
-    const convert = vi.fn(async () => ({
-      author: 'A. Researcher',
-      html: pdfHtml,
-      title: 'A Paper',
-    }));
-    const article = await extractViaPdf('https://arxiv.org/abs/2401.00001', { convert });
-
-    expect(convert).toHaveBeenCalledWith('https://arxiv.org/pdf/2401.00001', {
-      addCitation: false,
-    });
-    expect(article.via).toBe('pdf');
-    expect(article.title).toBe('A Paper');
-    expect(article.author_cite).toBe('A. Researcher');
-    expect(article.source).toBe('arxiv.org');
-    expect(article.content).toContain('Sentence number 3');
-  });
-
-  it('asks for hybrid OCR when a docling processor is configured', async () => {
-    const convert = vi.fn(async () => ({ html: pdfHtml }));
-    await extractViaPdf('https://example.com/a.pdf', {
-      convert,
-      processorUrl: 'https://docling.test',
-    });
-
-    expect(convert).toHaveBeenCalledWith('https://example.com/a.pdf', {
-      addCitation: false,
-      processor: 'hybrid',
-      processorUrl: 'https://docling.test',
-    });
-  });
-
-  it('returns an error rather than throwing', async () => {
-    expect((await extractViaPdf('https://example.com/a', { convert: vi.fn() })).error).toMatch(
-      /Not a PDF/,
-    );
-    expect(
-      (
-        await extractViaPdf('https://example.com/a.pdf', {
-          convert: async () => ({ error: 'bad pdf' }),
-        })
-      ).error,
-    ).toBe('bad pdf');
-    expect(
-      (
-        await extractViaPdf('https://example.com/a.pdf', {
-          convert: async () => {
-            throw new Error('pdfjs failed');
-          },
-        })
-      ).error,
-    ).toBe('pdfjs failed');
-  });
-});
-
-describe('defaultTiersFor', () => {
-  it('leads with the extractor built for the url kind', () => {
-    expect(defaultTiersFor('https://youtu.be/dQw4w9WgXcQ')[0]).toBe(extractViaYouTube);
-    expect(defaultTiersFor('https://arxiv.org/abs/2401.00001')).toEqual([
-      extractViaPdf,
-      extractViaTavily,
-    ]);
-    expect(defaultTiersFor('https://example.com/a')[0]).toBe(extractViaScraper);
-  });
-
-  it('keeps the web chain as a floor for videos whose captions are disabled', () => {
-    expect(defaultTiersFor('https://youtu.be/dQw4w9WgXcQ')).toContain(extractViaScraper);
   });
 });
 
@@ -397,6 +288,27 @@ describe('extractViaScraper', () => {
     });
     expect(result.error).toMatch(/challenge/);
     expect(new URL((fetcher.mock.calls[0] as unknown[])[0] as URL).pathname).toBe('/api/render');
+  });
+
+  it('runs rendered html through citation extraction', async () => {
+    const fetcher = vi.fn(async () =>
+      Response.json({ html: '<html><body><article><p>Rendered.</p></article></body></html>' }),
+    );
+    const extractContentAndCite = vi.fn(() => ({
+      author_cite: 'Doe, J.',
+      html: '<p>Rendered.</p>',
+      title: 'Rendered',
+    }));
+
+    const article = await extractViaScraper('https://x.com/a', {
+      baseUrl: 'https://scraper.test',
+      fetcher,
+      loader: async () => fakeModule({ extractContentAndCite }),
+    });
+
+    expect(article.via).toBe('qwksearch-html');
+    expect(article.author_cite).toBe('Doe, J.');
+    expect(extractContentAndCite).toHaveBeenCalledTimes(1);
   });
 
   it('honours the deadline', async () => {

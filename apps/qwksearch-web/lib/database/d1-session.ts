@@ -22,7 +22,8 @@
  *
  * Requests that never touch D1 never open a session, and outside a session
  * scope (prerendering, scripts, unit tests) the wrapper is a pass-through to
- * the plain binding. The Sessions API is also a no-op on databases with read
+ * the plain binding. Authentication opts out of replica reads entirely — see
+ * `PRIMARY_ONLY_PATH_PREFIXES`. The Sessions API is also a no-op on databases with read
  * replication turned off, so this is safe to deploy before — and independently
  * of — flipping the switch in the D1 dashboard.
  *
@@ -62,7 +63,8 @@ export const FIRST_PRIMARY = "first-primary";
  * `D1_SESSION_MODE` (a plain Worker variable, so it can be changed in the
  * dashboard without a redeploy) overrides the per-request choice below:
  *
- *   auto (default)  bookmark if the client has one, else the primary for
+ *   auto (default)  the primary for /api/auth/* (see needsPrimary), else the
+ *                   client's bookmark if it has one, else the primary for
  *                   writes and any replica for reads
  *   primary         always start on the primary — replicas still serve, but
  *                   only from the latest version
@@ -143,15 +145,59 @@ function readClientBookmark(request: Request): string | null {
 }
 
 /**
- * Where this request's session should start. A bookmark always wins: it is
- * both the fastest option (any replica that has caught up can answer it) and
- * the strictest one (never older than what this client already saw). Without
- * one, mutations start on the primary so a handler that writes and then reads
- * back cannot miss its own write, and plain reads start anywhere.
+ * Requests under this prefix always start on the primary — see
+ * {@link needsPrimary}.
+ */
+const PRIMARY_ONLY_PATH_PREFIX = "/api/auth/";
+
+/**
+ * Whether this request reads rows that another request wrote moments ago, in a
+ * way that a lagging replica turns into a hard failure rather than a stale
+ * render.
+ *
+ * The OAuth flow is the case that matters. `POST /api/auth/sign-in/social`
+ * writes a one-shot `verification` row keyed by the OAuth `state`, hands the
+ * browser to the provider, and `GET /api/auth/callback/<provider>` reads that
+ * row back seconds later. A replica that has not caught up returns nothing,
+ * and better-auth cannot tell "not replicated yet" from "forged state": it
+ * fails the callback outright with `State mismatch: verification not found`
+ * and the user is bounced to the error page mid sign-in.
+ *
+ * The bookmark the client carries is not enough of a guard here. The callback
+ * is a cross-site navigation back from the provider, so the cookie may be
+ * missing or expired (a slow consent screen outlives its 15 minutes); and
+ * because every response that touches D1 rewrites the cookie, a concurrent
+ * request that started earlier but finished later can put an *older* bookmark
+ * back — one that predates the write this read depends on. The bookmark only
+ * pins a floor, so an old one is accepted and silently reads too far back.
+ *
+ * Auth traffic is a rounding error next to page and search traffic, so pinning
+ * all of it to the primary costs a few round trips on the rarest requests the
+ * app serves and buys sign-in that cannot fail this way.
+ */
+function needsPrimary(request: Request): boolean {
+  try {
+    return new URL(request.url).pathname.startsWith(PRIMARY_ONLY_PATH_PREFIX);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Where this request's session should start. Reads that cannot tolerate a
+ * lagging replica go to the primary before anything else is considered. Then a
+ * bookmark wins: it is both the fastest option (any replica that has caught up
+ * can answer it) and the strictest one (never older than what this client
+ * already saw). Without one, mutations start on the primary so a handler that
+ * writes and then reads back cannot miss its own write, and plain reads start
+ * anywhere.
  */
 function resolveStart(request: Request, mode: D1SessionMode): string {
   if (mode === "primary") return FIRST_PRIMARY;
+  if (requiresPrimary(request)) return FIRST_PRIMARY;
   if (mode === "unconstrained") return FIRST_UNCONSTRAINED;
+
+  if (needsPrimary(request)) return FIRST_PRIMARY;
 
   const bookmark = readClientBookmark(request);
   if (bookmark) return bookmark;

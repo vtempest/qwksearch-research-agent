@@ -16,7 +16,7 @@ The map of what already connects is
 
 **Legend** — ✅ done · 🚧 in progress · ⬜ not started · 🔒 blocked
 
-Last updated: 2026-09-08.
+Last updated: 2026-09-09.
 
 ## Snapshot
 
@@ -82,59 +82,50 @@ Follow-ups that are deliberately *not* in that change:
   `domain-rank` (favicons, domain authority) is not consulted on the engine side.
   Decide whether that belongs in the endpoint or the impl.
 
-### 1.3 Extraction chain over the QwkSearch extractors ✅
+### 1.3 Extraction chain, tier 0 = the QwkSearch article extractor ✅
 
-Done: `worker/qwksearch/extract.ts` now picks its chain per URL kind
-(`defaultTiersFor`) and builds articles with QwkSearch's extractors. The contract
-is written up in §F2 of the integrations reference; 35 cases cover it in
-`worker/qwksearch/extract.test.ts`.
+Done. `worker/qwksearch/extractQwkSearch.ts` adapts `extract-webpage`, and
+`tiersForUrl` in `worker/qwksearch/extract.ts` routes each URL kind to its chain.
+One `extractContent` call covered all three sub-items, because the extractor
+branches on the URL itself.
 
-1. ✅ `extract-webpage`'s `extractContentAndCite` is the primary HTML → article
-   path in `articleFromHtml`, with LobeHub's readability pass
-   (`articleFromHtmlViaCrawler`) as the fallback. This is what restores
-   `author_cite` / `author_short` / `author_type` / chrono-parsed dates and keeps
-   images, links and headings in the HTML written to D1 `articleCache`.
+1. ✅ **Tier 0 = `extract-webpage`**, ahead of the scraper, bringing citation
+   extraction (`author_cite`, `author_short`, `author_type`, date, source) that
+   the readability path could not produce. It writes through the same D1
+   `articleCache`, so nothing about the panel's storage changed.
+2. ✅ **YouTube** is its own `UrlKind`, extracted as a transcript through
+   `extract-youtube`, instead of being rejected in `VIDEO_PATTERNS`. Only
+   Vimeo/Dailymotion/Twitch — hosts with no transcript route — still get the
+   "not an article" stub.
+3. ✅ **PDF and arXiv** are their own `UrlKind`, routed to `extract-pdf`
+   through the extractor's PDF branch. `.pdf` (with or without a query string)
+   and `arxiv.org/pdf/` match; `arxiv.org/abs/` stays on the article path
+   because those pages are HTML.
+4. ✅ Every tier still returns `{ error }` rather than throwing — including a
+   failed *module load*, which is why the package is behind an injectable lazy
+   loader. Tests inject a fake module, so they never load the real extractor.
 
-   **Deviation from the original plan, deliberately:** it is not "tier 0 ahead of
-   the scraper". `extractContent`'s own fetch stack would duplicate the Puppeteer
-   scraper and put an unrendered fetch in front of it, which is exactly the tier
-   the chain already ends with. Making it the *converter* every HTML-bearing tier
-   uses upgrades the scraper tier too, rather than racing it.
-2. ✅ YouTube URLs are their own `UrlKind` (`youTubeVideoId` covers watch,
-   `youtu.be`, `embed`, `shorts`, `live`) and lead with `extract-youtube`
-   transcripts, regrouped into ~90-word paragraphs, titled from YouTube's oEmbed
-   endpoint. The web chain stays underneath for captions-disabled videos.
-3. ✅ PDF and arXiv URLs lead with `extract-pdf` and fall back to Tavily;
-   `pdfUrlFor` rewrites arXiv `/abs/` to `/pdf/`. `PDF_PROCESSOR_URL` opts into
-   `hybrid` processing so pages with no text layer get Granite Docling OCR.
-4. ✅ Every tier still returns `{ error }` rather than throwing, including on a
-   failed dynamic `import()` of one of the three packages.
+Two things worth knowing before building on this:
+
+- **`linkedom` is no longer shimmed** in `vite.worker.config.ts`. It was stubbed
+  to throw because LobeHub only reached it from the dev-server template
+  rewriter, but `extract-webpage` parses every page with it and it runs fine on
+  workerd. `worker/shims/linkedom.ts` is gone. The Worker bundle went from
+  **7.39 MB to 7.93 MB gzipped** against Cloudflare's 10 MB limit — see 5.4.
+- **The scraper tier got better too.** When tier 0 fails but Puppeteer gets past
+  the bot check, the rendered HTML now runs through the same citation extraction
+  (`articleFromRenderedHtml`) instead of discarding the byline. It falls back to
+  LobeHub readability if that yields nothing.
 
 Follow-ups that are deliberately *not* in that change:
 
-- ⬜ **Measure the Worker bundle.** `extract-webpage` is ~1 MB unminified
-  (linkedom, chrono-node, a 92k-name corpus). All three packages are `import()`-ed
-  so they stay off the cold-start path, but code-splitting does not reduce the
-  *total*, and the budget is ~7.4 MB gzipped against Cloudflare's 10 MB limit.
-  Run `bun run build:worker` and record the new number in
-  `packages-lobe/README.md` before the next deploy.
-- ⬜ **DOCX and Google Docs.** `extract-webpage`'s `extractContent` also handles
-  `.docx` buffers and rewrites Google Docs URLs to their export endpoints. Neither
-  is wired into `defaultTiersFor` yet.
-- ⬜ **Cache the extractor's `via`.** D1 `articleCache` has no column recording
-  which tier produced a row, so a cached article cannot be re-extracted
-  selectively when a tier improves.
-- ⬜ **`extract-youtube` ships no types.** The published `1.0.256` tarball has
-  `dist/index.mjs` and `dist/index.cjs` but neither the `.d.ts` its
-  `exports.types` points at nor `dist/react/`, so consumers resolve it as `any`.
-  `packages-lobe/src/types/shim-extract-youtube.d.ts` declares the used surface
-  as a stopgap; delete it once a release ships declarations. The cause is not in
-  the repo — `npm pack` includes `dist/*.d.ts` from a local build either way, and
-  `.github/workflows/npm-publish.yml` refuses to publish a package whose `build`
-  fails — so it needs the publish logs, not another read of the manifest.
-  `packages/extract-youtube/package.json` gained the `files` field its two
-  sibling packages already have, which is tarball hygiene, **not** a fix for
-  this.
+- ⬜ **Per-user extraction settings.** Transcript language, citation style and
+  the render backend are hard-coded (`['en']`, APA-ish, `SCRAPER_URL`). They are
+  the substance of the Extraction pane in 2.2, so they land there.
+- ⬜ **PDF OCR modes.** `extract-pdf` supports in-process, hybrid and remote
+  Granite Docling processors; the engine takes the default slim path. Wiring the
+  remote processor URL needs a settings surface, so it also waits on 2.2.
+- ⬜ **Bundle budget in CI** (5.4) matters more now that the margin is ~2 MB.
 
 ### 1.4 Agent parity checklist ⬜
 
@@ -161,9 +152,10 @@ Reproduce today's chat-mode behavior on the engine and record each gap:
   category selection, per-category defaults, time range, SearXNG URL — now that
   1.2 exists these map onto `QWKSEARCH_SEARCH_URL` and the category normalizer)
   and **Extraction** (citation style, transcript language, render backend,
-  scraper/Tavily keys). After 1.3 the extraction pane has real knobs to bind to:
-  `YouTubeConfig.languages`, `PdfConfig.processorUrl` (`PDF_PROCESSOR_URL`) and
-  the scraper deadline. Persist through `src/store/user/slices/settings/`.
+  scraper/Tavily keys). Persist through `src/store/user/slices/settings/`.
+  Now that 1.3 exists, these have concrete sinks: transcript language is
+  `QwkSearchExtractOptions.languages`, the render backend is `SCRAPER_URL`, and
+  the PDF processor mode is `extract-pdf`'s. All three are hard-coded today.
 - ⬜ **2.3 Key migration.** Server env keys stay Worker secrets. Per-user keys
   live in `localStorage` today and have no server copy — announce a one-time
   re-entry into the engine's key vault; do not build a migrator.
@@ -221,12 +213,38 @@ Blocked on the LobeHub Community License answer, recorded in
   - ⬜ Upstash HTTP Redis provider in `src/libs/redis` — without it, agent stream
     fan-out, edit locks and some rate limits run on per-isolate memory.
   - ⬜ Mobile SPA build (`build:spa:mobile`); mobile currently gets the desktop bundle.
-  - ⬜ Worker bundle size budget in CI (~7.4 MB gzipped against a 10 MB limit).
+  - 🚧 Worker bundle size budget — now **~7.9 MB gzipped against a 10 MB limit**
+    after 1.3 pulled in `linkedom` and Prism. `bun run cf:budget`
+    (`scripts/checkWorkerBudget.mts`) measures it, warns under ~1 MB of headroom
+    and fails over the limit. Still to do: run it in CI. No workflow builds
+    `packages-lobe` today — it is a separate pnpm workspace outside the root
+    turbo graph — so wiring this up means adding a job that does a full
+    `pnpm install` + Worker build, which is a CI-minutes decision rather than a
+    code one.
+  - ⬜ Republish `extract-webpage` so the engine can drop the bundler workaround.
+    Its published dist imports `prismjs/components/prism-markup` and 16 siblings
+    without a `.js` extension, which Node's ESM resolver rejects — Vite/rolldown
+    resolve it, so the Worker build is fine, but the package cannot be loaded by
+    plain Node. Fixed at source in
+    `packages/extract-webpage/src/html-to-content/html-utils.ts`; the fix reaches
+    the engine on the next `npm publish` of that package.
   - ⬜ OIDC (`/oidc/*` returns 501) — blocks CLI and desktop sign-in.
   - ⬜ SEO strings in the HTML shell are English-only (`worker/shims/serverTranslation.ts`).
   - ⬜ No `sharp`; avatar processing falls back to the original image.
 
 ## How to pick up the next item
+
+**Suggested next, in order** — all code-only, all testable without Cloudflare
+credentials:
+
+1. **5.4's bundle budget in CI.** The measurement now exists
+   (`bun run cf:budget`); what is missing is a workflow that runs it. That needs
+   a job that installs and builds `packages-lobe`, which no workflow does yet.
+2. **2.2's Extraction pane.** 1.3 gave it real settings to bind — transcript
+   language, PDF processor mode, render backend — that are hard-coded today.
+3. **2.1's settings map**, which 2.2 needs anyway and which is pure reading.
+
+Then, for whichever you pick:
 
 1. Prefer an item whose seam is already understood and whose "done" is testable
    without Cloudflare credentials — those are the ones a code-only run can finish.

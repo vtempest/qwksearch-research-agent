@@ -67,7 +67,7 @@ then LobeHub's tRPC/webapi/api, then the SPA catch-all.
 | # | Feature | Server | Client | Data |
 |---|---|---|---|---|
 | F1 | **Article extract side panel** — external links in chat open in a resizable right panel; citation, favorites, Q&A, follow-ups | `worker/routes/qwksearch/article.ts`, `articleAi.ts` | `src/features/QwkSearch/ArticlePanel/` (`ArticlePanel.tsx`, `store.ts`, `api.ts`, `useArticleLinkInterceptor.ts`) | D1 `articleCache`, `articleQA`, `favorites` |
-| F2 | **Extraction chain** — per-URL-kind tiers over `extract-webpage` / `extract-youtube` / `extract-pdf` | `worker/qwksearch/extract.ts` | — | writes through F1's cache |
+| F2 | **Extraction chain** — `extract-webpage` → Puppeteer scraper (8s deadline) → Tavily → `@lobechat/web-crawler`, routed per URL kind | `worker/qwksearch/extract.ts`, `worker/qwksearch/extractQwkSearch.ts` | — | writes through F1's cache |
 | F3 | **Docs** (`/docs`) — Markdown research documents, autosaved, write/preview | `worker/routes/qwksearch/documents.ts` | `src/features/QwkSearch/Docs/` (`DocsWorkspace.tsx`, `DocsSidebar.tsx`, `DocsLayout.tsx`, `store.ts`) | D1 `documents` — the same table `apps/qwksearch-web` writes |
 | F4 | **Favorites** | `worker/routes/qwksearch/favorites.ts` | inside F1 | D1 `favorites` |
 | F5 | **QwkSearch search provider** — LobeHub's web-browsing tool fans out over QwkSearch's 100+ engines | `apps/server/src/services/search/impls/qwksearch/` | LobeHub's existing search portal UI | none (stateless proxy) |
@@ -88,39 +88,36 @@ then LobeHub's tRPC/webapi/api, then the SPA catch-all.
 
 ### F2 — Extraction chain contract
 
-The seam that makes the engine's article panel extract the way QwkSearch does. Three
-QwkSearch packages are consumed from npm; none is a workspace link.
+The seam that makes the engine's article panel extract the way qwksearch.com does.
 
-`defaultTiersFor(url)` picks the chain from `classifyUrl`:
-
-| URL kind | Tiers, in order | Notes |
-|---|---|---|
-| `article` | Puppeteer scraper (`SCRAPER_URL`, 8s deadline) → Tavily (`TAVILY_API_KEY`) → `@lobechat/web-crawler` | unchanged ordering |
-| `youtube` | `extract-youtube` transcript → the three web tiers | the web chain stays underneath so a captions-disabled video still yields the watch page |
-| `pdf` | `extract-pdf` → Tavily | scraper and crawler cannot read PDF bytes, so they are not in this chain |
-| `search-engine`, `invalid` | none — rejected 400 by the route | |
-| `video` (vimeo, dailymotion, twitch) | none — the route returns its "video content" stub | |
-
-Two classifier additions carry this: `youTubeVideoId` (watch, `youtu.be`, `embed`, `shorts`,
-`live`) and `pdfUrlFor` (any `.pdf` path, plus arXiv `/abs/` rewritten to `/pdf/` so the paper is
-extracted rather than the landing page).
-
-**Rendered HTML → article** runs through `articleFromHtml`, which calls `extract-webpage`'s
-`extractContentAndCite` first and falls back to `articleFromHtmlViaCrawler` (LobeHub's readability
-pass) on an empty result or a throw. That first path is the whole point of the integration: it is
-the only one producing `author_cite`, `author_short`, `author_type` and chrono-parsed `date`, and
-its HTML keeps images, links and headings instead of round-tripping through markdown. Those columns
-already exist in D1 `articleCache`, so the richer metadata lands with no schema change.
+```
+GET /api/doc/article?url=…
+  → classifyUrl(url) → UrlKind
+    → tiersForUrl(kind)
+      ├─ youtube │ pdf  → [extractViaQwkSearch]
+      └─ article        → [extractViaQwkSearch, extractViaScraper, extractViaTavily, extractViaCrawler]
+                             │                    └─ rendered HTML → extractContentAndCite
+                             └─ extract-webpage extractContent()
+                                  ├─ YouTube  → extract-youtube (transcript)
+                                  ├─ PDF      → extract-pdf
+                                  ├─ DOCX / Google Docs → export URL → mammoth
+                                  └─ HTML     → linkedom + readability/mercury + citation extraction
+```
 
 | Concern | Behavior |
 |---|---|
-| Loading | All three packages are `import()`-ed inside their tier. `extract-webpage` alone is ~1 MB (linkedom, chrono-node, a 92k-name corpus), so it must stay off the cold-start path |
-| Degradation | A failed dynamic import returns `null` and the tier reports `{ error }` — extraction never throws because a package is missing |
-| Contract | Every tier still returns `{ error }` rather than throwing; `extractArticle` advances on any result without usable `html` |
-| YouTube metadata | Title and channel come from `https://www.youtube.com/oembed`, best-effort with a 5s timeout; the fallback title is `YouTube video <id>` |
-| Transcripts | Captions are regrouped into ~90-word paragraphs — YouTube returns them as one unbroken run |
-| PDF OCR | `PDF_PROCESSOR_URL` (optional) switches `extract-pdf` to `hybrid`, sending only pages with no usable text layer to a Granite Docling processor |
-| Injection seams | `articleFromHtml({ extractCite })`, `extractViaYouTube({ transcript, fetcher, languages })`, `extractViaPdf({ convert, processorUrl })` — every tier is unit-testable without network |
+| Loading | `extract-webpage` is imported through a memoised, injectable loader (`loadExtractWebpage`). A failed import returns `{ error }` like any other tier failure — it never takes the Worker down, and tests inject a fake module instead |
+| Why the package root | The barrel deliberately excludes `seektopic/` and `utils/documents`, so `@huggingface/transformers` and `chat-agent-toolkit` stay out of the Worker bundle even though they are dependencies of the package |
+| `linkedom` | **Not shimmed.** `vite.worker.config.ts` used to alias it to a throwing stub because LobeHub only reached it from the dev-server template rewriter. It is pure JS, runs on workerd, and `extract-webpage` parses every page with it |
+| Bundle cost | 7.39 MB → 7.93 MB gzipped, against Cloudflare's 10 MB limit |
+| Kind routing | `youtube` and `pdf` run tier 0 alone — the later tiers render HTML, which for those URLs is page chrome, not the transcript or the document. Serving that is worse than reporting the failure |
+| Rejected up front | `invalid`, `search-engine`, and `video` (Vimeo/Dailymotion/Twitch — no transcript route) |
+| Scraper tier | On a successful render, the HTML goes through `extractContentAndCite` (`articleFromRenderedHtml`) so the byline survives the bot check; falls back to LobeHub readability |
+| Field mapping | `fromQwkArticle` narrows the extractor's wider types onto the D1 columns — `author_type` (number \| string → text) and `error` (number \| string → text). `content` (markdown, read by the AI Q&A path), `source`, `word_count` and `cite` are filled in only when the extractor did not resolve them |
+
+No upstream LobeHub file is edited for this. `extract.ts` and the new
+`extractQwkSearch.ts` both live under `worker/`; the only build-side change is
+*removing* the `linkedom` alias.
 
 ### F5 — Search provider contract
 
@@ -207,6 +204,9 @@ scoped stylesheet (`react-reason-editor/style.css`).
 ```bash
 cd packages-lobe
 
+# The extraction chain alone (35 cases: kind routing, tier order, field mapping)
+bunx vitest run worker/qwksearch/extract.test.ts worker/qwksearch/extractQwkSearch.test.ts
+
 # Worker, Cloudflare adapters, QwkSearch features, the search provider
 bunx vitest run worker src/features/QwkSearch \
   src/libs/better-auth/utils/kvSecondaryStorage.test.ts \
@@ -225,6 +225,4 @@ cd packages/database && bunx vitest run src/core/cloudflare.test.ts
 Tracked with owners and next steps in [LobeHub Migration To-Do](./lobehub-migration-todo):
 the REASON editor inside `/docs`, the Search & Sources and Extraction settings
 panes, one login across both Workers, chat-history migration, and the
-OIDC/Redis/mobile-SPA ops gaps. The extraction chain's own follow-ups — measuring
-what `extract-webpage` costs the Worker bundle, and `domain-rank` favicons on the
-search side — are listed there under phase 1.
+OIDC/Redis/mobile-SPA ops gaps.

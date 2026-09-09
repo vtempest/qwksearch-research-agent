@@ -4,7 +4,7 @@ import * as React from 'react';
 import dynamic from 'next/dynamic';
 import { ChevronDown } from 'lucide-react';
 
-import { MainWorkspaceView } from '@/components/layout/MainWorkspaceView';
+import { ResearchWorkspaceView } from 'research-agent-ui/workspace';
 import { cn } from '@/lib/utils';
 
 /**
@@ -161,7 +161,7 @@ export function HomeScrollStack() {
           turn it into a containing block and re-anchor the app's `fixed` and
           `absolute` chrome (popovers, dialogs, the dock) to it. */}
       <div ref={workspaceRef} className="h-screen">
-        <MainWorkspaceView />
+        <ResearchWorkspaceView />
       </div>
 
       <ScrollCue

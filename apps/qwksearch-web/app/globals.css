@@ -617,7 +617,7 @@ pre[class*="language-"] {
 
 /* Bottom-right, clearing the mobile dock — and lifted further by
    `--qs-bottom-right-inset` while the cookie-consent banner (which claims the
-   same corner, see components/layout/CookieConsent.tsx) is showing. */
+   same corner, see research-agent-ui's src/app/CookieConsent.tsx) is showing. */
 .qs-scroll-cue {
   bottom: calc(
     72px + env(safe-area-inset-bottom, 0px) + var(--qs-bottom-right-inset, 0px)

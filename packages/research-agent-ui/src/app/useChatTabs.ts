@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useChat } from 'research-agent-ui';
+import { useChat } from '../hooks/useChat';
 
 export interface ChatTab {
   id: string;

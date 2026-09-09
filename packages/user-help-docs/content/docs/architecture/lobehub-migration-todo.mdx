@@ -24,7 +24,7 @@ Last updated: 2026-09-09.
 |---|---|
 | 0. Baseline — LobeHub builds and deploys on Workers | ✅ |
 | 1. Chat mode on the engine (staging) | 🚧 search and extraction wired; parity open |
-| 2. Settings as the single system of record | 🚧 extraction settings have a resolved backend; panes open |
+| 2. Settings as the single system of record | 🚧 extraction settings are backend-complete (resolution + persistence + API); panes open |
 | 3. REASON docs inside the engine | ⬜ |
 | 4. Public cutover | 🔒 needs the license answer |
 | 5. Decommission + satellites + ops gaps | ⬜ |
@@ -193,14 +193,56 @@ Three things worth knowing before building the pane on top of it:
 
 Follow-ups:
 
-- ⬜ **The user layer has no writer yet.** `UserExtractionOverrides` is the type
-  the Extraction pane (2.2) will persist to `src/store/user/slices/settings/`;
-  today only the env and query layers are populated.
+- ✅ **The user layer now has storage and an API.** See 1.6.
 - ⬜ **MLA/Chicago only reach the fallback builder's fields.** The extractor's
   own citation is APA, so a non-APA style is rebuilt from `author_cite`, `title`,
   `source` and `date` — correct, but it loses the extractor's author-type
   handling (organizations, two-author, more-than-two). Teaching
   `extract-webpage` the other styles is the real fix.
+
+### 1.6 Extraction preferences: the user layer ✅
+
+1.5 defined a user layer and gave it nowhere to live —
+`UserExtractionOverrides` was a type `resolveExtractionSettings` accepted and
+nothing ever produced. It now has storage, an API and a caller:
+
+- `worker/qwksearch/extractionPreferences.ts` — load / save / clear one user's
+  overrides, and `userExtractionOverridesForRequest(headers)` for the article
+  route. Every read is validated again on the way out and never throws; a
+  failure resolves to `{}` and the caller falls back to the operator's config.
+- `worker/routes/qwksearch/extractionSettings.ts` —
+  `GET`/`PUT`/`DELETE /api/doc/extraction-settings`, sign-in required, returning
+  `{ overrides, effective, options }`.
+- `extraction_settings` on D1 (`migrations/d1/0002_extraction_settings.sql`,
+  idempotent like 0001; both files run from `bun run cf:d1:migrate`).
+- `/api/doc/article` folds the layer in between env and query, so precedence is
+  now **default → env → user → `?cite=`/`?lang=`**. A request with no `cookie`
+  header skips the session lookup, so the anonymous path is unchanged.
+
+The full contract is §F2b of the integrations reference.
+
+**Correction to the plan.** 2.2 below used to say the Extraction pane needed
+"nothing further server-side". That was wrong: the resolver took a user layer,
+but no code path produced one, so a pane writing to
+`src/store/user/slices/settings/` would have changed nothing about an
+extraction. That gap is what 1.6 closes.
+
+**Deliberate deviation.** The plan said to persist through LobeHub's user
+settings store. The overrides are on D1 instead, keyed by the same LobeHub user
+id as favorites and documents. Reading Postgres `user_settings` from a Hono
+Worker route would couple the extraction chain to Hyperdrive for a six-field
+blob, and adding a namespace to it means an upstream type edit plus a Postgres
+migration — the opposite of the "keep changes additive" rule below. Phase 2's
+"one system of record" is about the settings *surface*, and there is still
+exactly one: the pane. If the panes later consolidate onto the LobeHub store,
+this route is the migration's read side.
+
+Follow-ups:
+
+- ⬜ **No client consumer yet** — that is 2.2's pane. Until it exists the API is
+  reachable only by hand (`curl -b` with a session cookie).
+- ⬜ **`languages` is capped at five and `tiers` at the four known ids**; the
+  pane should surface those bounds from `options` rather than repeating them.
 
 ### 1.4 Agent parity checklist ⬜
 
@@ -227,14 +269,23 @@ Reproduce today's chat-mode behavior on the engine and record each gap:
   category selection, per-category defaults, time range, SearXNG URL — now that
   1.2 exists these map onto `QWKSEARCH_SEARCH_URL` and the category normalizer)
   and **Extraction** (citation style, transcript language, render backend,
-  scraper/Tavily keys). Persist through `src/store/user/slices/settings/`.
-  The **Extraction** pane's backend is done (1.5): its fields are exactly
-  `UserExtractionOverrides` — citation style, transcript languages, PDF OCR mode,
-  extractor timeout, enabled tiers, third-party fallback. The pane serializes
-  that type and the request path folds it in; nothing further is needed
-  server-side. Note that the render backend and the scraper/Tavily keys are
-  **not** in that type on purpose — they stay Worker secrets (2.3), so the pane
-  shows them as read-only status, not inputs.
+  scraper/Tavily keys).
+  The **Extraction** pane's backend is done (1.5 and 1.6): the pane is a client
+  of `GET`/`PUT`/`DELETE /api/doc/extraction-settings`, which persists to D1 —
+  it does *not* need a slice in `src/store/user/slices/settings/`, and 1.6
+  records why. Everything it needs comes back from `GET`:
+  - `overrides` — the six editable fields (`UserExtractionOverrides`): citation
+    style, transcript languages, PDF OCR mode, extractor timeout, enabled tiers,
+    third-party fallback. `PUT` replaces the whole set and echoes what was kept
+    after validation, so the pane should render the response rather than its own
+    optimistic state.
+  - `effective` — what is in force once the operator's env is folded in; the
+    right thing to show as derived text next to each input.
+  - `effective.configured` — booleans for the render backend, proxy, PDF
+    processor URL and the scraper/Tavily keys. Those stay Worker secrets (2.3),
+    so the pane shows read-only status, never inputs and never their values.
+  - `options` — the citation-style and processor enums, the tier ids and the
+    timeout bounds, so the pane does not restate the server's validation.
   The **Search & Sources** pane still has no equivalent resolution layer; it
   needs the same treatment `extractSettings.ts` gave extraction before it can be
   built the same way.
@@ -319,10 +370,15 @@ Blocked on the LobeHub Community License answer, recorded in
 **Suggested next, in order** — all code-only, all testable without Cloudflare
 credentials:
 
-1. **2.2's Extraction pane.** The seam is now fully specified: the pane's fields
-   are `UserExtractionOverrides` and the request path already folds that type in
-   (1.5). This is a UI-and-store change with no backend work left, which makes it
-   the cheapest remaining item with a user-visible result.
+1. **2.2's Extraction pane.** Now genuinely unblocked: 1.6 gave the pane an API
+   to read and write (`/api/doc/extraction-settings`), and its `GET` response
+   carries the fields, the enums and the bounds, so the pane is a form over one
+   JSON document with no server work left. It is pure UI — a tab under
+   `src/features/Settings/`, a route segment, locale keys in
+   `packages/locales/src/default/qwksearch.ts` (en-US and zh-CN by hand, per
+   `AGENTS.md`), and a small client beside
+   `src/features/QwkSearch/ArticlePanel/api.ts`. The cheapest remaining item
+   with a user-visible result.
 2. **A `searchSettings.ts` for the Search & Sources pane**, mirroring
    `extractSettings.ts`: one resolved value, layered defaults → env → user, with
    the same rule that hosts and keys are environment-only. `QwkSearchImpl` reads
@@ -343,5 +399,18 @@ Then, for whichever you pick:
    LobeHub, so keep them to registration points (an enum, a switch, a route mount)
    and list every one in `packages-lobe/README.md` § What changed vs. upstream.
 3. Ship a test with it. `bunx vitest run <path>` under `packages-lobe`.
+
+   **If `packages-lobe/node_modules` is empty** — it is in a fresh clone, because
+   `packages-lobe` is a separate pnpm workspace outside the root turbo graph — a
+   full `pnpm install` is not the only option for a `worker/` change. Those
+   modules depend on very little: an install of `vitest`, `drizzle-orm` and
+   `hono` in a scratch directory, symlinked to `packages-lobe/node_modules`
+   (which is gitignored), plus a throwaway config with `root` pointing at
+   `packages-lobe`, runs the whole `worker/qwksearch` and
+   `worker/routes/qwksearch` suite in about a second. Two files need more than
+   that and will fail to collect: `articleAi.test.ts` (`@lobechat/business-const`)
+   and `spaVariants.test.ts` (`cookie`); `article.test.ts` needs
+   `@lobechat/web-crawler/src/utils/htmlToMarkdown` aliased to a stub. Anything
+   touching `src/` needs the real install.
 4. Update this page's status and add the seam to the integrations reference in
    the same change.

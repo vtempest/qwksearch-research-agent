@@ -68,6 +68,24 @@ export const articleQA = sqliteTable('articleQA', {
   question: text('question').notNull(),
 });
 
+/**
+ * Per-user overrides for the article extraction chain — the user layer of
+ * `extractSettings.ts`, written by the Extraction settings pane.
+ *
+ * One row per LobeHub user id, holding a JSON `UserExtractionOverrides`. It is
+ * deliberately *not* a column per setting: the type is validated on the way in
+ * and again on the way out, so adding a knob is a change to that type rather
+ * than a D1 migration. Hosts and credentials never reach this table — they stay
+ * Worker secrets.
+ */
+export const extractionSettings = sqliteTable('extraction_settings', {
+  overrides: text('overrides', { mode: 'json' }).$type<Record<string, unknown>>(),
+  updatedAt: integer('updatedAt', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  userId: text('userId').primaryKey(),
+});
+
 export const documents = sqliteTable(
   'documents',
   {

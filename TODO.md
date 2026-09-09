@@ -1,5 +1,135 @@
 ## In Progress
 
+## Build the Extraction settings pane inside the LobeHub engine
+
+**Status:** Completed
+**Source:** Scheduled task — "merge lobehub and qwksearch.com so that lobehub is
+the core engine but the elements of qwksearch are then added". Picked up the
+LobeHub Migration To-Do's own #1 suggested next: 2.2's Extraction pane, which
+1.6 had just unblocked by giving the resolver's user layer an API.
+**Branch:** `claude/magical-bohr-cg4yml`
+**PR:** Not created yet
+**Started:** 2026-09-09
+**Completed:** 2026-09-09
+
+### Goal
+`/api/doc/extraction-settings` had no client. Three prior runs built the
+extraction chain (1.3), its settings resolver (1.5) and the per-user storage
+behind it (1.6); the preferences were reachable only with `curl -b` and a
+session cookie. Give them a settings pane, in LobeHub's own settings shell
+rather than beside it.
+
+### Scope
+Five new files under `packages-lobe/src/features/Settings/extraction/`, five
+one-line registrations in existing LobeHub files, and 48 locale keys in three
+files. No new route: `/settings/:tab` already dispatches by enum value.
+
+- `api.ts` — `GET`/`PUT`/`DELETE`, and the response types.
+- `formState.ts` — form values ⇄ `UserExtractionOverrides`, pure, no React.
+- `features/ExtractionForm.tsx` — the form.
+- `index.tsx` — `SettingHeader` + the form.
+- Registrations: the `SettingsTabs.Extraction` enum member, `componentMap.ts`,
+  `componentMap.desktop.ts`, the sidebar item in `useCategory.tsx`, the
+  compact-header title map in `SettingsContent.tsx`.
+
+### Non-goals
+- **A Search & Sources pane.** It is the other half of 2.2 and it is *not*
+  symmetrical: `QwkSearchImpl` still reads its config straight from env, so it
+  needs a `searchSettings.ts` first — the same 1.5 → 1.6 → 1.7 sequence
+  extraction took. Recorded as the next run's #1.
+- **Editing hosts or credentials.** They stay Worker secrets (2.3); the pane
+  shows five read-only presence flags and never a value.
+- **Touching the resolver.** No `worker/` file changed.
+
+### What changed
+The pane is a form over the one JSON document the route serves. Three decisions
+carry the design:
+
+- **An unset field is not a value.** `normalizeOverrides` drops `undefined`, so
+  a field the user has not touched must be *absent* from the PUT body — not
+  `null`, not `''`, not the value that happens to be in force. Every input has
+  an explicit inherit state and `overridesFromFormValues` omits those keys. It
+  is also why the third-party-fallback control is a three-way select rather than
+  a `Switch`: `false` pins the user to off, unset follows the operator, and a
+  switch cannot say both.
+- **The inputs seed from `overrides`, never from `effective`.** Seeding from
+  what is in force would turn every inherited field into an explicit override
+  the moment the user saved anything, silently pinning them to today's server
+  config. `effective` appears only as the hint under each input and as the
+  timeout's placeholder.
+- **The pane renders the response, not what it sent.** `PUT` validates and
+  trims — a sixth language, an unknown tier, a 99s timeout clamped to 60 — and
+  the response is the authority on what was stored.
+
+Everything the form needs about validation arrives in `options`: the two enums,
+the tier ids and the timeout bounds. A new citation style on the server needs no
+UI edit.
+
+### The drift guard
+`src/` bundles for the browser and `worker/` for workerd, so `api.ts` restates
+the Worker's types instead of importing them. `contract.test.ts` is the one
+place the two halves meet: it imports the real `extractSettings.ts`, rebuilds
+the exact document the route returns, and runs a load → edit → save cycle back
+through `normalizeOverrides`. An enum member or override field added on the
+server and not in `api.ts` fails it.
+
+### Verification
+- [x] `src/features/Settings/extraction/formState.test.ts` — 20 cases: the
+      inherit/omit translation in both directions, `false` kept distinct from
+      unset, an empty list read as inherit rather than "no tiers", list order
+      preserved for both list fields, and the dirty check over override
+      documents rather than form representations.
+- [x] `src/features/Settings/extraction/api.test.ts` — 7 cases: the verb, body
+      and `credentials: 'include'` of each call, the server's echo returned
+      rather than the sent body, and the four error paths (401 status carried,
+      `error` preferred over `message`, statusText fallback, a non-JSON body).
+- [x] `src/features/Settings/extraction/contract.test.ts` — 10 cases against the
+      real resolver: the client types assignable to its output, every enum
+      covered, exactly six editable fields, no credential anywhere in the
+      serialized response, and the round trip through `normalizeOverrides`.
+- [x] `src/features/Settings/extraction/features/ExtractionForm.test.tsx` — 11
+      cases: loads once, renders the three groups and the five status rows,
+      Save and Clear disabled when there is nothing to write, a save that sends
+      only the touched field, a clamped value followed down from the response,
+      revert, DELETE, and a failed write surfaced as an error toast without
+      losing the form.
+- [x] `bun run check` over all 7 changed source files — lint clean (one prettier
+      auto-fix in the locale file), related tests pass.
+- [x] `npx vitest run src/features/Settings/{extraction,features,hooks}` — 53
+      passed, 6 files. `componentMap.sync.test.ts` and `useCategory.test.tsx`
+      confirm the registrations did not desync web from desktop.
+- [x] Type check: **scoped**, not repo-wide. `bun run check --type` reached
+      13.8 GB RSS on this 15 GB box and had to be killed — the same OOM an
+      earlier run recorded. A `tsconfig` extending the real one but restricted
+      to the changed files plus `worker/qwksearch/extractSettings.ts` runs in
+      about a minute and is **clean for every file this change touches**. The
+      errors it does report are all in `apps/desktop` and `apps/server`
+      (missing `electron` types and similar), pre-existing and untouched here.
+
+### Notes for the next run
+- **`pnpm install --ignore-scripts` in `packages-lobe` works here**, takes a few
+  minutes and ~3 GB, and is what a `src/` change needs. Earlier runs recorded a
+  scratch-vitest recipe for `worker/`-only changes; the to-do now says to prefer
+  the real install unless the change is `worker/`-only.
+- Prettier reformatted `packages/locales/src/default/qwksearch.ts` on the
+  auto-fix pass, including re-quoting `docs.confirmDelete`. That file and
+  `locales/en-US/qwksearch.json` had already drifted on that key before this
+  change; the TS side is now prettier-normalized and the JSON side untouched.
+
+### Remaining work
+- **`languages` is a free-text tag input.** Any BCP-47-shaped tag is accepted
+  and the server drops what does not match, so a typo silently disappears
+  rather than being flagged. A language picker is the fix.
+- **`tiers` is a plain multi-select**, so the execution order is the order the
+  user happened to click. It is stored in that order and it matters — the
+  control should be drag-to-reorder.
+- **A 401 shows the raw error text.** `ExtractionSettingsApiError` already
+  carries the status; the pane should recognise it and prompt to sign in, the
+  way `article.error.loginRequired` does.
+- **Not seen in a browser.** No Cloudflare credentials in this environment, so
+  the pane is verified by tests and never by eye. `bun run cf:dev` under
+  `packages-lobe` is the check.
+
 ## Triage the 7 open pull requests: merge or close as superseded
 
 **Status:** In Progress

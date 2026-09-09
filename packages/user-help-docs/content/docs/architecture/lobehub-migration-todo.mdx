@@ -24,7 +24,7 @@ Last updated: 2026-09-09.
 |---|---|
 | 0. Baseline — LobeHub builds and deploys on Workers | ✅ |
 | 1. Chat mode on the engine (staging) | 🚧 search and extraction wired; parity open |
-| 2. Settings as the single system of record | 🚧 extraction settings are backend-complete (resolution + persistence + API); panes open |
+| 2. Settings as the single system of record | 🚧 Extraction pane shipped end to end; Search & Sources pane open |
 | 3. REASON docs inside the engine | ⬜ |
 | 4. Public cutover | 🔒 needs the license answer |
 | 5. Decommission + satellites + ops gaps | ⬜ |
@@ -239,10 +239,68 @@ this route is the migration's read side.
 
 Follow-ups:
 
-- ⬜ **No client consumer yet** — that is 2.2's pane. Until it exists the API is
-  reachable only by hand (`curl -b` with a session cookie).
-- ⬜ **`languages` is capped at five and `tiers` at the four known ids**; the
-  pane should surface those bounds from `options` rather than repeating them.
+- ✅ **The client consumer landed** — 1.7 below.
+- ✅ **`languages` is capped at five and `tiers` at the four known ids**; the
+  pane reads both bounds out of `options` and never repeats them.
+
+### 1.7 Extraction settings pane ✅
+
+2.2's Extraction half, shipped. `/settings/extraction` is a form over the one
+JSON document 1.6 serves, and the first QwkSearch surface to live *inside*
+LobeHub's settings shell rather than beside it. The full contract is §F2c of the
+integrations reference.
+
+```
+src/features/Settings/extraction/
+  index.tsx           SettingHeader + the form
+  api.ts              GET/PUT/DELETE, and the response types
+  formState.ts        form values ⇄ UserExtractionOverrides (pure, no React)
+  features/ExtractionForm.tsx
+```
+
+Three things worth knowing before touching it:
+
+- **An unset field is not a value.** `normalizeOverrides` drops `undefined`, so
+  a field the user has not touched must be *absent* from the PUT body — not
+  `null`, not `''`, and not the value that happens to be in force. Every input
+  therefore has an explicit inherit state (`INHERIT` for the enums, an empty
+  list, `null` for the timeout) and `overridesFromFormValues` omits those keys.
+  This is why the third-party-fallback control is a three-way select rather than
+  a `Switch`: `false` pins the user to off, unset follows the operator, and a
+  switch cannot say both.
+- **The inputs seed from `overrides`, never from `effective`.** Seeding from
+  what is in force would turn every inherited field into an explicit override
+  the moment the user saved anything, silently pinning them to today's server
+  config. `effective` appears only as the hint under each input and as the
+  timeout's placeholder.
+- **The pane renders the response, not what it sent.** `PUT` trims — a sixth
+  language, an unknown tier, a 99s timeout clamped to 60 — and the response is
+  the authority.
+
+`api.ts` restates the Worker's types instead of importing them, because `src/`
+bundles for the browser and `worker/` for workerd. **`contract.test.ts` is the
+drift guard**: it imports the real `extractSettings.ts`, rebuilds the exact
+document the route returns, and runs a load → edit → save cycle back through
+`normalizeOverrides`. An enum member or override field added on the server and
+not in `api.ts` fails it.
+
+Upstream edits are five registration points and no logic — the `SettingsTabs`
+enum, both `componentMap`s, the sidebar item in `useCategory.tsx`, and the
+compact-header title map in `SettingsContent.tsx`. No route file: `/settings/:tab`
+already dispatches by enum value.
+
+Follow-ups:
+
+- ⬜ **`languages` is a free-text tag input.** Any BCP-47-shaped tag is accepted
+  and the server drops what does not match, so a typo silently disappears rather
+  than being flagged. A language picker is the fix.
+- ⬜ **`tiers` is a plain multi-select**, so the execution order is the order the
+  user happened to click. It is *stored* in that order and it matters — the
+  control should be drag-to-reorder.
+- ⬜ **A 401 shows the raw error text.** The pane needs sign-in and says
+  "could not load your extraction settings"; it should recognise the 401 that
+  `ExtractionSettingsApiError` already carries and prompt to sign in, the way
+  `article.error.loginRequired` does.
 
 ### 1.4 Agent parity checklist ⬜
 
@@ -270,25 +328,15 @@ Reproduce today's chat-mode behavior on the engine and record each gap:
   1.2 exists these map onto `QWKSEARCH_SEARCH_URL` and the category normalizer)
   and **Extraction** (citation style, transcript language, render backend,
   scraper/Tavily keys).
-  The **Extraction** pane's backend is done (1.5 and 1.6): the pane is a client
-  of `GET`/`PUT`/`DELETE /api/doc/extraction-settings`, which persists to D1 —
-  it does *not* need a slice in `src/store/user/slices/settings/`, and 1.6
-  records why. Everything it needs comes back from `GET`:
-  - `overrides` — the six editable fields (`UserExtractionOverrides`): citation
-    style, transcript languages, PDF OCR mode, extractor timeout, enabled tiers,
-    third-party fallback. `PUT` replaces the whole set and echoes what was kept
-    after validation, so the pane should render the response rather than its own
-    optimistic state.
-  - `effective` — what is in force once the operator's env is folded in; the
-    right thing to show as derived text next to each input.
-  - `effective.configured` — booleans for the render backend, proxy, PDF
-    processor URL and the scraper/Tavily keys. Those stay Worker secrets (2.3),
-    so the pane shows read-only status, never inputs and never their values.
-  - `options` — the citation-style and processor enums, the tier ids and the
-    timeout bounds, so the pane does not restate the server's validation.
-  The **Search & Sources** pane still has no equivalent resolution layer; it
-  needs the same treatment `extractSettings.ts` gave extraction before it can be
-  built the same way.
+  ✅ **Extraction is done** — 1.5 (resolution), 1.6 (storage + API) and 1.7 (the
+  pane). It is a client of `GET`/`PUT`/`DELETE /api/doc/extraction-settings` and
+  has no slice in `src/store/user/slices/settings/`; 1.6 records why.
+  ⬜ **Search & Sources** is what remains, and it is not symmetrical with
+  Extraction: it still has no resolution layer. `QwkSearchImpl` reads
+  `QWKSEARCH_SEARCH_URL` and its category normalizer straight from env, the way
+  the extraction tiers used to, so the same three steps apply in the same order
+  — a `searchSettings.ts`, then storage and a route, then the pane. Take 1.5–1.7
+  as the template; each is written up above.
 - ⬜ **2.3 Key migration.** Server env keys stay Worker secrets. Per-user keys
   live in `localStorage` today and have no server copy — announce a one-time
   re-entry into the engine's key vault; do not build a migrator.
@@ -370,25 +418,27 @@ Blocked on the LobeHub Community License answer, recorded in
 **Suggested next, in order** — all code-only, all testable without Cloudflare
 credentials:
 
-1. **2.2's Extraction pane.** Now genuinely unblocked: 1.6 gave the pane an API
-   to read and write (`/api/doc/extraction-settings`), and its `GET` response
-   carries the fields, the enums and the bounds, so the pane is a form over one
-   JSON document with no server work left. It is pure UI — a tab under
-   `src/features/Settings/`, a route segment, locale keys in
-   `packages/locales/src/default/qwksearch.ts` (en-US and zh-CN by hand, per
-   `AGENTS.md`), and a small client beside
-   `src/features/QwkSearch/ArticlePanel/api.ts`. The cheapest remaining item
-   with a user-visible result.
-2. **A `searchSettings.ts` for the Search & Sources pane**, mirroring
+1. **A `searchSettings.ts` for the Search & Sources pane**, mirroring
    `extractSettings.ts`: one resolved value, layered defaults → env → user, with
    the same rule that hosts and keys are environment-only. `QwkSearchImpl` reads
    `QWKSEARCH_SEARCH_URL` and its category normalizer straight from env today,
-   the way the extraction tiers used to.
-3. **5.4's bundle budget in CI.** The measurement exists (`bun run cf:budget`);
+   the way the extraction tiers used to. Extraction took three passes to get
+   here (1.5 → 1.6 → 1.7) and this is the first of the three; doing them in that
+   order is what made each one testable on its own.
+2. **1.3's open question — two chains in `extract.ts`.** `defaultTiersFor`,
+   `extractViaYouTube`, `extractViaPdf`, `loadCiteExtractor` and
+   `articleViaCiteExtractor` have never been on a request path, and lint reports
+   two of them as unused. It is a decision, not a discovery: adopt or delete.
+   Small, and it removes the only known dead code in the Worker.
+3. **1.7's follow-ups**, all small and all user-visible: a language picker
+   instead of free-text tags, a drag-to-reorder tier list, and a sign-in prompt
+   on the 401 the pane currently shows as raw error text.
+4. **5.4's bundle budget in CI.** The measurement exists (`bun run cf:budget`);
    what is missing is a workflow that runs it. That needs a job that installs and
    builds `packages-lobe`, which no workflow does yet — a CI-minutes decision as
-   much as a code one, which is why it sits below the two above.
-4. **2.1's settings map**, which 2.2 needs anyway and which is pure reading.
+   much as a code one, which is why it sits below the items above.
+5. **2.1's settings map**, which the Search & Sources pane needs anyway and
+   which is pure reading.
 
 Then, for whichever you pick:
 
@@ -400,7 +450,22 @@ Then, for whichever you pick:
    and list every one in `packages-lobe/README.md` § What changed vs. upstream.
 3. Ship a test with it. `bunx vitest run <path>` under `packages-lobe`.
 
-   **If `packages-lobe/node_modules` is empty** — it is in a fresh clone, because
+   A full `pnpm install --ignore-scripts` inside `packages-lobe` **does** work in
+   a code-only environment — it takes a few minutes and about 3 GB. Anything
+   touching `src/` needs it, and it is what makes `bun run check <files>` (lint
+   + auto-discovered related tests in one pass) available, which is the workflow
+   `packages-lobe/AGENTS.md` documents. Prefer it unless the change is
+   `worker/`-only.
+
+   **Do not run `bun run check --type`.** The repo-wide type check reaches
+   ~13.8 GB RSS and gets OOM-killed on a 15 GB box — twice observed now. Write a
+   throwaway `tsconfig.scoped.json` that `extends` the real one and narrows
+   `include` to the files you changed, then `npx tsgo --noEmit -p` it: about a
+   minute, and it keeps the path aliases that passing bare filenames loses.
+   Expect pre-existing errors from `apps/desktop` and `apps/server` in the
+   output (missing `electron` types and similar) — filter to your own paths.
+
+   **If the change is `worker/`-only and `packages-lobe/node_modules` is empty** — it is in a fresh clone, because
    `packages-lobe` is a separate pnpm workspace outside the root turbo graph — a
    full `pnpm install` is not the only option for a `worker/` change. Those
    modules depend on very little: an install of `vitest`, `drizzle-orm` and

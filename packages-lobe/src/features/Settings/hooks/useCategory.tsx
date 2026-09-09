@@ -13,6 +13,7 @@ import {
   Database,
   EllipsisIcon,
   EthernetPort,
+  FileSearchIcon,
   FlaskConical,
   Gift,
   Info,
@@ -69,6 +70,7 @@ export const useCategory = () => {
   const { t } = useTranslation('setting');
   const { t: tAuth } = useTranslation('auth');
   const { t: tLabs } = useTranslation('labs');
+  const { t: tQwkSearch } = useTranslation('qwksearch');
   const { t: tSubscription } = useTranslation('subscription');
   const mobile = useServerConfigStore((s) => s.isMobile);
   const { hideDocs, showApiKeyManage, showProvider } = useServerConfigStore(featureFlagsSelectors);
@@ -199,6 +201,14 @@ export const useCategory = () => {
         key: SettingsTabs.Messenger,
         label: t('tab.messenger'),
       },
+      // QwkSearch: how the article side panel extracts a page. It sits with the
+      // AI config rather than System because it is a per-user preference over
+      // the same chain the web-browsing tool reads.
+      {
+        icon: FileSearchIcon,
+        key: SettingsTabs.Extraction,
+        label: tQwkSearch('extraction.title'),
+      },
     ].filter(Boolean) as CategoryItem[];
 
     groups.push({
@@ -273,6 +283,7 @@ export const useCategory = () => {
     t,
     tAuth,
     tLabs,
+    tQwkSearch,
     tSubscription,
     enableBusinessFeatures,
     hideDocs,

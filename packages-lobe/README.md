@@ -84,6 +84,15 @@ data is reused as-is.
 
   `extract-webpage` is loaded through a lazy, injectable loader (`worker/qwksearch/extractQwkSearch.ts`),
   so a missing or broken install degrades to the next tier instead of taking the Worker down.
+- **Extraction settings** (`worker/qwksearch/extractSettings.ts`): the chain's knobs — transcript
+  language, citation style, render backend, PDF OCR mode, which tiers run — are resolved rather
+  than hard-coded, layering operator config over the shipped defaults and then per-request
+  preferences over that. Every value is validated on the way in, and an unparseable one falls back
+  to the layer below instead of failing the request. `GET /api/doc/article` accepts exactly two of
+  them as query parameters, `cite` (`apa` | `mla` | `chicago`) and `lang` (comma-separated
+  transcript languages); hosts, credentials and the OCR mode are environment-only, because a
+  caller-supplied backend URL would make the endpoint an open request proxy. This is the sink the
+  Extraction settings pane writes to when it lands.
 - **Branding**: `BRANDING_NAME`/`ORG_NAME` = QwkSearch, QwkSearch favicons under `public/`,
   support/social URLs point at qwksearch.com.
 
@@ -149,7 +158,23 @@ Secrets (`wrangler secret put …`):
 | `QSTASH_TOKEN`, `QSTASH_*_SIGNING_KEY` | LobeHub workflows (Upstash QStash) |
 
 Plain vars (`APP_URL`, `DATABASE_DRIVER`, `DISABLE_REDIS`, `EMAIL_SERVICE_PROVIDER`, `SMTP_FROM`,
-`SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`) are in `wrangler.jsonc`; `keep_vars` keeps dashboard-entered vars across deploys. Run
+`SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`) are in `wrangler.jsonc`; `keep_vars` keeps dashboard-entered vars across deploys.
+
+Extraction is tuned by an optional group of vars, all defaulted (`worker/qwksearch/extractSettings.ts`):
+
+| Var | Default | Meaning |
+| --- | --- | --- |
+| `QWKSEARCH_CITATION_STYLE` | `apa` | `apa`, `mla` or `chicago` |
+| `QWKSEARCH_EXTRACT_LANGUAGES` | `en` | preferred YouTube transcript languages, most-preferred first (max 5) |
+| `QWKSEARCH_EXTRACT_TIMEOUT` | `10` | `extract-webpage` request timeout, seconds (1–60) |
+| `QWKSEARCH_EXTRACT_TIERS` | all four | which tiers may run, in order: `qwksearch,scraper,tavily,crawler` |
+| `QWKSEARCH_SCRAPER_DEADLINE_MS` | `8000` | Puppeteer render budget (1000–30000) |
+| `QWKSEARCH_PDF_PROCESSOR` | `frontend` | `extract-pdf` OCR mode: `frontend` (none), `hybrid`, `docling` |
+| `QWKSEARCH_PDF_PROCESSOR_URL` | — | remote docling-compatible processor for `hybrid`/`docling` |
+| `QWKSEARCH_EXTRACT_PROXY` | — | outbound proxy for the extractor's own fetches |
+| `QWKSEARCH_EXTRACT_THIRD_PARTY_BACKUP` | `false` | let the extractor fall back to a third-party reader |
+
+Run
 LobeHub's Postgres migrations once against the database: `bun run db:migrate` with `DATABASE_URL` set.
 
 ## Tests

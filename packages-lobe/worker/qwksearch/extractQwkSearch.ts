@@ -76,10 +76,21 @@ export interface QwkSearchExtractOptions {
   /** Preferred transcript languages for YouTube URLs. Defaults to `['en']`. */
   languages?: string[];
   loader?: ExtractWebpageLoader;
+  /**
+   * Where `extract-pdf` does OCR: `frontend` (all JS, no OCR), `hybrid` (OCR
+   * only the pages that scan as infographics or tables) or `docling` (OCR every
+   * page). `extractContent` forwards its whole options object to
+   * `convertPDFToHTML`, so these two reach the PDF branch unchanged.
+   */
+  pdfProcessor?: string;
+  /** Docling-compatible processor base URL for `hybrid` / `docling`. */
+  pdfProcessorUrl?: string;
   /** Outbound proxy for the extractor's own fetch, when one is configured. */
   proxy?: null | string;
   /** Seconds, matching `extract-webpage`'s own unit. Defaults to 10. */
   timeoutSeconds?: number;
+  /** Let the extractor fall back to a third-party reader service. */
+  useThirdPartyBackup?: boolean;
 }
 
 export const QWKSEARCH_TIMEOUT_SECONDS = 10;
@@ -158,9 +169,14 @@ export const runQwkSearchExtractor = async (
     images: true,
     languages: options.languages?.length ? options.languages : ['en'],
     links: true,
+    // `extract-webpage` reads `processor` only on its PDF branch, and treats an
+    // absent one as `frontend`; sending it for an HTML URL is inert.
+    ...(options.pdfProcessor ? { processor: options.pdfProcessor } : {}),
+    ...(options.pdfProcessorUrl ? { processorUrl: options.pdfProcessorUrl } : {}),
     proxy: options.proxy ?? null,
     timeout: options.timeoutSeconds ?? QWKSEARCH_TIMEOUT_SECONDS,
     url,
+    useThirdPartyBackup: options.useThirdPartyBackup ?? false,
   });
 };
 

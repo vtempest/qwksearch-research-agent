@@ -211,7 +211,7 @@ function resolveStart(request: Request, mode: D1SessionMode): string {
   if (mode === "primary") return FIRST_PRIMARY;
   // Before the `unconstrained` check on purpose: for auth traffic neither a
   // client bookmark nor the low-latency override is a strong enough guarantee.
-  if (needsPrimary(request)) return FIRST_PRIMARY;
+  if (requiresPrimary(request)) return FIRST_PRIMARY;
   if (mode === "unconstrained") return FIRST_UNCONSTRAINED;
 
   const bookmark = readClientBookmark(request);

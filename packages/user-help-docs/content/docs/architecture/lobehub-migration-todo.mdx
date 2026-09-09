@@ -243,7 +243,7 @@ Follow-ups:
 - ✅ **`languages` is capped at five and `tiers` at the four known ids**; the
   pane reads both bounds out of `options` and never repeats them.
 
-### 1.7 Extraction settings pane ✅
+### 1.7 Extraction settings pane ✅ (#393)
 
 2.2's Extraction half, shipped. `/settings/extraction` is a form over the one
 JSON document 1.6 serves, and the first QwkSearch surface to live *inside*
@@ -479,3 +479,26 @@ Then, for whichever you pick:
    touching `src/` needs the real install.
 4. Update this page's status and add the seam to the integrations reference in
    the same change.
+
+## What CI will and will not tell you
+
+Two things about this repo's CI are worth knowing before you read a red check
+on a `packages-lobe` change, both observed on #393:
+
+- **Nothing in CI builds or tests `packages-lobe`.** The root `workspaces` are
+  `packages/*`, `packages/render-url-to-html/*` and `apps/*`; `packages-lobe` is
+  a separate pnpm workspace outside that graph, so no job installs it. A green
+  run says nothing about a change made there, and a red one is almost certainly
+  not yours. Your own `bunx vitest run` under `packages-lobe` is the only
+  signal — which is why 5.4's "bundle budget in CI" needs a whole new job.
+- **The Coverage workflow is already red on `master`.** On `f10e1091` six jobs
+  failed before any of this work existed: `extract-youtube`, `extract-pdf`,
+  `qwksearch-web`, `shadcn-settings`, `search-web-api` and
+  `chat-agent-toolkit`. Check the same job on the base commit before treating a
+  failure as yours.
+
+Also: **PRs here auto-merge.** `.github/workflows/auto-merge-claude.yml` merged
+#393 about ten seconds after it was opened, before its own checks finished. So
+the PR is the delivery, not a review checkpoint — get the change right before
+opening it, and expect any follow-up commit pushed afterwards to need its own
+PR against the new `master`.

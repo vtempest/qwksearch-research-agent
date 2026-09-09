@@ -380,6 +380,7 @@
     "es-toolkit": "^1.50.0",
     "exceljs": "^4.4.0",
     "expo-server-sdk": "^6.1.0",
+    "extract-webpage": "^1.2.270",
     "fast-deep-equal": "^3.1.3",
     "fflate": "^0.8.3",
     "ffmpeg-static": "^5.3.0",

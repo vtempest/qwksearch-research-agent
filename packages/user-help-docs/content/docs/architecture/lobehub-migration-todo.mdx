@@ -16,14 +16,14 @@ The map of what already connects is
 
 **Legend** — ✅ done · 🚧 in progress · ⬜ not started · 🔒 blocked
 
-Last updated: 2026-09-07.
+Last updated: 2026-09-09.
 
 ## Snapshot
 
 | Phase | State |
 |---|---|
 | 0. Baseline — LobeHub builds and deploys on Workers | ✅ |
-| 1. Chat mode on the engine (staging) | 🚧 search wired; extraction and parity open |
+| 1. Chat mode on the engine (staging) | 🚧 search and extraction wired; parity open |
 | 2. Settings as the single system of record | ⬜ |
 | 3. REASON docs inside the engine | ⬜ |
 | 4. Public cutover | 🔒 needs the license answer |
@@ -69,20 +69,50 @@ Follow-ups that are deliberately *not* in that change:
   `domain-rank` (favicons, domain authority) is not consulted on the engine side.
   Decide whether that belongs in the endpoint or the impl.
 
-### 1.3 Extraction chain, tier 0 = the QwkSearch article extractor ⬜
+### 1.3 Extraction chain, tier 0 = the QwkSearch article extractor ✅
 
-Today `worker/qwksearch/extract.ts` runs Puppeteer scraper → Tavily →
-`@lobechat/web-crawler`. None of those is `extract-webpage`, so the engine loses
-QwkSearch's citation extraction, and `classifyUrl` rejects video hosts outright.
+Done. `worker/qwksearch/extractQwkSearch.ts` adapts `extract-webpage`, and
+`tiersForUrl` in `worker/qwksearch/extract.ts` routes each URL kind to its chain.
+One `extractContent` call covered all three sub-items, because the extractor
+branches on the URL itself.
 
-1. ⬜ Add `extract-webpage` (already standalone on npm) as tier 0 of
-   `extractArticle`, ahead of the scraper — it brings `extractContent` plus
-   citation extraction, and shares the D1 `articleCache` the panel already writes.
-2. ⬜ Route YouTube URLs to `extract-youtube` transcripts instead of rejecting
-   them in `VIDEO_PATTERNS`.
-3. ⬜ Route PDF and arXiv URLs to `extract-pdf` (processor modes + OCR page scan).
-4. ⬜ Keep every tier returning `{ error }` rather than throwing — the chain
-   contract in `extract.ts` depends on it.
+1. ✅ **Tier 0 = `extract-webpage`**, ahead of the scraper, bringing citation
+   extraction (`author_cite`, `author_short`, `author_type`, date, source) that
+   the readability path could not produce. It writes through the same D1
+   `articleCache`, so nothing about the panel's storage changed.
+2. ✅ **YouTube** is its own `UrlKind`, extracted as a transcript through
+   `extract-youtube`, instead of being rejected in `VIDEO_PATTERNS`. Only
+   Vimeo/Dailymotion/Twitch — hosts with no transcript route — still get the
+   "not an article" stub.
+3. ✅ **PDF and arXiv** are their own `UrlKind`, routed to `extract-pdf`
+   through the extractor's PDF branch. `.pdf` (with or without a query string)
+   and `arxiv.org/pdf/` match; `arxiv.org/abs/` stays on the article path
+   because those pages are HTML.
+4. ✅ Every tier still returns `{ error }` rather than throwing — including a
+   failed *module load*, which is why the package is behind an injectable lazy
+   loader. Tests inject a fake module, so they never load the real extractor.
+
+Two things worth knowing before building on this:
+
+- **`linkedom` is no longer shimmed** in `vite.worker.config.ts`. It was stubbed
+  to throw because LobeHub only reached it from the dev-server template
+  rewriter, but `extract-webpage` parses every page with it and it runs fine on
+  workerd. `worker/shims/linkedom.ts` is gone. The Worker bundle went from
+  **7.39 MB to 7.93 MB gzipped** against Cloudflare's 10 MB limit — see 5.4.
+- **The scraper tier got better too.** When tier 0 fails but Puppeteer gets past
+  the bot check, the rendered HTML now runs through the same citation extraction
+  (`articleFromRenderedHtml`) instead of discarding the byline. It falls back to
+  LobeHub readability if that yields nothing.
+
+Follow-ups that are deliberately *not* in that change:
+
+- ⬜ **Per-user extraction settings.** Transcript language, citation style and
+  the render backend are hard-coded (`['en']`, APA-ish, `SCRAPER_URL`). They are
+  the substance of the Extraction pane in 2.2, so they land there.
+- ⬜ **PDF OCR modes.** `extract-pdf` supports in-process, hybrid and remote
+  Granite Docling processors; the engine takes the default slim path. Wiring the
+  remote processor URL needs a settings surface, so it also waits on 2.2.
+- ⬜ **Bundle budget in CI** (5.4) matters more now that the margin is ~2 MB.
 
 ### 1.4 Agent parity checklist ⬜
 
@@ -110,6 +140,9 @@ Reproduce today's chat-mode behavior on the engine and record each gap:
   1.2 exists these map onto `QWKSEARCH_SEARCH_URL` and the category normalizer)
   and **Extraction** (citation style, transcript language, render backend,
   scraper/Tavily keys). Persist through `src/store/user/slices/settings/`.
+  Now that 1.3 exists, these have concrete sinks: transcript language is
+  `QwkSearchExtractOptions.languages`, the render backend is `SCRAPER_URL`, and
+  the PDF processor mode is `extract-pdf`'s. All three are hard-coded today.
 - ⬜ **2.3 Key migration.** Server env keys stay Worker secrets. Per-user keys
   live in `localStorage` today and have no server copy — announce a one-time
   re-entry into the engine's key vault; do not build a migrator.
@@ -167,12 +200,35 @@ Blocked on the LobeHub Community License answer, recorded in
   - ⬜ Upstash HTTP Redis provider in `src/libs/redis` — without it, agent stream
     fan-out, edit locks and some rate limits run on per-isolate memory.
   - ⬜ Mobile SPA build (`build:spa:mobile`); mobile currently gets the desktop bundle.
-  - ⬜ Worker bundle size budget in CI (~7.4 MB gzipped against a 10 MB limit).
+  - ⬜ Worker bundle size budget in CI — now **~7.9 MB gzipped against a 10 MB
+    limit** after 1.3 pulled in `linkedom` and Prism. ~2 MB of headroom is thin
+    enough that the next dependency should not land without this check. Measure
+    with `gzip -9 -c dist/worker/index.js | wc -c` after `bun run build:worker:server`.
+  - ⬜ Republish `extract-webpage` so the engine can drop the bundler workaround.
+    Its published dist imports `prismjs/components/prism-markup` and 16 siblings
+    without a `.js` extension, which Node's ESM resolver rejects — Vite/rolldown
+    resolve it, so the Worker build is fine, but the package cannot be loaded by
+    plain Node. Fixed at source in
+    `packages/extract-webpage/src/html-to-content/html-utils.ts`; the fix reaches
+    the engine on the next `npm publish` of that package.
   - ⬜ OIDC (`/oidc/*` returns 501) — blocks CLI and desktop sign-in.
   - ⬜ SEO strings in the HTML shell are English-only (`worker/shims/serverTranslation.ts`).
   - ⬜ No `sharp`; avatar processing falls back to the original image.
 
 ## How to pick up the next item
+
+**Suggested next, in order** — all code-only, all testable without Cloudflare
+credentials:
+
+1. **5.4's bundle budget check.** Smallest of the three and the most urgent:
+   1.3 left ~2 MB of headroom, and nothing currently fails a build that crosses
+   the 10 MB line. A CI step that gzips `dist/worker/index.js` and compares is
+   an afternoon's work.
+2. **2.2's Extraction pane.** 1.3 gave it real settings to bind — transcript
+   language, PDF processor mode, render backend — that are hard-coded today.
+3. **2.1's settings map**, which 2.2 needs anyway and which is pure reading.
+
+Then, for whichever you pick:
 
 1. Prefer an item whose seam is already understood and whose "done" is testable
    without Cloudflare credentials — those are the ones a code-only run can finish.

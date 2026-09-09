@@ -67,9 +67,23 @@ data is reused as-is.
   `QWKSEARCH_API_KEY`). Requested categories are normalized across three vocabularies
   (LobeHub's manifest, QwkSearch's 13-category registry, SearXNG's), fanned out one request per
   category (max 3) and merged by URL — highest score wins, engine lists union.
-- **Extraction chain** (`worker/qwksearch/extract.ts`): Cloudflare Puppeteer scraper
-  (`SCRAPER_URL`, 8s deadline) → Tavily (`TAVILY_API_KEY`) → LobeHub's own `@lobechat/web-crawler`
-  (fetch + readability). Search-engine result pages and video hosts are rejected up front.
+- **Extraction chain** (`worker/qwksearch/extract.ts`): QwkSearch's own `extract-webpage`
+  → Cloudflare Puppeteer scraper (`SCRAPER_URL`, 8s deadline) → Tavily (`TAVILY_API_KEY`) →
+  LobeHub's own `@lobechat/web-crawler` (fetch + readability). The chain is routed per URL kind
+  by `tiersForUrl`:
+  - **Articles** run the whole chain. Tier 0 gives citation extraction — author, `author_cite`,
+    `author_short`, `author_type`, date and source resolved against a 90k-name database — so the
+    panel's `cite` is a real APA citation rather than `hostname (no date)`. When tier 0 fails and
+    the Puppeteer scraper gets past the bot check, the rendered HTML still goes through that same
+    citation extraction (`articleFromRenderedHtml`), falling back to LobeHub readability.
+  - **YouTube** URLs are extracted as transcripts through `extract-youtube`, and **PDF/arXiv**
+    URLs through `extract-pdf`. Both run tier 0 alone: the later tiers render HTML, which for
+    these URLs is page chrome rather than the transcript or the document.
+  - Search-engine result pages, malformed URLs, and video hosts with no transcript route
+    (Vimeo, Dailymotion, Twitch) are still rejected up front.
+
+  `extract-webpage` is loaded through a lazy, injectable loader (`worker/qwksearch/extractQwkSearch.ts`),
+  so a missing or broken install degrades to the next tier instead of taking the Worker down.
 - **Branding**: `BRANDING_NAME`/`ORG_NAME` = QwkSearch, QwkSearch favicons under `public/`,
   support/social URLs point at qwksearch.com.
 
@@ -84,7 +98,7 @@ bun run build:spa                  # dist/desktop  (main app, base /_spa/)
 bun run build:spa:auth             # dist/auth     (sign-in app, base /_spa-auth/)
 tsx scripts/buildWorkerAssets.mts  # public/ + dist/desktop + dist/auth → dist/client
 
-# 2. Worker bundle → dist/worker/index.js (single ES module, ~7.4 MB gzipped,
+# 2. Worker bundle → dist/worker/index.js (single ES module, ~7.9 MB gzipped,
 #    against Cloudflare's 10 MB compressed Worker limit)
 bun run build:worker:server
 
@@ -166,7 +180,13 @@ Hyperdrive bridge, and rendered-component tests for the article panel and the do
 - `packages/file-loaders`, `packages/eval-dataset-parser`: `xlsx` pinned to the npm registry build
   (the SheetJS CDN tarball is not reachable from the build environment).
 - `package.json`: `build:worker*`, `cf:*` scripts; `wrangler`/`@cloudflare/workers-types` dev deps;
-  `worker/cf/globals.ts` registered in `sideEffects`.
+  `worker/cf/globals.ts` registered in `sideEffects`; `extract-webpage` dependency (tier 0 of the
+  extraction chain).
+- `vite.worker.config.ts`: `linkedom` is no longer aliased to a shim. It is pure JS and runs on
+  workerd, and `extract-webpage` parses every page with it; LobeHub only reached it from the
+  dev-server template rewriter, which is why it used to be stubbed. `worker/shims/linkedom.ts`
+  is deleted. Cost: the Worker bundle goes from 7.39 MB to 7.93 MB gzipped against Cloudflare's
+  10 MB limit (linkedom, plus the Prism grammars `extract-webpage` uses to highlight code blocks).
 
 Everything under `worker/` and `src/features/QwkSearch/` is new.
 

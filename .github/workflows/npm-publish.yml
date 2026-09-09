@@ -146,12 +146,12 @@ jobs:
           # GitHub runs `run:` steps with `bash -e -o pipefail`, so simply not
           # writing `set -e` here does not disable errexit — `set -uo pipefail`
           # leaves it on. With errexit on, the first package whose publish fails
-          # kills the whole step: `chat-agent-toolkit` sorts first in
-          # `packages/*/`, so once its publish started returning npm E404 every
-          # later package stopped being evaluated at all and the whole workspace
-          # went unreleased. Turn errexit off explicitly; per-package outcomes
-          # are handled through $rc below, and the run still exits non-zero at
-          # the end if anything failed.
+          # kills the whole step: once the first package in the loop started
+          # returning npm E404 on publish, every later package stopped being
+          # evaluated at all and the whole workspace went unreleased. Turn
+          # errexit off explicitly; per-package outcomes are handled through
+          # $rc below, and the run still exits non-zero at the end if anything
+          # failed.
           set -uo pipefail
           set +e
 
@@ -161,7 +161,22 @@ jobs:
           unattempted_packages=""
           auth_broken=""
 
-          for dir in packages/*/; do
+          # Walk the workspace in dependency order rather than in shell-glob
+          # (alphabetical) order. bun links workspace packages into node_modules
+          # as symlinks, so a sibling that has not been built yet has no dist/
+          # and the `exports` -> `types` entries in its package.json point at
+          # files that do not exist. Alphabetically, `research-agent-ui` ran its
+          # declaration build before shadcn-app-dock, trending-news-api and
+          # use-voice-control were built, and tsc reported every import of them
+          # as "Cannot find module ... or its corresponding type declarations".
+          # Dependency order also means a sibling's `workspace:*` pin below is
+          # rewritten to the version that sibling just published, not the one it
+          # had before its bump.
+          build_order=$(node scripts/workspace-build-order.mjs)
+          echo "📋 Build order:"
+          echo "$build_order" | sed 's/^/   /'
+
+          for dir in $build_order; do
             pkg="${dir}package.json"
 
             if [ ! -f "$pkg" ]; then

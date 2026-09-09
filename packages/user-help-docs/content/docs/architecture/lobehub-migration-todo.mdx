@@ -24,7 +24,7 @@ Last updated: 2026-09-09.
 |---|---|
 | 0. Baseline — LobeHub builds and deploys on Workers | ✅ |
 | 1. Chat mode on the engine (staging) | 🚧 search and extraction wired; parity open |
-| 2. Settings as the single system of record | ⬜ |
+| 2. Settings as the single system of record | 🚧 extraction settings have a resolved backend; panes open |
 | 3. REASON docs inside the engine | ⬜ |
 | 4. Public cutover | 🔒 needs the license answer |
 | 5. Decommission + satellites + ops gaps | ⬜ |
@@ -56,12 +56,25 @@ is written up in §F5 of the integrations reference.
 
 Follow-ups that are deliberately *not* in that change:
 
-- ⬜ **Extend the tool manifest's category enum** from LobeHub's five
-  (`general/images/news/science/videos`) to QwkSearch's thirteen.
-  `packages/builtin-tool-web-browsing/src/manifest.ts` is static and shared by
-  every provider, so widening it blind would let the model ask SearXNG or Brave
-  for `torrents` and get nothing. Do it by making the manifest categories
-  provider-aware, or only once `qwksearch` is the sole configured provider.
+- ✅ **Extend the tool manifest's category enum.** Done the second way the
+  option offered: `packages/builtin-tool-web-browsing/src/searchCategories.ts`
+  (new file) resolves the enum at module evaluation and widens it *only* when
+  `SEARCH_PROVIDERS` names `qwksearch` and nothing else, so no other backend is
+  ever asked for a category it cannot serve. `manifest.ts` gains an import and
+  swaps the literal for `resolveSearchCategories()`; the package index gains one
+  export line. Those three lines are the whole upstream edit.
+
+  The widening is to **ten**, not thirteen — the fan-out endpoint takes SearXNG
+  spellings, and QwkSearch's 13-name registry aliases onto those ten in
+  `normalizeCategories`. The five the model gains are `files`, `it`, `map`,
+  `music` and `social+media`. Drift between the advertised list and the accepted
+  one now fails a test in `impls/qwksearch/index.test.ts` (27 cases, was 20).
+
+  Two caveats worth knowing: the enum is fixed at module evaluation, which is
+  safe on the Worker only because `worker/cf/globals.ts` mirrors vars onto
+  `process.env` before anything else evaluates; and in the SPA there is no
+  `process`, so the client-side copy of the manifest always reports LobeHub's
+  five. Nothing on the client reads the enum today.
 - ⬜ **Service binding instead of HTTPS.** `QwkSearchImpl` calls Worker A over
   the public internet. Once both Workers deploy together, a Cloudflare service
   binding removes a hop and the need for `QWKSEARCH_API_KEY`.
@@ -106,13 +119,88 @@ Two things worth knowing before building on this:
 
 Follow-ups that are deliberately *not* in that change:
 
-- ⬜ **Per-user extraction settings.** Transcript language, citation style and
-  the render backend are hard-coded (`['en']`, APA-ish, `SCRAPER_URL`). They are
-  the substance of the Extraction pane in 2.2, so they land there.
-- ⬜ **PDF OCR modes.** `extract-pdf` supports in-process, hybrid and remote
-  Granite Docling processors; the engine takes the default slim path. Wiring the
-  remote processor URL needs a settings surface, so it also waits on 2.2.
+- ✅ **Per-user extraction settings — resolution layer.** Done in 1.5 below;
+  what remains is the UI that writes to it (2.2).
+- ✅ **PDF OCR modes.** `PDF_PROCESSOR` /
+  `PDF_PROCESSOR_URL` reach `extract-pdf` through 1.5.
 - ⬜ **Bundle budget in CI** (5.4) matters more now that the margin is ~2 MB.
+
+#### 🔒 Open question: two chains live in `extract.ts`
+
+`extract.ts` currently defines **two** tier chains, and only one of them runs:
+
+| | `tiersForUrl` (live) | `defaultTiersFor` (not wired) |
+|---|---|---|
+| article | `qwksearch → scraper → tavily → crawler` | `scraper → tavily → crawler` |
+| youtube | `qwksearch` | `extractViaYouTube → scraper → tavily → crawler` |
+| pdf | `qwksearch` | `extractViaPdf → tavily` |
+
+`extractArticle` defaults to `tiersForUrl`, so `extractViaYouTube` and
+`extractViaPdf` — and the `PDF_PROCESSOR_URL` read inside the latter — have
+never been on a request path. The contract in §F2 of the integrations reference
+describes the live chain, not the unwired one.
+
+They arrived together and the two are materially different products: the live
+chain leads with `extract-webpage`'s own fetch, the unwired one leads with the
+Puppeteer render. Switching changes what *every* article extraction does, so it
+wants a deliberate decision rather than being settled inside an unrelated
+change. Until then `defaultTiersFor` carries a comment saying it is not wired.
+
+Two more helpers from the same change are dead for the same reason:
+`loadCiteExtractor` and `articleViaCiteExtractor` are defined and never called
+— the live scraper tier reaches `extract-webpage` through
+`articleFromRenderedHtml` instead. Lint reports both as unused.
+
+**Decide:** adopt `defaultTiersFor` (and rewrite §F2 to match), or delete it,
+the two tiers it names, and the two helpers above.
+
+### 1.5 Extraction settings resolution ✅
+
+The extraction chain no longer hard-codes its knobs.
+`worker/qwksearch/extractSettings.ts` owns one `ExtractionSettings` value, and
+folds it out of three layers — shipped defaults, then Worker env, then
+per-request overrides — validating every value on the way in. `tiersForUrl`
+binds the resolved settings into each tier, so a tier no longer reaches for
+`process.env` itself.
+
+| Setting | Env var | Reaches |
+|---|---|---|
+| Citation style (`apa`/`mla`/`chicago`) | `QWKSEARCH_CITATION_STYLE` | `buildCite`, every tier |
+| Transcript languages | `QWKSEARCH_EXTRACT_LANGUAGES` | `extract-youtube` via `languages` |
+| Extractor timeout | `QWKSEARCH_EXTRACT_TIMEOUT` | `extract-webpage` `timeout` |
+| Enabled tiers, in order | `QWKSEARCH_EXTRACT_TIERS` | `tiersForUrl` |
+| Render backend + budget | `SCRAPER_URL`, `SCRAPER_API_KEY`, `QWKSEARCH_SCRAPER_DEADLINE_MS` | the Puppeteer tier |
+| PDF OCR mode + endpoint | `PDF_PROCESSOR`, `PDF_PROCESSOR_URL` | `extract-pdf` via `processor` |
+| Outbound proxy | `QWKSEARCH_EXTRACT_PROXY` | `extract-webpage` `proxy` |
+| Third-party reader fallback | `QWKSEARCH_EXTRACT_THIRD_PARTY_BACKUP` | `extract-webpage` |
+
+Three things worth knowing before building the pane on top of it:
+
+- **The client layer is deliberately narrower than the user layer.**
+  `GET /api/doc/article` honours `?cite=` and `?lang=` and nothing else. Every
+  other setting either names a host the Worker would then send a bearer token to
+  (`scraperUrl`, `pdfProcessorUrl`, `proxy`) or buys the caller compute
+  (`pdfProcessor=docling` OCRs every page). `ClientExtractionOverrides` is typed
+  to exclude them and `parseClientExtractionOverrides` never reads them.
+- **Citation style survives the cache.** `articleCache` is keyed by URL and holds
+  one `cite` string, so a non-APA request re-renders the citation from the cached
+  fields rather than fragmenting the cache per style. APA keeps the stored
+  string, which came out of the extractor's 90k-name database and beats anything
+  the fallback builder assembles from columns.
+- **An empty tier list is a real outcome.** `QWKSEARCH_EXTRACT_TIERS=scraper`
+  leaves a PDF URL with no viable tier, and the caller gets the "no extraction
+  tier configured" error rather than a tier the operator switched off.
+
+Follow-ups:
+
+- ⬜ **The user layer has no writer yet.** `UserExtractionOverrides` is the type
+  the Extraction pane (2.2) will persist to `src/store/user/slices/settings/`;
+  today only the env and query layers are populated.
+- ⬜ **MLA/Chicago only reach the fallback builder's fields.** The extractor's
+  own citation is APA, so a non-APA style is rebuilt from `author_cite`, `title`,
+  `source` and `date` — correct, but it loses the extractor's author-type
+  handling (organizations, two-author, more-than-two). Teaching
+  `extract-webpage` the other styles is the real fix.
 
 ### 1.4 Agent parity checklist ⬜
 
@@ -133,16 +221,23 @@ Reproduce today's chat-mode behavior on the engine and record each gap:
   to its engine equivalent: models → `Settings/provider` + `service-model`;
   mcpservers → `features/MCP/MCPSettings`; voice → `tts`; skills-memory →
   `skill` + `memory`; account/storage → `profile` / `storage`.
-- ⬜ **2.2 Add the two missing panes**, following the existing tab conventions
+- 🚧 **2.2 Add the two missing panes**, following the existing tab conventions
   (`src/features/Settings/<tab>/` + route segment + keys in
   `packages/locales/src/default/qwksearch.ts`): **Search & Sources** (engine and
   category selection, per-category defaults, time range, SearXNG URL — now that
   1.2 exists these map onto `QWKSEARCH_SEARCH_URL` and the category normalizer)
   and **Extraction** (citation style, transcript language, render backend,
   scraper/Tavily keys). Persist through `src/store/user/slices/settings/`.
-  Now that 1.3 exists, these have concrete sinks: transcript language is
-  `QwkSearchExtractOptions.languages`, the render backend is `SCRAPER_URL`, and
-  the PDF processor mode is `extract-pdf`'s. All three are hard-coded today.
+  The **Extraction** pane's backend is done (1.5): its fields are exactly
+  `UserExtractionOverrides` — citation style, transcript languages, PDF OCR mode,
+  extractor timeout, enabled tiers, third-party fallback. The pane serializes
+  that type and the request path folds it in; nothing further is needed
+  server-side. Note that the render backend and the scraper/Tavily keys are
+  **not** in that type on purpose — they stay Worker secrets (2.3), so the pane
+  shows them as read-only status, not inputs.
+  The **Search & Sources** pane still has no equivalent resolution layer; it
+  needs the same treatment `extractSettings.ts` gave extraction before it can be
+  built the same way.
 - ⬜ **2.3 Key migration.** Server env keys stay Worker secrets. Per-user keys
   live in `localStorage` today and have no server copy — announce a one-time
   re-entry into the engine's key vault; do not build a migrator.
@@ -224,12 +319,20 @@ Blocked on the LobeHub Community License answer, recorded in
 **Suggested next, in order** — all code-only, all testable without Cloudflare
 credentials:
 
-1. **5.4's bundle budget in CI.** The measurement now exists
-   (`bun run cf:budget`); what is missing is a workflow that runs it. That needs
-   a job that installs and builds `packages-lobe`, which no workflow does yet.
-2. **2.2's Extraction pane.** 1.3 gave it real settings to bind — transcript
-   language, PDF processor mode, render backend — that are hard-coded today.
-3. **2.1's settings map**, which 2.2 needs anyway and which is pure reading.
+1. **2.2's Extraction pane.** The seam is now fully specified: the pane's fields
+   are `UserExtractionOverrides` and the request path already folds that type in
+   (1.5). This is a UI-and-store change with no backend work left, which makes it
+   the cheapest remaining item with a user-visible result.
+2. **A `searchSettings.ts` for the Search & Sources pane**, mirroring
+   `extractSettings.ts`: one resolved value, layered defaults → env → user, with
+   the same rule that hosts and keys are environment-only. `QwkSearchImpl` reads
+   `QWKSEARCH_SEARCH_URL` and its category normalizer straight from env today,
+   the way the extraction tiers used to.
+3. **5.4's bundle budget in CI.** The measurement exists (`bun run cf:budget`);
+   what is missing is a workflow that runs it. That needs a job that installs and
+   builds `packages-lobe`, which no workflow does yet — a CI-minutes decision as
+   much as a code one, which is why it sits below the two above.
+4. **2.1's settings map**, which 2.2 needs anyway and which is pure reading.
 
 Then, for whichever you pick:
 

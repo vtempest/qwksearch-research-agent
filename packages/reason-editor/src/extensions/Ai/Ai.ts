@@ -9,6 +9,12 @@
  * package) and rebuilt on Tiptap/ProseMirror: a decoration-driven plugin
  * (state machine + diff rendering) in place of Slate's editor transforms,
  * following the same shape as this package's `Harper` extension.
+ *
+ * Three rules shape the behaviour here, all of them about not damaging the
+ * document: nothing is written until the user accepts; what is written is the
+ * sanitised, Markdown-aware content the review panel showed, not the raw model
+ * response; and the request only ever carries a bounded window of the document
+ * so a long file cannot silently blow up the call.
  */
 
 import { type Editor, Extension } from '@tiptap/core';
@@ -18,7 +24,10 @@ import type { Mapping } from '@tiptap/pm/transform';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
 import { DEFAULT_AI_COMMANDS } from './commands';
+import { completionToContent } from './lib/completionToContent';
 import { mockAiCompletion } from './lib/mockCompletion';
+import { AI_SYSTEM_PROMPT, buildAiInstruction, clampContext } from './lib/prompt';
+import { sanitizeCompletion } from './lib/sanitizeCompletion';
 
 import type {
   AiCommandDefinition,
@@ -29,7 +38,8 @@ import type {
 } from './types';
 
 export * from './types';
-export { DEFAULT_AI_COMMANDS } from './commands';
+export { DEFAULT_AI_COMMANDS, DEFAULT_AI_LANGUAGES, AI_COMMAND_GROUP_LABELS } from './commands';
+export { AI_SYSTEM_PROMPT } from './lib/prompt';
 
 export interface AiOptions {
   /** Quick commands offered in the "Ask AI anything…" menu. */
@@ -37,9 +47,21 @@ export interface AiOptions {
   /**
    * Runs a completion for an instruction. Defaults to an offline demo
    * transform; host apps should supply a real implementation, the same way
-   * `Image`/`Video` take an `upload` callback.
+   * `Image`/`Video` take an `upload` callback. See `createStreamingCompletion`
+   * for a ready-made fetch/stream implementation.
    */
   getCompletion: AiCompletionFn;
+  /**
+   * System message sent with every request. Constrains the model to return
+   * only the replacement text — override to add house style or domain rules.
+   */
+  systemPrompt: string;
+  /**
+   * How much surrounding document text (in characters) is sent as context.
+   * The window is taken from around the selection, so the nearest text is
+   * what survives the clamp. Set to `0` to send no context at all.
+   */
+  contextChars: number;
   /** Class applied to the (still-present) original text while a replacement is reviewed. */
   removedClass: string;
   /** Class applied to the streamed/suggested text widget. */
@@ -61,9 +83,18 @@ interface AiPluginState {
 
 type AiMeta =
   | { type: 'open-menu'; from: number; to: number }
-  | { type: 'set-loading'; from: number; to: number; commandLabel: string; instruction: string }
+  | {
+      type: 'set-loading';
+      from: number;
+      to: number;
+      commandId: string;
+      commandLabel: string;
+      instruction: string;
+      option?: string;
+    }
   | { type: 'set-suggestion'; suggestion: AiSuggestion; commandLabel: string }
   | { type: 'set-error'; from: number; to: number; commandLabel: string; message: string }
+  | { type: 'settle' }
   | { type: 'close' };
 
 export const aiPluginKey = new PluginKey<AiPluginState>('ai');
@@ -79,6 +110,11 @@ export function getAiOptions(editor: Editor): AiOptions | undefined {
     | undefined;
 }
 
+/** Whether the Ai extension is registered on this editor, for hosts that render its controls conditionally. */
+export function isAiEnabled(editor: Editor | null | undefined): boolean {
+  return !!editor && typeof (editor.commands as any).openAiMenu === 'function';
+}
+
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     ai: {
@@ -86,15 +122,17 @@ declare module '@tiptap/core' {
       openAiMenu: () => ReturnType;
       /** Close the menu and discard any pending suggestion without touching the document. */
       closeAiMenu: () => ReturnType;
-      /** Run one of `options.commands` against the menu's range. */
-      runAiCommand: (commandId: string) => ReturnType;
+      /** Run one of `options.commands` against the menu's range, optionally with a submenu choice. */
+      runAiCommand: (commandId: string, option?: string) => ReturnType;
       /** Run a free-form instruction typed into the menu's input. */
       submitAiPrompt: (instruction: string) => ReturnType;
+      /** Abort an in-flight completion and return to the command menu. */
+      stopAiGeneration: () => ReturnType;
       /** Replace the original range with the suggestion (or insert it, when there was no selection). */
       acceptAiSuggestion: () => ReturnType;
       /** Discard the suggestion, leaving the document untouched. */
       discardAiSuggestion: () => ReturnType;
-      /** Keep the original text and insert the suggestion as a new paragraph below it. */
+      /** Keep the original text and insert the suggestion as a new block below it. */
       insertAiSuggestionBelow: () => ReturnType;
       /** Re-run the last instruction against its original range. */
       retryAiSuggestion: () => ReturnType;
@@ -183,19 +221,38 @@ function buildDecorations(doc: ProseMirrorNode, panel: AiPanelState, options: Ai
   return DecorationSet.empty;
 }
 
+/**
+ * The document text sent as context: a window centred on the range rather than
+ * the whole document, so cost and latency stay bounded on a long file.
+ */
+function readContextWindow(doc: ProseMirrorNode, from: number, to: number, budget: number): string {
+  if (budget <= 0) return '';
+
+  // Read a generous span either side, then clamp precisely by characters:
+  // positions and characters are not 1:1 once nodes are involved.
+  const span = budget + 200;
+  const before = doc.textBetween(Math.max(0, from - span), from, '\n');
+  const after = doc.textBetween(to, Math.min(doc.content.size, to + span), '\n');
+
+  const half = Math.floor(budget / 2);
+  const head = clampContext(before, half);
+  const tail = after.length > budget - head.length ? `${after.slice(0, budget - head.length)}…` : after;
+
+  return `${head}${head && tail ? '\n' : ''}${tail}`.trim();
+}
+
 async function runAiRequest(
   editor: Editor,
   options: AiOptions,
   storage: AiStorage,
-  instruction: string,
-  commandLabel: string,
+  request: { instruction: string; commandId: string; commandLabel: string; option?: string },
   from: number,
   to: number
 ) {
   const { view } = editor;
   const doc = editor.state.doc;
   const selectedText = from === to ? '' : doc.textBetween(from, to, '\n');
-  const documentText = doc.textBetween(0, doc.content.size, '\n');
+  const documentText = readContextWindow(doc, from, to, options.contextChars);
   const mode: AiSuggestion['mode'] = selectedText ? 'replace' : 'insert';
 
   storage.abortController?.abort();
@@ -208,28 +265,57 @@ async function runAiRequest(
       type: 'set-loading',
       from,
       to,
-      commandLabel,
-      instruction,
+      commandId: request.commandId,
+      commandLabel: request.commandLabel,
+      instruction: request.instruction,
+      option: request.option,
     } satisfies AiMeta)
   );
 
   const dispatchSuggestion = (text: string, isStreaming: boolean) => {
     if (token !== storage.requestToken || editor.isDestroyed) return;
+    const suggestedText = sanitizeCompletion(text, { streaming: isStreaming });
     editor.view.dispatch(
       editor.view.state.tr.setMeta(aiPluginKey, {
         type: 'set-suggestion',
-        commandLabel,
-        suggestion: { from, to, originalText: selectedText, suggestedText: text, mode, isStreaming },
+        commandLabel: request.commandLabel,
+        suggestion: { from, to, originalText: selectedText, suggestedText, mode, isStreaming },
       } satisfies AiMeta)
     );
   };
 
   try {
     const result = await options.getCompletion(
-      { instruction, selectedText, documentText },
+      {
+        instruction: request.instruction,
+        selectedText,
+        documentText,
+        commandId: request.commandId,
+        commandLabel: request.commandLabel,
+        option: request.option,
+        systemPrompt: options.systemPrompt,
+        mode,
+      },
       (chunk) => dispatchSuggestion(chunk, true),
       controller.signal
     );
+
+    if (token !== storage.requestToken || editor.isDestroyed) return;
+
+    const finalText = sanitizeCompletion(result);
+    if (!finalText) {
+      editor.view.dispatch(
+        editor.view.state.tr.setMeta(aiPluginKey, {
+          type: 'set-error',
+          from,
+          to,
+          commandLabel: request.commandLabel,
+          message: 'The model returned an empty response.',
+        } satisfies AiMeta)
+      );
+      return;
+    }
+
     dispatchSuggestion(result, false);
   } catch (error) {
     if (controller.signal.aborted || token !== storage.requestToken || editor.isDestroyed) return;
@@ -238,7 +324,7 @@ async function runAiRequest(
         type: 'set-error',
         from,
         to,
-        commandLabel,
+        commandLabel: request.commandLabel,
         message: error instanceof Error ? error.message : 'Something went wrong.',
       } satisfies AiMeta)
     );
@@ -252,6 +338,8 @@ export const Ai = Extension.create<AiOptions, AiStorage>({
     return {
       commands: DEFAULT_AI_COMMANDS,
       getCompletion: mockAiCompletion,
+      systemPrompt: AI_SYSTEM_PROMPT,
+      contextChars: 4000,
       removedClass: 'ai-removed-text',
       insertedClass: 'ai-suggested-text',
       loadingClass: 'ai-loading-indicator',
@@ -276,10 +364,18 @@ export const Ai = Extension.create<AiOptions, AiStorage>({
   },
 
   addCommands() {
+    /** Cancels any in-flight request so a late chunk cannot revive a closed panel. */
+    const cancelInFlight = () => {
+      this.storage.abortController?.abort();
+      this.storage.abortController = null;
+      this.storage.requestToken += 1;
+    };
+
     return {
       openAiMenu:
         () =>
         ({ state, dispatch }) => {
+          cancelInFlight();
           const { from, to } = state.selection;
           if (dispatch) {
             dispatch(state.tr.setMeta(aiPluginKey, { type: 'open-menu', from, to } satisfies AiMeta));
@@ -290,23 +386,63 @@ export const Ai = Extension.create<AiOptions, AiStorage>({
       closeAiMenu:
         () =>
         ({ state, dispatch }) => {
-          this.storage.abortController?.abort();
-          this.storage.requestToken += 1;
+          cancelInFlight();
           if (dispatch) {
             dispatch(state.tr.setMeta(aiPluginKey, { type: 'close' } satisfies AiMeta));
           }
           return true;
         },
 
+      stopAiGeneration:
+        () =>
+        ({ state, dispatch }) => {
+          const panel = getAiState(state)?.panel;
+          if (!panel || (panel.status !== 'loading' && panel.status !== 'reviewing')) return false;
+          if (panel.status === 'reviewing' && !panel.suggestion.isStreaming) return false;
+
+          cancelInFlight();
+          if (!dispatch) return true;
+
+          // Text already streamed in is worth keeping: settle it so the user
+          // can accept the partial result. With nothing yet to review, fall
+          // back to the command list.
+          if (panel.status === 'reviewing') {
+            dispatch(state.tr.setMeta(aiPluginKey, { type: 'settle' } satisfies AiMeta));
+          } else {
+            const { from, to } = getPanelRange(panel, state.selection);
+            dispatch(state.tr.setMeta(aiPluginKey, { type: 'open-menu', from, to } satisfies AiMeta));
+          }
+          return true;
+        },
+
       runAiCommand:
-        (commandId: string) =>
+        (commandId: string, option?: string) =>
         ({ state, editor }) => {
           const command = this.options.commands.find((c) => c.id === commandId);
           if (!command) return false;
 
           const panel = getAiState(state)?.panel ?? { status: 'closed' as const };
           const { from, to } = getPanelRange(panel, state.selection);
-          void runAiRequest(editor as Editor, this.options, this.storage, command.prompt, command.label, from, to);
+
+          // A command that rewrites a selection has nothing to act on when the
+          // caret is collapsed; running it anyway produces a confident answer
+          // about nothing, so refuse instead.
+          if (command.requiresSelection !== false && from === to) return false;
+          if (command.options?.length && !option) return false;
+
+          void runAiRequest(
+            editor as Editor,
+            this.options,
+            this.storage,
+            {
+              instruction: buildAiInstruction(command, option),
+              commandId: command.id,
+              commandLabel: option ? `${command.label} → ${option}` : command.label,
+              option,
+            },
+            from,
+            to
+          );
           return true;
         },
 
@@ -318,7 +454,14 @@ export const Ai = Extension.create<AiOptions, AiStorage>({
 
           const panel = getAiState(state)?.panel ?? { status: 'closed' as const };
           const { from, to } = getPanelRange(panel, state.selection);
-          void runAiRequest(editor as Editor, this.options, this.storage, trimmed, 'Custom', from, to);
+          void runAiRequest(
+            editor as Editor,
+            this.options,
+            this.storage,
+            { instruction: trimmed, commandId: 'custom', commandLabel: 'Custom' },
+            from,
+            to
+          );
           return true;
         },
 
@@ -331,8 +474,12 @@ export const Ai = Extension.create<AiOptions, AiStorage>({
             editor as Editor,
             this.options,
             this.storage,
-            last.instruction,
-            last.commandLabel,
+            {
+              instruction: last.instruction,
+              commandId: last.commandId,
+              commandLabel: last.commandLabel,
+              option: last.option,
+            },
             last.from,
             last.to
           );
@@ -341,23 +488,30 @@ export const Ai = Extension.create<AiOptions, AiStorage>({
 
       acceptAiSuggestion:
         () =>
-        ({ state, dispatch, tr }) => {
+        ({ state, chain }) => {
           const panel = getAiState(state)?.panel;
           if (!panel || panel.status !== 'reviewing' || panel.suggestion.isStreaming) return false;
 
           const { from, to, suggestedText } = panel.suggestion;
-          tr.insertText(suggestedText, from, to);
-          tr.setMeta(aiPluginKey, { type: 'close' } satisfies AiMeta);
+          const { content } = completionToContent(suggestedText);
+          if (!content) return false;
 
-          if (dispatch) dispatch(tr);
-          return true;
+          cancelInFlight();
+          return chain()
+            .insertContentAt({ from, to }, content, {
+              parseOptions: { preserveWhitespace: false },
+            })
+            .command(({ tr }) => {
+              tr.setMeta(aiPluginKey, { type: 'close' } satisfies AiMeta);
+              return true;
+            })
+            .run();
         },
 
       discardAiSuggestion:
         () =>
         ({ state, dispatch }) => {
-          this.storage.abortController?.abort();
-          this.storage.requestToken += 1;
+          cancelInFlight();
           if (dispatch) {
             dispatch(state.tr.setMeta(aiPluginKey, { type: 'close' } satisfies AiMeta));
           }
@@ -366,21 +520,27 @@ export const Ai = Extension.create<AiOptions, AiStorage>({
 
       insertAiSuggestionBelow:
         () =>
-        ({ state, dispatch, tr }) => {
+        ({ state, chain }) => {
           const panel = getAiState(state)?.panel;
           if (!panel || panel.status !== 'reviewing' || panel.suggestion.isStreaming) return false;
 
           const { to, suggestedText } = panel.suggestion;
-          const $to = tr.doc.resolve(Math.min(to, tr.doc.content.size));
-          const blockEnd = $to.end($to.depth);
+          const { content } = completionToContent(suggestedText);
+          if (!content) return false;
 
-          const paragraphType = state.schema.nodes.paragraph;
-          const node = paragraphType.create(null, suggestedText ? state.schema.text(suggestedText) : undefined);
-          tr.insert(blockEnd, node);
-          tr.setMeta(aiPluginKey, { type: 'close' } satisfies AiMeta);
+          // Insert after the block the suggestion ends in, so the original text
+          // is left exactly as it was rather than being split around the result.
+          const $to = state.doc.resolve(Math.min(to, state.doc.content.size));
+          const insertAt = $to.depth > 0 ? $to.after($to.depth) : $to.pos;
 
-          if (dispatch) dispatch(tr);
-          return true;
+          cancelInFlight();
+          return chain()
+            .insertContentAt(insertAt, content, { parseOptions: { preserveWhitespace: false } })
+            .command(({ tr }) => {
+              tr.setMeta(aiPluginKey, { type: 'close' } satisfies AiMeta);
+              return true;
+            })
+            .run();
         },
     };
   },
@@ -413,7 +573,9 @@ export const Ai = Extension.create<AiOptions, AiStorage>({
                   panel = { status: 'loading', from: meta.from, to: meta.to, commandLabel: meta.commandLabel };
                   lastRequest = {
                     instruction: meta.instruction,
+                    commandId: meta.commandId,
                     commandLabel: meta.commandLabel,
+                    option: meta.option,
                     from: meta.from,
                     to: meta.to,
                   };
@@ -429,6 +591,11 @@ export const Ai = Extension.create<AiOptions, AiStorage>({
                     commandLabel: meta.commandLabel,
                     message: meta.message,
                   };
+                  break;
+                case 'settle':
+                  if (panel.status === 'reviewing') {
+                    panel = { ...panel, suggestion: { ...panel.suggestion, isStreaming: false } };
+                  }
                   break;
                 case 'close':
                   panel = { status: 'closed' };

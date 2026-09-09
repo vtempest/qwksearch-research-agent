@@ -2,9 +2,11 @@
 
 import * as React from 'react';
 import dynamic from 'next/dynamic';
+import { usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
+import { useChat } from 'research-agent-ui';
 
-import { MainWorkspaceView } from '@/components/layout/MainWorkspaceView';
+import { ResearchWorkspaceView } from 'research-agent-ui/workspace';
 import { cn } from '@/lib/utils';
 
 /**
@@ -140,12 +142,26 @@ export function HomeScrollStack() {
   const featuresRef = React.useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
   const progress = useEnterProgress(featuresRef);
+  const pathname = usePathname();
+  const { activeView } = useMainView();
+  const { chatTurns } = useChat();
 
   // Flip the cue only once the features cover more than half the screen —
   // pointing "up" any earlier would strand a reader who is still on their way
   // down. Read from the raw progress, not the fade below, so the direction
   // stays correct when motion is reduced.
   const showingFeatures = progress > 0.9;
+
+  // The cue belongs to the homepage's landing state and nowhere else. The
+  // workspace never leaves `/` — chats and REASON documents are tabs within
+  // this one route — so the route check alone would leave the bubble parked on
+  // top of the composer for the whole of a conversation. Show it only while
+  // the first screen is still the empty research view, plus whenever the
+  // features slab already fills the screen, so a reader who scrolled down
+  // always keeps a way back up.
+  const onHomepage = pathname === '/';
+  const isLandingState = activeView === 'research' && chatTurns.length === 0;
+  const showCue = onHomepage && (isLandingState || showingFeatures);
 
   const scrollTo = (ref: React.RefObject<HTMLElement | null>) => {
     ref.current?.scrollIntoView({
@@ -161,13 +177,15 @@ export function HomeScrollStack() {
           turn it into a containing block and re-anchor the app's `fixed` and
           `absolute` chrome (popovers, dialogs, the dock) to it. */}
       <div ref={workspaceRef} className="h-screen">
-        <MainWorkspaceView />
+        <ResearchWorkspaceView />
       </div>
 
-      <ScrollCue
-        direction={showingFeatures ? 'up' : 'down'}
-        onClick={() => scrollTo(showingFeatures ? workspaceRef : featuresRef)}
-      />
+      {showCue && (
+        <ScrollCue
+          direction={showingFeatures ? 'up' : 'down'}
+          onClick={() => scrollTo(showingFeatures ? workspaceRef : featuresRef)}
+        />
+      )}
 
       {/* Second screen onward: the full /features page, easing in as it is
           scrolled up. Sections inside it keep their own staggered reveals.

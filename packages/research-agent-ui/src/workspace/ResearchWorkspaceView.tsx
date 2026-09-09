@@ -2,21 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ChatInputBox, ChatWindow, configureResearchAgentUI, useChat, useSession } from 'research-agent-ui';
 import { ReasonDocs } from 'react-reason-editor/reason-docs';
 import { themeActions } from 'react-reason-editor/theme';
 import { localeActions } from 'react-reason-editor/locale-bundle';
 import { Sidebar, SidebarContent } from 'react-reason-editor-sidebar';
-import { useMainView } from '@/components/layout/MainViewProvider';
-import { useChatTabs } from '@/components/layout/useChatTabs';
-import { getPageTips, htmlToPlainText } from '@/lib/reason-docs/page-tips';
-import { getTopicSearches } from '@/lib/reason-docs/topic-searches';
+import ChatInputBox from '../components/MessageComposer/ChatInputBox';
+import ChatWindow from '../components/ChatConversation/ChatWindow';
+import { configureResearchAgentUI } from '../config';
+import { useChat } from '../hooks/useChat';
+import { useSession } from '../hooks/useSession';
+import { useMainView } from '../app/MainViewProvider';
+import { useChatTabs } from '../app/useChatTabs';
+import { getPageTips, htmlToPlainText } from './page-tips';
+import { getTopicSearches } from './topic-searches';
 
 import 'katex/dist/katex.min.css';
 import 'easydrawer/styles.css';
 import 'katex/contrib/mhchem';
 
-export function MainWorkspaceView() {
+export function ResearchWorkspaceView() {
   const { activeView, toggleToDocs, toggleToResearch, filesSidebarRequestId } = useMainView();
   const { chatTabs, activeChatId, openChat, newChat, closeChat, closeChats } = useChatTabs();
   const { sendMessage } = useChat();

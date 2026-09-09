@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { X } from 'lucide-react';
-import { listFooterLinks, config } from '@/lib/config/site';
+import { researchAgentUIConfig } from '../config';
 
 export function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false);
@@ -79,10 +79,10 @@ export function CookieConsent() {
               Cookies & Privacy
             </h3>
             <p className="text-xs text-black/70 dark:text-white/70 mb-3">
-              {config.appName} uses cookies to enhance your research experience, analyze usage patterns, and improve our service. We respect your privacy and only use essential cookies by default.
+              {researchAgentUIConfig.appName} uses cookies to enhance your research experience, analyze usage patterns, and improve our service. We respect your privacy and only use essential cookies by default.
             </p>
             <div className="flex flex-wrap gap-2 text-xs mb-3">
-              {listFooterLinks.map((link) => (
+              {researchAgentUIConfig.footerLinks.map((link) => (
                 <a
                   key={link.url}
                   href={link.url}

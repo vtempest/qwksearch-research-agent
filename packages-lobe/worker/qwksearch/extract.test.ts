@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  articleFromHtml,
+  articleFromHtmlViaCrawler,
   articleFromRenderedHtml,
   buildCite,
   classifyUrl,
@@ -16,8 +16,10 @@ import {
   looksLikeChallenge,
   markdownToSimpleHtml,
   tiersForUrl,
+  toQwkSearchExtractOptions,
 } from './extract';
 import type { ExtractWebpageModule } from './extractQwkSearch';
+import { type ExtractionSettings, resolveExtractionSettings } from './extractSettings';
 
 /** A stand-in for `extract-webpage`, so tests never load the real extractor. */
 const fakeModule = (overrides: Partial<ExtractWebpageModule> = {}): ExtractWebpageModule => ({
@@ -65,17 +67,53 @@ describe('classifyUrl', () => {
 });
 
 describe('tiersForUrl', () => {
+  const ids = (url: string, settings?: ExtractionSettings) =>
+    tiersForUrl(url, undefined, settings ?? resolveExtractionSettings({})).map((t) => t.tierId);
+
   it('gives youtube and pdf the qwksearch extractor alone', () => {
     // The remaining tiers render HTML, which for these URLs is page chrome
     // rather than the transcript or the document.
-    expect(tiersForUrl('https://youtu.be/dQw4w9WgXcQ')).toEqual([extractViaQwkSearch]);
-    expect(tiersForUrl('https://example.com/paper.pdf')).toEqual([extractViaQwkSearch]);
+    expect(ids('https://youtu.be/dQw4w9WgXcQ')).toEqual(['qwksearch']);
+    expect(ids('https://example.com/paper.pdf')).toEqual(['qwksearch']);
   });
 
   it('gives articles the full chain, qwksearch first', () => {
-    const tiers = tiersForUrl('https://example.com/post');
-    expect(tiers[0]).toBe(extractViaQwkSearch);
-    expect(tiers).toHaveLength(4);
+    expect(ids('https://example.com/post')).toEqual(['qwksearch', 'scraper', 'tavily', 'crawler']);
+  });
+
+  it('drops the tiers the operator switched off, keeping the chain order', () => {
+    const settings = resolveExtractionSettings({ QWKSEARCH_EXTRACT_TIERS: 'crawler,qwksearch' });
+    expect(ids('https://example.com/post', settings)).toEqual(['qwksearch', 'crawler']);
+  });
+
+  it('returns an empty chain when no enabled tier can serve the url kind', () => {
+    // `scraper` renders HTML, which is not what a PDF needs; rather than run a
+    // tier the operator disabled, the caller gets the "no tier" error.
+    const settings = resolveExtractionSettings({ QWKSEARCH_EXTRACT_TIERS: 'scraper' });
+    expect(ids('https://example.com/paper.pdf', settings)).toEqual([]);
+  });
+
+  it('projects the resolved settings onto the extractor options', async () => {
+    let seen: Record<string, unknown> | undefined;
+    const settings = resolveExtractionSettings({
+      QWKSEARCH_EXTRACT_LANGUAGES: 'de,fr',
+      QWKSEARCH_EXTRACT_TIMEOUT: '25',
+      PDF_PROCESSOR: 'hybrid',
+    });
+    // The loader is a test seam rather than a setting, so it is injected here
+    // instead of going through `toQwkSearchExtractOptions`.
+    await extractViaQwkSearch('https://example.com/paper.pdf', {
+      ...toQwkSearchExtractOptions(settings),
+      loader: async () =>
+        fakeModule({
+          extractContent: vi.fn(async (_url: string, options?: Record<string, unknown>) => {
+            seen = options;
+            return { html: '<p>body</p>' };
+          }),
+        }),
+    });
+
+    expect(seen).toMatchObject({ languages: ['de', 'fr'], processor: 'hybrid', timeout: 25 });
   });
 });
 
@@ -97,6 +135,13 @@ describe('markdownToSimpleHtml', () => {
 });
 
 describe('buildCite / countWords', () => {
+  const article = {
+    author_cite: 'Lovelace, A.',
+    date: '2024-03-05',
+    source: 'example.com',
+    title: 'T',
+  };
+
   it('builds an APA-ish citation with a year when the date is valid', () => {
     const cite = buildCite(
       { date: '2024-03-05', source: 'example.com', title: 'T' },
@@ -106,20 +151,55 @@ describe('buildCite / countWords', () => {
     expect(cite).toContain('<b>T</b>');
   });
 
+  it('formats MLA with the day-first date and a quoted title', () => {
+    const cite = buildCite(article, 'https://example.com/a', 'mla');
+    expect(cite).toContain('Lovelace, A. "<b>T</b>."');
+    expect(cite).toContain('5 Mar. 2024');
+    expect(cite).toContain('<i>example.com</i>');
+    expect(cite.endsWith('.')).toBe(true);
+  });
+
+  it('formats Chicago with a full month name', () => {
+    const cite = buildCite(article, 'https://example.com/a', 'chicago');
+    expect(cite).toContain('March 5, 2024');
+    expect(cite).toContain('Lovelace, A. "<b>T</b>."');
+  });
+
+  it('omits an epoch-shaped date in every style rather than claiming 1970', () => {
+    // Unparsed dates and missing timestamps both land on the Unix epoch.
+    for (const style of ['apa', 'chicago', 'mla'] as const) {
+      const cite = buildCite({ ...article, date: '1970-01-01' }, 'https://example.com/a', style);
+      expect(cite).not.toContain('1970');
+    }
+  });
+
+  it('drops the empty segments instead of printing stray punctuation', () => {
+    const cite = buildCite({ title: 'Only a title' }, 'https://example.com/a', 'mla');
+    expect(cite).not.toContain(', ,');
+    expect(cite).toContain('<b>Only a title</b>');
+  });
+
   it('counts words ignoring tags', () => {
     expect(countWords('<p>one two</p> three')).toBe(3);
     expect(countWords(undefined)).toBe(0);
   });
 });
 
-describe('articleFromHtml', () => {
+const articleHtml = (body: string, head = '') =>
+  `<html><head><title>My Post</title>${head}</head><body><article><h1>My Post</h1><p>${body}</p></article></body></html>`;
+
+const longBody = Array.from(
+  { length: 40 },
+  (_, i) => `Sentence number ${i} of the article body.`,
+).join(' ');
+
+describe('articleFromHtmlViaCrawler', () => {
   it('extracts readable content with the LobeHub crawler utilities', () => {
-    const body = Array.from(
-      { length: 40 },
-      (_, i) => `Sentence number ${i} of the article body.`,
-    ).join(' ');
-    const html = `<html><head><title>My Post</title></head><body><article><h1>My Post</h1><p>${body}</p></article></body></html>`;
-    const article = articleFromHtml(html, 'https://news.example.com/post', 'scraper');
+    const article = articleFromHtmlViaCrawler(
+      articleHtml(longBody),
+      'https://news.example.com/post',
+      'scraper',
+    );
 
     expect(article.error).toBeUndefined();
     expect(article.content).toContain('Sentence number 3');
@@ -131,7 +211,7 @@ describe('articleFromHtml', () => {
 
   it('reports an error for empty pages', () => {
     expect(
-      articleFromHtml('<html><body></body></html>', 'https://x.com', 'scraper').error,
+      articleFromHtmlViaCrawler('<html><body></body></html>', 'https://x.com', 'scraper').error,
     ).toBeDefined();
   });
 });
@@ -184,6 +264,26 @@ describe('extractViaQwkSearch', () => {
     expect(article.cite).toBe('Upstream cite');
   });
 
+  it('rebuilds the extractor citation when a non-APA style is asked for', async () => {
+    // The extractor only ever emits APA, so honouring another style means
+    // rebuilding from the fields it resolved.
+    const article = await extractViaQwkSearch('https://example.com/a', {
+      citationStyle: 'mla',
+      loader: async () =>
+        fakeModule({
+          extractContent: vi.fn(async () => ({
+            author_cite: 'Lovelace, A.',
+            cite: 'Lovelace, A. (1843, Oct 1). <b>Notes</b>.',
+            date: '1990-10-01',
+            html: '<p>hi</p>',
+            title: 'Notes',
+          })),
+        }),
+    });
+    expect(article.cite).toContain('Lovelace, A. "<b>Notes</b>."');
+    expect(article.cite).toContain('1 Oct. 1990');
+  });
+
   it('returns an error instead of throwing when the package cannot be loaded', async () => {
     const article = await extractViaQwkSearch('https://example.com/a', {
       loader: async () => {
@@ -219,11 +319,7 @@ describe('extractViaQwkSearch', () => {
 });
 
 describe('articleFromRenderedHtml', () => {
-  const body = Array.from(
-    { length: 40 },
-    (_, i) => `Sentence number ${i} of the article body.`,
-  ).join(' ');
-  const html = `<html><head><title>My Post</title></head><body><article><h1>My Post</h1><p>${body}</p></article></body></html>`;
+  const html = articleHtml(longBody);
 
   it('prefers qwksearch citation extraction over readability', async () => {
     const article = await articleFromRenderedHtml(

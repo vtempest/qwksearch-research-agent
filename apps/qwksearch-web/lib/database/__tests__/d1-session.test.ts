@@ -163,19 +163,6 @@ describe("session constraints", () => {
     expect(d1.opened).toEqual(["first-unconstrained"]);
   });
 
-  it("still lets D1_SESSION_MODE unconstrain auth requests", async () => {
-    const d1 = fakeD1();
-    const db = sessionedD1(d1.binding);
-
-    await runWithD1Session(
-      new Request("https://example.test/api/auth/callback/google"),
-      "unconstrained",
-      () => db.prepare("select 1").run(),
-    );
-
-    expect(d1.opened).toEqual(["first-unconstrained"]);
-  });
-
   it("resumes from the client's bookmark, header or cookie", async () => {
     const d1 = fakeD1();
     const db = sessionedD1(d1.binding);

@@ -28,6 +28,19 @@ The two workspaces stay separate (bun/turbo vs pnpm). The only bridges are
 **published npm packages** and **shared Cloudflare bindings** — never workspace
 links. See §1 of the migration plan for why merging them is not on the table.
 
+The npm bridges in place today, all declared in `packages-lobe/package.json` and
+resolved from the registry rather than `../packages/`:
+
+| Package | Source of truth | Used by |
+|---|---|---|
+| `extract-webpage` | `packages/extract-webpage` | F2 — `extractContentAndCite` over rendered HTML |
+| `extract-youtube` | `packages/extract-youtube` | F2 — the YouTube transcript tier |
+| `extract-pdf` | `packages/extract-pdf` | F2 — the PDF/arXiv tier |
+
+Publishing is the update path: a fix in `packages/extract-*` reaches the engine
+through `npm publish` (the `ship` script in each package) and a version bump in
+`packages-lobe/package.json`, not through a workspace link.
+
 ## 1. Runtime integrations — LobeHub on Cloudflare Workers
 
 These make upstream LobeHub run on workerd at all. They are ports, not features.
@@ -55,6 +68,7 @@ then LobeHub's tRPC/webapi/api, then the SPA catch-all.
 |---|---|---|---|---|
 | F1 | **Article extract side panel** — external links in chat open in a resizable right panel; citation, favorites, Q&A, follow-ups | `worker/routes/qwksearch/article.ts`, `articleAi.ts` | `src/features/QwkSearch/ArticlePanel/` (`ArticlePanel.tsx`, `store.ts`, `api.ts`, `useArticleLinkInterceptor.ts`) | D1 `articleCache`, `articleQA`, `favorites` |
 | F2 | **Extraction chain** — `extract-webpage` → Puppeteer scraper (8s deadline) → Tavily → `@lobechat/web-crawler`, routed per URL kind | `worker/qwksearch/extract.ts`, `worker/qwksearch/extractQwkSearch.ts` | — | writes through F1's cache |
+| F2a | **Extraction settings** — one resolved value behind F2's knobs: citation style, transcript languages, timeout, enabled tiers, render backend, PDF OCR mode | `worker/qwksearch/extractSettings.ts` | — | none (per-request) |
 | F3 | **Docs** (`/docs`) — Markdown research documents, autosaved, write/preview | `worker/routes/qwksearch/documents.ts` | `src/features/QwkSearch/Docs/` (`DocsWorkspace.tsx`, `DocsSidebar.tsx`, `DocsLayout.tsx`, `store.ts`) | D1 `documents` — the same table `apps/qwksearch-web` writes |
 | F4 | **Favorites** | `worker/routes/qwksearch/favorites.ts` | inside F1 | D1 `favorites` |
 | F5 | **QwkSearch search provider** — LobeHub's web-browsing tool fans out over QwkSearch's 100+ engines | `apps/server/src/services/search/impls/qwksearch/` | LobeHub's existing search portal UI | none (stateless proxy) |
@@ -106,6 +120,40 @@ No upstream LobeHub file is edited for this. `extract.ts` and the new
 `extractQwkSearch.ts` both live under `worker/`; the only build-side change is
 *removing* the `linkedom` alias.
 
+### F2a — Extraction settings contract
+
+The chain used to read its configuration inline: `['en']` for transcript
+languages, an APA-shaped citation, `process.env.SCRAPER_URL` inside the tier
+that used it. `extractSettings.ts` replaces all of it with one resolved
+`ExtractionSettings`, folded out of three layers.
+
+```
+DEFAULT_EXTRACTION_SETTINGS          shipped behaviour
+  ← extractionSettingsFromEnv(env)   Worker vars + secrets   (operator)
+  ← UserExtractionOverrides          persisted preferences   (signed-in user)
+  ← ClientExtractionOverrides        ?cite= / ?lang=         (any caller)
+      ↓
+  tiersForUrl(url, kind, settings) → tiers bound to it, each tagged with `tierId`
+```
+
+| Concern | Behavior |
+|---|---|
+| Validation | Every value is normalized on the way in — language tags matched against a BCP-47 shape and capped at 5, numbers clamped, enums matched case-insensitively. A value that fails falls back to the layer below; nothing throws, because a bad preference must not become a 500 on an article fetch |
+| Layer asymmetry | `ClientExtractionOverrides` is a strict subset of `UserExtractionOverrides`, which is a strict subset of the settings. Hosts and credentials (`scraperUrl`, `scraperApiKey`, `tavilyApiKey`, `pdfProcessorUrl`, `proxy`) resolve **from the environment only** — a caller-supplied backend URL would make `/api/doc/article` an open request proxy and leak the configured bearer token to it |
+| `pdfProcessor` | Withheld from the client layer as well: `docling` OCRs every page, so selecting it is compute amplification rather than a preference |
+| Citation styles | `apa` (default, unchanged output), `mla`, `chicago`. The extractor emits APA only, so a non-APA style is rebuilt from `author_cite` / `title` / `source` / `date`; APA keeps the extractor's own string, which came from its 90k-name database |
+| Cache interaction | `articleCache` is keyed by URL and holds one `cite`. A non-APA request re-renders the citation from the cached columns instead of fragmenting the cache per style |
+| Tier selection | `settings.tiers` filters the per-kind chain and can legitimately empty it (`QWKSEARCH_EXTRACT_TIERS=scraper` + a PDF URL). The caller then gets the "no extraction tier configured" error rather than a tier the operator disabled |
+| Diagnostics | `redactExtractionSettings` returns the settings with each credential replaced by a boolean, so they can be logged or surfaced in the settings pane |
+
+Env vars, all optional and all defaulted: `QWKSEARCH_CITATION_STYLE`,
+`QWKSEARCH_EXTRACT_LANGUAGES`, `QWKSEARCH_EXTRACT_TIMEOUT`,
+`QWKSEARCH_EXTRACT_TIERS`, `QWKSEARCH_SCRAPER_DEADLINE_MS`,
+`PDF_PROCESSOR`, `PDF_PROCESSOR_URL`,
+`QWKSEARCH_EXTRACT_PROXY`, `QWKSEARCH_EXTRACT_THIRD_PARTY_BACKUP`. The existing
+`SCRAPER_URL`, `SCRAPER_API_KEY` and `TAVILY_API_KEY` keep their names, so no
+deployment needs to change.
+
 ### F5 — Search provider contract
 
 The seam that makes LobeHub's agent search *QwkSearch's* index.
@@ -124,15 +172,24 @@ LobeHub web-browsing tool
 |---|---|
 | Enable | `SEARCH_PROVIDERS=qwksearch` (set in `wrangler.jsonc` vars) |
 | Endpoint | `QWKSEARCH_SEARCH_URL`, default `https://qwksearch.com/api/agent/search`; optional `QWKSEARCH_API_KEY` sent as a bearer token |
-| Categories | Three vocabularies are normalized onto the endpoint's: LobeHub's manifest (`general/images/news/science/videos`), QwkSearch's 13-category registry (`academic`, `social`, `tech`, `torrents`, …) and SearXNG's. Unknown names fall back to `general` rather than returning an empty page |
+| Categories | Three vocabularies are normalized onto the endpoint's ten SearXNG names: LobeHub's manifest, QwkSearch's 13-category registry (`academic`, `social`, `tech`, `torrents`, …) and SearXNG's. Unknown names fall back to `general` rather than returning an empty page |
+| Advertised categories | The manifest enum is resolved at module evaluation by `packages/builtin-tool-web-browsing/src/searchCategories.ts`. With `SEARCH_PROVIDERS=qwksearch` and nothing else, the model is offered all ten (`files`, `it`, `map`, `music`, `social+media` on top of LobeHub's five); any other configuration keeps LobeHub's five, so no backend is asked for a category it cannot serve |
 | Fan-out | One request per category, capped at 3, issued in parallel |
 | Merge | Deduplicated by URL — highest score wins, engine lists union, a missing snippet is backfilled from the duplicate |
 | Engines | Never forwarded. `useAutoSearchEngineSelection = true` tells `SearchService` not to retry by stripping engine restrictions, because QwkSearch already picks engines per category |
 | Failure | Any category request failing raises `TRPCError SERVICE_UNAVAILABLE`, so `SearchService` can fail over to the next configured provider |
 
-Only two upstream files are edited for this: the `SearchImplType` enum and the
-factory switch in `apps/server/src/services/search/impls/index.ts`. Everything
-else is new files under `impls/qwksearch/`.
+Four upstream lines are edited for this, all registration points: the
+`SearchImplType` enum, the factory switch in
+`apps/server/src/services/search/impls/index.ts`, and in
+`packages/builtin-tool-web-browsing/` the manifest's import + enum expression
+and one export line in `src/index.ts`. Everything else is new files —
+`impls/qwksearch/` and `builtin-tool-web-browsing/src/searchCategories.ts`.
+
+Note that `packages/**` is excluded from the root Vitest config and the
+web-browsing tool package has no config of its own, so a test placed beside
+`searchCategories.ts` would never run. Its coverage lives in
+`impls/qwksearch/index.test.ts` instead, which imports the package by name.
 
 ## 3. Shared infrastructure
 
@@ -162,6 +219,11 @@ Vars in `wrangler.jsonc` (both the default and `production` env):
 `APP_URL`, `DATABASE_DRIVER`, `DISABLE_REDIS`, `EMAIL_SERVICE_PROVIDER`,
 `SMTP_FROM`, `SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`.
 
+Optional extraction vars, all defaulted, are listed under §F2a and in
+`packages-lobe/README.md` — among them `PDF_PROCESSOR_URL` (F2's Granite Docling
+OCR processor for scanned PDFs) and its companion `PDF_PROCESSOR`. Setting none
+of them reproduces the behavior the chain had before the settings layer existed.
+
 Secrets (`wrangler secret put`): `KEY_VAULTS_SECRET`, `AUTH_SECRET`,
 `DATABASE_URL` (when not using Hyperdrive), `S3_*`, `TAVILY_API_KEY`,
 `SCRAPER_API_KEY`, `QWKSEARCH_API_KEY`, per-provider model keys, `QSTASH_*`.
@@ -179,8 +241,9 @@ scoped stylesheet (`react-reason-editor/style.css`).
 ```bash
 cd packages-lobe
 
-# The extraction chain alone (35 cases: kind routing, tier order, field mapping)
-bunx vitest run worker/qwksearch/extract.test.ts worker/qwksearch/extractQwkSearch.test.ts
+# The extraction chain and its settings (62 cases: kind routing, tier order,
+# field mapping, citation styles, layer resolution and what the client may set)
+bunx vitest run worker/qwksearch
 
 # Worker, Cloudflare adapters, QwkSearch features, the search provider
 bunx vitest run worker src/features/QwkSearch \

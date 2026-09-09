@@ -329,14 +329,20 @@
   }
 }
 
-/* Ai extension: floating "Ask AI anything…" menu */
+/* Ai extension: floating "Ask AI anything…" menu, and the toolbar's AI
+   dropdown, which reuses the same shell.
+
+   Colours come from the `--richtext-*` aliases declared in `global.scss`, so
+   the panel follows the host's light/dark theme instead of the hard-coded
+   white it used to paint regardless. */
 .ai-menu {
   width: 320px;
+  max-width: calc(100vw - 16px);
   overflow: hidden;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  color: #111827;
+  border: 1px solid var(--richtext-border, #e5e7eb);
+  background: var(--richtext-popover, #ffffff);
+  color: var(--richtext-popover-foreground, #111827);
   box-shadow: 0 6px 20px rgb(15 23 42 / 12%);
   font-size: 13px;
 }
@@ -346,14 +352,14 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--richtext-border, #e5e7eb);
 }
 
 .ai-menu-input-icon {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-  color: #9ca3af;
+  color: var(--richtext-muted-foreground, #9ca3af);
 }
 
 .ai-menu-input {
@@ -362,11 +368,32 @@
   background: transparent;
   outline: none;
   font-size: 13px;
-  color: #111827;
+  color: inherit;
 }
 
 .ai-menu-input::placeholder {
-  color: #9ca3af;
+  color: var(--richtext-muted-foreground, #9ca3af);
+}
+
+.ai-menu-hint {
+  padding: 6px 12px 0;
+  color: var(--richtext-muted-foreground, #9ca3af);
+  font-size: 11px;
+}
+
+.ai-menu-group-label {
+  padding: 6px 8px 2px;
+  color: var(--richtext-muted-foreground, #9ca3af);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ai-menu-empty {
+  padding: 10px 8px;
+  color: var(--richtext-muted-foreground, #9ca3af);
+  font-size: 12px;
 }
 
 .ai-menu-commands,
@@ -386,15 +413,16 @@
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: #111827;
+  color: inherit;
   font-size: 13px;
   text-align: left;
   cursor: pointer;
 }
 
 .ai-menu-command:hover,
+.ai-menu-command[data-active='true'],
 .ai-menu-row:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--richtext-accent, #f3f4f6);
 }
 
 .ai-menu-row:disabled {
@@ -406,7 +434,7 @@
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-  color: #6b7280;
+  color: var(--richtext-muted-foreground, #6b7280);
 }
 
 .ai-menu-command-text {
@@ -424,10 +452,38 @@
 
 .ai-menu-command-description {
   overflow: hidden;
-  color: #9ca3af;
+  color: var(--richtext-muted-foreground, #9ca3af);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ai-menu-command-more,
+.ai-menu-command-shortcut {
+  flex-shrink: 0;
+  color: var(--richtext-muted-foreground, #9ca3af);
+  font-size: 11px;
+}
+
+/* Ask-AI row sits above the command groups, separated from them. */
+.ai-menu-ask {
+  border-bottom: 1px solid var(--richtext-border, #e5e7eb);
+  border-radius: 0;
+  padding: 8px 12px;
+}
+
+/* Streamed result, mirrored in the panel so a long suggestion stays readable
+   even when the inline diff runs off the bottom of the viewport. */
+.ai-menu-preview {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--richtext-border, #e5e7eb);
+  color: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .ai-menu-loading,
@@ -436,13 +492,39 @@
   align-items: center;
   gap: 8px;
   padding: 10px;
-  color: #6b7280;
+  color: var(--richtext-muted-foreground, #6b7280);
   font-size: 13px;
+}
+
+.ai-menu-loading-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-menu-stop {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--richtext-border, #e5e7eb);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ai-menu-stop:hover {
+  background: var(--richtext-accent, #f3f4f6);
 }
 
 .ai-menu-error {
   flex-direction: column;
   align-items: stretch;
+  padding-bottom: 0;
 }
 
 .ai-menu-error-message {
@@ -461,4 +543,46 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Ai extension: toolbar entry point */
+.ai-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--richtext-foreground, #4b5563);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ai-toolbar-button:hover,
+.ai-toolbar-button[data-state='open'] {
+  background: var(--richtext-accent, #f3f4f6);
+}
+
+.ai-toolbar-icon {
+  width: 16px;
+  height: 16px;
+  color: #7c3aed;
+}
+
+.ai-toolbar-label {
+  font-size: 13px;
+}
+
+.ai-toolbar-chevron {
+  width: 10px;
+  height: 10px;
+  opacity: 0.4;
+}
+
+.ai-toolbar-menu {
+  width: 300px;
 }

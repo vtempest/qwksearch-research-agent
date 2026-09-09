@@ -1,11 +1,12 @@
 /**
  * Floating "Ask AI anything…" panel for the Ai extension. Reads the
  * extension's ProseMirror plugin state (menu / loading / reviewing / error)
- * and renders the matching UI: the quick-command list, a streaming spinner,
- * the accept/discard/insert-below/try-again review controls, or an error
- * with a retry action. Positioned with `@floating-ui/dom` and rendered
- * through a portal so it floats above the editor regardless of scroll
- * containers, the same approach `SlashCommand` uses for its own popup.
+ * and renders the matching UI: the filterable quick-command list, a streaming
+ * indicator with a Stop control, the accept/insert-below/try-again/discard
+ * review controls over a preview of the result, or an error with a retry
+ * action. Positioned with `@floating-ui/dom` and rendered through a portal so
+ * it floats above the editor regardless of scroll containers, the same
+ * approach `SlashCommand` uses for its own popup.
  *
  * Styled with hand-written `.ai-menu*` classes (see `src/styles/ProseMirror.scss`)
  * rather than Tailwind utilities: this component ships inside the published
@@ -15,7 +16,17 @@
 
 import { computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { posToDOMRect, useEditorState } from '@tiptap/react';
-import { Check, CornerDownRight, Loader2, RotateCcw, Sparkles, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  Copy,
+  CornerDownRight,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+  Square,
+  X,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -23,6 +34,8 @@ import { useEditorInstance } from '@/store/editor';
 import { useEditableEditor } from '@/store/store';
 
 import { getAiOptions, getAiState } from '../Ai';
+import { AI_COMMAND_GROUP_LABELS } from '../commands';
+import { commandsForSelection, groupCommands } from '../lib/prompt';
 
 import type { AiCommandDefinition, AiPanelState } from '../types';
 
@@ -33,14 +46,16 @@ function MenuRow({
   label,
   onClick,
   disabled,
+  title,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  title?: string;
 }) {
   return (
-    <button type="button" disabled={disabled} onClick={onClick} className="ai-menu-row">
+    <button type="button" disabled={disabled} onClick={onClick} title={title} className="ai-menu-row">
       <Icon className="ai-menu-row-icon" />
       {label}
     </button>
@@ -53,6 +68,9 @@ export function AiMenu() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [prompt, setPrompt] = useState('');
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [submenu, setSubmenu] = useState<AiCommandDefinition | null>(null);
+  const [copied, setCopied] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
 
   const panel = useEditorState({
@@ -67,15 +85,43 @@ export function AiMenu() {
   }, [panel]);
 
   const isOpen = panel.status !== 'closed';
+  const hasSelection = !!range && range.to > range.from;
+  const selectionLength = range ? range.to - range.from : 0;
+
+  const commands: AiCommandDefinition[] = editor ? (getAiOptions(editor)?.commands ?? []) : [];
+
+  // Typing filters the command list, so the input doubles as a palette rather
+  // than only ever being a free-form prompt box.
+  const query = prompt.trim().toLowerCase();
+  const visibleCommands = useMemo(() => {
+    const available = commandsForSelection(commands, hasSelection);
+    if (!query) return available;
+    return available.filter((command) =>
+      `${command.label} ${command.description ?? ''}`.toLowerCase().includes(query)
+    );
+    // `commands` is a stable options array; `query`/`hasSelection` drive this.
+  }, [commands, query, hasSelection]);
+
+  const sections = useMemo(() => groupCommands(visibleCommands), [visibleCommands]);
 
   // Reset and focus the input each time the menu opens fresh.
   useEffect(() => {
     if (panel.status === 'menu') {
-      setPrompt('');
       const raf = requestAnimationFrame(() => inputRef.current?.focus());
       return () => cancelAnimationFrame(raf);
     }
+    if (panel.status === 'closed') {
+      setPrompt('');
+      setSubmenu(null);
+      setActiveIndex(-1);
+      setCopied(false);
+    }
   }, [panel.status]);
+
+  // A filtered-out highlight would run the wrong command on Enter.
+  useEffect(() => {
+    setActiveIndex((index) => (index >= visibleCommands.length ? visibleCommands.length - 1 : index));
+  }, [visibleCommands.length]);
 
   // Keep the panel anchored to its range as the document/viewport changes.
   useEffect(() => {
@@ -117,7 +163,23 @@ export function AiMenu() {
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') editor.commands.closeAiMenu();
+      if (event.key === 'Escape') {
+        if (submenu) {
+          setSubmenu(null);
+          return;
+        }
+        editor.commands.closeAiMenu();
+        return;
+      }
+
+      // Cmd/Ctrl+Enter accepts a settled suggestion from anywhere in the panel.
+      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+        const state = getAiState(editor.state)?.panel;
+        if (state?.status === 'reviewing' && !state.suggestion.isStreaming) {
+          event.preventDefault();
+          editor.commands.acceptAiSuggestion();
+        }
+      }
     };
 
     document.addEventListener('mousedown', handlePointerDown);
@@ -126,15 +188,50 @@ export function AiMenu() {
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, editor]);
+  }, [isOpen, editor, submenu]);
 
   if (!editable || !editor || !isOpen || !position) return null;
 
-  const commands: AiCommandDefinition[] = getAiOptions(editor)?.commands ?? [];
+  const runCommand = (command: AiCommandDefinition) => {
+    if (command.options?.length) {
+      setSubmenu(command);
+      return;
+    }
+    editor.commands.runAiCommand(command.id);
+  };
 
-  const submitPrompt = () => {
-    if (!prompt.trim()) return;
-    editor.commands.submitAiPrompt(prompt);
+  const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActiveIndex((index) => (visibleCommands.length ? (index + 1) % visibleCommands.length : -1));
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActiveIndex((index) =>
+        visibleCommands.length ? (index <= 0 ? visibleCommands.length - 1 : index - 1) : -1
+      );
+      return;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const highlighted = activeIndex >= 0 ? visibleCommands[activeIndex] : undefined;
+      if (highlighted) {
+        runCommand(highlighted);
+        return;
+      }
+      if (prompt.trim()) editor.commands.submitAiPrompt(prompt);
+    }
+  };
+
+  const copyResult = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard access can be denied; the result is still visible to select.
+    }
   };
 
   return createPortal(
@@ -150,70 +247,145 @@ export function AiMenu() {
         <input
           ref={inputRef}
           value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              submitPrompt();
-            }
+          onChange={(event) => {
+            setPrompt(event.target.value);
+            setActiveIndex(event.target.value.trim() ? 0 : -1);
           }}
-          placeholder="Ask AI anything…"
+          onKeyDown={onInputKeyDown}
+          placeholder={hasSelection ? 'Ask AI to change the selection…' : 'Ask AI anything…'}
           className="ai-menu-input"
+          aria-label="Ask AI"
         />
       </div>
 
-      {panel.status === 'menu' && (
+      {panel.status === 'menu' && submenu && (
         <div className="ai-menu-commands">
-          {commands.map((command) => (
+          <button type="button" className="ai-menu-row" onClick={() => setSubmenu(null)}>
+            <ArrowLeft className="ai-menu-row-icon" />
+            {submenu.label}
+          </button>
+          {submenu.options?.map((option) => (
             <button
-              key={command.id}
+              key={option.id}
               type="button"
-              onClick={() => editor.commands.runAiCommand(command.id)}
               className="ai-menu-command"
+              onClick={() => {
+                setSubmenu(null);
+                editor.commands.runAiCommand(submenu.id, option.label);
+              }}
             >
-              <command.icon className="ai-menu-row-icon" />
               <span className="ai-menu-command-text">
-                <span className="ai-menu-command-label">{command.label}</span>
-                {command.description && (
-                  <span className="ai-menu-command-description">{command.description}</span>
-                )}
+                <span className="ai-menu-command-label">{option.label}</span>
               </span>
             </button>
           ))}
         </div>
       )}
 
+      {panel.status === 'menu' && !submenu && (
+        <>
+          <div className="ai-menu-hint">
+            {hasSelection
+              ? `${selectionLength.toLocaleString()} characters selected`
+              : 'Nothing selected — select text for rewrite actions'}
+          </div>
+          <div className="ai-menu-commands">
+            {sections.length === 0 && <div className="ai-menu-empty">No matching actions</div>}
+            {sections.map((section) => (
+              <div key={section.group}>
+                <div className="ai-menu-group-label">{AI_COMMAND_GROUP_LABELS[section.group]}</div>
+                {section.commands.map((command) => {
+                  const index = visibleCommands.indexOf(command);
+                  return (
+                    <button
+                      key={command.id}
+                      type="button"
+                      data-active={index === activeIndex ? 'true' : undefined}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      onClick={() => runCommand(command)}
+                      className="ai-menu-command"
+                    >
+                      <command.icon className="ai-menu-row-icon" />
+                      <span className="ai-menu-command-text">
+                        <span className="ai-menu-command-label">{command.label}</span>
+                        {command.description && (
+                          <span className="ai-menu-command-description">{command.description}</span>
+                        )}
+                      </span>
+                      {command.options?.length ? <span className="ai-menu-command-more">›</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {panel.status === 'loading' && (
         <div className="ai-menu-loading">
           <Loader2 className="ai-menu-row-icon ai-menu-spin" />
-          {panel.commandLabel === 'Custom' ? 'Generating…' : `${panel.commandLabel}…`}
+          <span className="ai-menu-loading-label">
+            {panel.commandLabel === 'Custom' ? 'Generating…' : `${panel.commandLabel}…`}
+          </span>
+          <button type="button" className="ai-menu-stop" onClick={() => editor.commands.stopAiGeneration()}>
+            <Square className="ai-menu-row-icon" />
+            Stop
+          </button>
         </div>
       )}
 
       {panel.status === 'error' && (
         <div className="ai-menu-error">
           <p className="ai-menu-error-message">{panel.message}</p>
-          <MenuRow icon={RotateCcw} label="Try again" onClick={() => editor.commands.retryAiSuggestion()} />
+          <div className="ai-menu-review">
+            <MenuRow icon={RotateCcw} label="Try again" onClick={() => editor.commands.retryAiSuggestion()} />
+            <MenuRow icon={X} label="Dismiss" onClick={() => editor.commands.closeAiMenu()} />
+          </div>
         </div>
       )}
 
       {panel.status === 'reviewing' && (
-        <div className="ai-menu-review">
-          <MenuRow
-            icon={Check}
-            label="Accept"
-            disabled={panel.suggestion.isStreaming}
-            onClick={() => editor.commands.acceptAiSuggestion()}
-          />
-          <MenuRow icon={X} label="Discard" onClick={() => editor.commands.discardAiSuggestion()} />
-          <MenuRow
-            icon={CornerDownRight}
-            label="Insert below"
-            disabled={panel.suggestion.isStreaming}
-            onClick={() => editor.commands.insertAiSuggestionBelow()}
-          />
-          <MenuRow icon={RotateCcw} label="Try again" onClick={() => editor.commands.retryAiSuggestion()} />
-        </div>
+        <>
+          <div className="ai-menu-preview" aria-live="polite">
+            {panel.suggestion.suggestedText || '…'}
+          </div>
+          {panel.suggestion.isStreaming ? (
+            <div className="ai-menu-loading">
+              <Loader2 className="ai-menu-row-icon ai-menu-spin" />
+              <span className="ai-menu-loading-label">{panel.commandLabel}…</span>
+              <button
+                type="button"
+                className="ai-menu-stop"
+                onClick={() => editor.commands.stopAiGeneration()}
+              >
+                <Square className="ai-menu-row-icon" />
+                Stop
+              </button>
+            </div>
+          ) : (
+            <div className="ai-menu-review">
+              <MenuRow
+                icon={Check}
+                label={panel.suggestion.mode === 'replace' ? 'Replace selection' : 'Insert'}
+                title="⌘/Ctrl + Enter"
+                onClick={() => editor.commands.acceptAiSuggestion()}
+              />
+              <MenuRow
+                icon={CornerDownRight}
+                label="Insert below"
+                onClick={() => editor.commands.insertAiSuggestionBelow()}
+              />
+              <MenuRow icon={RotateCcw} label="Try again" onClick={() => editor.commands.retryAiSuggestion()} />
+              <MenuRow
+                icon={Copy}
+                label={copied ? 'Copied' : 'Copy'}
+                onClick={() => copyResult(panel.suggestion.suggestedText)}
+              />
+              <MenuRow icon={X} label="Discard" onClick={() => editor.commands.discardAiSuggestion()} />
+            </div>
+          )}
+        </>
       )}
     </div>,
     document.body

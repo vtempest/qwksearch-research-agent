@@ -45,6 +45,12 @@ interface RightPanelProps {
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
   onMove: (draggedId: string, targetId: string | null, position: 'before' | 'after' | 'child') => void;
+  /**
+   * Persists the file tree's expanded folders. Without it a Files panel
+   * stacked on this side keeps its expansion only in the tree's local state,
+   * so the next document change throws away a stepped expand/collapse.
+   */
+  onSetExpandedFolders?: (folderIds: string[]) => void;
   onManageTags?: (id: string) => void;
   onRename?: (id: string, newTitle: string) => void;
   headings: TocEntry[];
@@ -107,6 +113,7 @@ export function RightPanel({
   onAdd,
   onDelete,
   onDuplicate,
+  onSetExpandedFolders,
   onMove,
   onManageTags,
   onRename,
@@ -162,6 +169,7 @@ export function RightPanel({
           onAdd={onAdd}
           onDelete={onDelete}
           onDuplicate={onDuplicate}
+          onSetExpandedFolders={onSetExpandedFolders}
           onMove={onMove}
           onManageTags={onManageTags}
           onRename={onRename}

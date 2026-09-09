@@ -396,6 +396,7 @@ const Index = ({
       onAdd={handleAdd}
       onDelete={state.handleDeleteDocument}
       onDuplicate={state.handleDuplicateDocument}
+      onSetExpandedFolders={state.handleSetExpandedFolders}
       onMove={state.handleMoveDocument}
       onManageTags={state.handleManageTags}
       onRename={(id: string, title: string) => state.handleUpdateDocument(id, { title })}

@@ -38,10 +38,11 @@ import {
 } from './app-ui/dropdown-menu';
 import { SplitPane, Pane } from 'react-split-pane';
 import { usePersistence } from 'react-split-pane/persistence';
-import { X, XCircle, ArrowDownFromLine, Edit2, RotateCcw, SplitSquareVertical, Loader2, Search, MessageSquare, FilePlus2, FolderPlus, Folders, Trash2, MessageSquarePlus, Link2, Tag, Sparkles, Lightbulb } from 'lucide-react';
+import { X, XCircle, ArrowDownFromLine, Edit2, RotateCcw, SplitSquareVertical, Loader2, Search, MessageSquare, FilePlus2, FolderPlus, Folders, Trash2, MessageSquarePlus, Link2, Tag, Sparkles, Lightbulb, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import './split-pane.css';
 
 import type { DocumentTreeHandle } from './file-tree/filetree';
+import { useExpandCycle } from './file-tree/useExpandCycle';
 
 /** Human-readable panel titles used in headers/empty states. */
 const PANEL_TITLES: Record<SidebarPanelType, string> = {
@@ -103,6 +104,16 @@ export const SidebarContent = ({
   const internalTreeRef = useRef<DocumentTreeHandle>(null);
   const internalOutlineRef = useRef<OutlineViewHandle>(null);
   const effectiveTreeRef = treeRef ?? internalTreeRef;
+  // The Files panel drives its own copy of the expand-level cycle so the
+  // control works wherever the panel is stacked, while still reporting the
+  // depth up to a host toolbar showing the same tree.
+  const expandCycle = useExpandCycle(effectiveTreeRef, onExpandStateChange);
+  // A host that hands in its own tree ref (the sidebar) also renders the
+  // cycle in its toolbar, so the panel header only shows its own control
+  // when nothing else is driving this tree — the right panel, which has no
+  // toolbar of its own. Same convention as the panel's other file actions,
+  // which the toolbar hides while the Files panel is showing them.
+  const showHeaderExpandToggle = !treeRef && expandCycle.canCycle;
   const effectiveOutlineRef = outlineRef ?? internalOutlineRef;
 
   const handleSelect = (id: string) => {
@@ -385,6 +396,24 @@ export const SidebarContent = ({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+          {/*
+            * Steps the tree one folder level at a time and wraps back to
+            * collapsed. Hidden when the tree has no folders to cycle.
+            */}
+          {showHeaderExpandToggle && (
+            <button
+              className={panelHeaderButtonClass}
+              title={expandCycle.label}
+              aria-label={expandCycle.label}
+              onClick={expandCycle.toggle}
+            >
+              {expandCycle.isFullyExpanded ? (
+                <ChevronsDownUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronsUpDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
           {onFileManagerOpen && (
             <button
               className={panelHeaderButtonClass}
@@ -399,7 +428,7 @@ export const SidebarContent = ({
       <FileTree
         ref={effectiveTreeRef}
         documents={activeDocuments}
-        onExpandStateChange={onExpandStateChange}
+        onExpandStateChange={expandCycle.onExpandStateChange}
         onExpandedFoldersChange={onSetExpandedFolders}
         activeId={activeId}
         onSelect={handleSelect}

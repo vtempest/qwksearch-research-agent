@@ -58,6 +58,7 @@ import { RichTextZoom } from '@/extensions/Zoom/components/RichTextZoom';
 import { RichTextPagination } from '@/extensions/Pagination/components/RichTextPagination';
 import { RichTextTableOfContentsPanel } from '@/extensions/TableOfContents';
 import { RichTextHarper } from '@/extensions/Harper';
+import { RichTextAi } from '@/extensions/Ai';
 import { RichTextDrawio } from '@/extensions/Drawio';
 import { getReadAloudText, useReadAloudState } from '@/extensions/ReadAloud';
 import {
@@ -1352,6 +1353,9 @@ export const RichTextToolbar = ({
         <RichTextItalic />
         <RichTextUnderline />
         <RichTextHighlight />
+
+        {/* AI writing assistant — renders nothing when the Ai extension is off */}
+        <RichTextAi />
 
         {/* ≡ — Block format */}
         <div className="dropdown-container">

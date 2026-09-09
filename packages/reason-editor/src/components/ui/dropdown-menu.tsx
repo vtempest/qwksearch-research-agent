@@ -39,7 +39,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      'richtext-flex richtext-cursor-default richtext-select-none richtext-items-center richtext-rounded-sm richtext-px-2 richtext-py-1.5 richtext-text-sm richtext-outline-none focus:richtext-bg-accent data-[state=open]:richtext-bg-accent',
+      'richtext-flex richtext-cursor-default richtext-select-none richtext-items-center richtext-gap-2 richtext-rounded-sm richtext-px-2 richtext-py-1.5 richtext-text-sm richtext-outline-none focus:richtext-bg-accent data-[state=open]:richtext-bg-accent [&_svg]:richtext-pointer-events-none [&_svg]:richtext-shrink-0 [&_svg:not([class*=size-])]:richtext-size-4',
       inset && 'richtext-pl-8',
       className
     )}
@@ -99,7 +99,7 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      'richtext-relative richtext-flex richtext-cursor-default richtext-select-none richtext-items-center richtext-rounded-sm richtext-px-2 richtext-py-1.5 richtext-text-sm richtext-outline-none richtext-transition-colors focus:richtext-bg-accent focus:richtext-text-accent-foreground data-[disabled]:richtext-pointer-events-none data-[disabled]:richtext-opacity-50',
+      'richtext-relative richtext-flex richtext-cursor-default richtext-select-none richtext-items-center richtext-gap-2 richtext-rounded-sm richtext-px-2 richtext-py-1.5 richtext-text-sm richtext-outline-none richtext-transition-colors focus:richtext-bg-accent focus:richtext-text-accent-foreground data-[disabled]:richtext-pointer-events-none data-[disabled]:richtext-opacity-50 [&_svg]:richtext-pointer-events-none [&_svg]:richtext-shrink-0 [&_svg:not([class*=size-])]:richtext-size-4',
       inset && 'richtext-pl-8',
       className
     )}
@@ -116,7 +116,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
     checked={checked}
     ref={ref}
     className={cn(
-      'richtext-relative richtext-flex richtext-cursor-default richtext-select-none richtext-items-center richtext-rounded-sm richtext-py-1.5 richtext-pl-8 richtext-pr-2 richtext-text-sm richtext-outline-none richtext-transition-colors focus:richtext-bg-accent focus:richtext-text-accent-foreground data-[disabled]:richtext-pointer-events-none data-[disabled]:richtext-opacity-50',
+      'richtext-relative richtext-flex richtext-cursor-default richtext-select-none richtext-items-center richtext-gap-2 richtext-rounded-sm richtext-py-1.5 richtext-pl-8 richtext-pr-2 richtext-text-sm richtext-outline-none richtext-transition-colors focus:richtext-bg-accent focus:richtext-text-accent-foreground data-[disabled]:richtext-pointer-events-none data-[disabled]:richtext-opacity-50 [&_svg]:richtext-pointer-events-none [&_svg]:richtext-shrink-0 [&_svg:not([class*=size-])]:richtext-size-4',
       className
     )}
     {...props}
@@ -139,7 +139,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      'richtext-relative richtext-flex richtext-cursor-default richtext-select-none richtext-items-center richtext-rounded-sm richtext-py-1.5 richtext-pl-8 richtext-pr-2 richtext-text-sm richtext-outline-none richtext-transition-colors focus:richtext-bg-accent focus:richtext-text-accent-foreground data-[disabled]:richtext-pointer-events-none data-[disabled]:richtext-opacity-50',
+      'richtext-relative richtext-flex richtext-cursor-default richtext-select-none richtext-items-center richtext-gap-2 richtext-rounded-sm richtext-py-1.5 richtext-pl-8 richtext-pr-2 richtext-text-sm richtext-outline-none richtext-transition-colors focus:richtext-bg-accent focus:richtext-text-accent-foreground data-[disabled]:richtext-pointer-events-none data-[disabled]:richtext-opacity-50 [&_svg]:richtext-pointer-events-none [&_svg]:richtext-shrink-0 [&_svg:not([class*=size-])]:richtext-size-4',
       className
     )}
     {...props}

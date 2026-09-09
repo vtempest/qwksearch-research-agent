@@ -63,14 +63,17 @@ export const FIRST_PRIMARY = "first-primary";
  * `D1_SESSION_MODE` (a plain Worker variable, so it can be changed in the
  * dashboard without a redeploy) overrides the per-request choice below:
  *
- *   auto (default)  the primary for /api/auth/* (see needsPrimary), else the
- *                   client's bookmark if it has one, else the primary for
+ *   auto (default)  bookmark if the client has one, else the primary for
  *                   writes and any replica for reads
  *   primary         always start on the primary — replicas still serve, but
  *                   only from the latest version
  *   unconstrained   always start anywhere — lowest latency, weakest freshness,
  *                   except /api/auth/*, which stays pinned to the primary
  *   off             bypass the Sessions API entirely (rollback switch)
+ *
+ * `PRIMARY_ONLY_PATH_PREFIXES` sits above all three except `off`: those paths
+ * start on the primary under `unconstrained` too, since a replica that has not
+ * caught up fails a sign-in outright rather than merely serving a stale render.
  */
 export type D1SessionMode = "auto" | "primary" | "unconstrained" | "off";
 
@@ -146,52 +149,63 @@ function readClientBookmark(request: Request): string | null {
 }
 
 /**
- * Requests under this prefix always start on the primary — see
- * {@link needsPrimary}.
+ * Path prefixes whose reads must see the very latest version of the database,
+ * not merely a version at least as new as whatever this browser last saw.
+ *
+ * Authentication is the case that matters. Its short-lived rows (`verification`
+ * above all — OAuth state, magic-link tokens, e-mail verification tokens) are
+ * written by one request and read back by a *different* one seconds later, and
+ * the reader routinely arrives with no bookmark to resume from:
+ *
+ *   - the OAuth callback is a cross-site redirect back from the provider, and
+ *     if anything about the flow crosses hosts (an apex/`beta.`/preview split,
+ *     a sign-in started in one origin and finished in another) the host-scoped
+ *     `d1_bookmark` cookie simply is not sent;
+ *   - a magic link is clicked out of a mail client, often in a different
+ *     browser or on a different device, which has never held a bookmark at all;
+ *   - a bookmark that *is* present can be an older one, having been overwritten
+ *     by a concurrent request that started before the write landed.
+ *
+ * In every one of those cases `resolveStart` would otherwise pick
+ * `first-unconstrained` (or an out-of-date bookmark) and the read can be
+ * answered by a replica that has not caught up yet. The row is missing, and
+ * better-auth turns that into `State mismatch: verification not found` — a
+ * failed sign-in with `?error=state_mismatch`, intermittent by nature because
+ * it depends on replication lag at that instant.
+ *
+ * So these paths always start on the primary: correctness beats the round trip
+ * saved, and they are a small fraction of traffic (page renders read the
+ * session through the ordinary bookmarked path and are unaffected).
  */
-const PRIMARY_ONLY_PATH_PREFIX = "/api/auth/";
+const PRIMARY_ONLY_PATH_PREFIXES = ["/api/auth/"];
 
-/**
- * Whether this request reads rows that another request wrote moments ago, in a
- * way that a lagging replica turns into a hard failure rather than a stale
- * render.
- *
- * The OAuth flow is the case that matters. `POST /api/auth/sign-in/social`
- * writes a one-shot `verification` row keyed by the OAuth `state`, hands the
- * browser to the provider, and `GET /api/auth/callback/<provider>` reads that
- * row back seconds later. A replica that has not caught up returns nothing,
- * and better-auth cannot tell "not replicated yet" from "forged state": it
- * fails the callback outright with `State mismatch: verification not found`
- * and the user is bounced to the error page mid sign-in.
- *
- * The bookmark the client carries is not enough of a guard here. The callback
- * is a cross-site navigation back from the provider, so the cookie may be
- * missing or expired (a slow consent screen outlives its 15 minutes); and
- * because every response that touches D1 rewrites the cookie, a concurrent
- * request that started earlier but finished later can put an *older* bookmark
- * back — one that predates the write this read depends on. The bookmark only
- * pins a floor, so an old one is accepted and silently reads too far back.
- *
- * Auth traffic is a rounding error next to page and search traffic, so pinning
- * all of it to the primary costs a few round trips on the rarest requests the
- * app serves and buys sign-in that cannot fail this way.
- */
-function needsPrimary(request: Request): boolean {
+/** Whether this request is one that must not read from a lagging replica. */
+function requiresPrimary(request: Request): boolean {
+  let pathname: string;
   try {
-    return new URL(request.url).pathname.startsWith(PRIMARY_ONLY_PATH_PREFIX);
+    pathname = new URL(request.url).pathname;
   } catch {
+    // An unparseable URL is not worth guessing about; the caller's normal
+    // read/write heuristic still applies.
     return false;
   }
+  return PRIMARY_ONLY_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix.slice(0, -1) || pathname.startsWith(prefix),
+  );
 }
 
 /**
- * Where this request's session should start. Reads that cannot tolerate a
- * lagging replica go to the primary before anything else is considered. Then a
- * bookmark wins: it is both the fastest option (any replica that has caught up
- * can answer it) and the strictest one (never older than what this client
- * already saw). Without one, mutations start on the primary so a handler that
- * writes and then reads back cannot miss its own write, and plain reads start
- * anywhere.
+ * Where this request's session should start. A bookmark normally wins: it is
+ * both the fastest option (any replica that has caught up can answer it) and
+ * the strictest one (never older than what this client already saw). Without
+ * one, mutations start on the primary so a handler that writes and then reads
+ * back cannot miss its own write, and plain reads start anywhere.
+ *
+ * Auth paths are the exception — see `PRIMARY_ONLY_PATH_PREFIXES`. They ignore
+ * both the client's bookmark and the `unconstrained` override, because for them
+ * "at least as new as what this client saw" is not a strong enough guarantee.
+ * Only `D1_SESSION_MODE=off`, which bypasses the Sessions API altogether (and
+ * so leaves every query on the primary), takes them off this path.
  */
 function resolveStart(request: Request, mode: D1SessionMode): string {
   if (mode === "primary") return FIRST_PRIMARY;

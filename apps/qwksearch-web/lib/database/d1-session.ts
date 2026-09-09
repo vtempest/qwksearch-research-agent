@@ -69,6 +69,10 @@ export const FIRST_PRIMARY = "first-primary";
  *                   only from the latest version
  *   unconstrained   always start anywhere — lowest latency, weakest freshness
  *   off             bypass the Sessions API entirely (rollback switch)
+ *
+ * `PRIMARY_ONLY_PATH_PREFIXES` sits above all three except `off`: those paths
+ * start on the primary under `unconstrained` too, since a replica that has not
+ * caught up fails a sign-in outright rather than merely serving a stale render.
  */
 export type D1SessionMode = "auto" | "primary" | "unconstrained" | "off";
 

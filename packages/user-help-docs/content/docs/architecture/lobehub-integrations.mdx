@@ -54,7 +54,7 @@ then LobeHub's tRPC/webapi/api, then the SPA catch-all.
 | # | Feature | Server | Client | Data |
 |---|---|---|---|---|
 | F1 | **Article extract side panel** — external links in chat open in a resizable right panel; citation, favorites, Q&A, follow-ups | `worker/routes/qwksearch/article.ts`, `articleAi.ts` | `src/features/QwkSearch/ArticlePanel/` (`ArticlePanel.tsx`, `store.ts`, `api.ts`, `useArticleLinkInterceptor.ts`) | D1 `articleCache`, `articleQA`, `favorites` |
-| F2 | **Extraction chain** — Puppeteer scraper (8s deadline) → Tavily → `@lobechat/web-crawler` | `worker/qwksearch/extract.ts` | — | writes through F1's cache |
+| F2 | **Extraction chain** — `extract-webpage` → Puppeteer scraper (8s deadline) → Tavily → `@lobechat/web-crawler`, routed per URL kind | `worker/qwksearch/extract.ts`, `worker/qwksearch/extractQwkSearch.ts` | — | writes through F1's cache |
 | F3 | **Docs** (`/docs`) — Markdown research documents, autosaved, write/preview | `worker/routes/qwksearch/documents.ts` | `src/features/QwkSearch/Docs/` (`DocsWorkspace.tsx`, `DocsSidebar.tsx`, `DocsLayout.tsx`, `store.ts`) | D1 `documents` — the same table `apps/qwksearch-web` writes |
 | F4 | **Favorites** | `worker/routes/qwksearch/favorites.ts` | inside F1 | D1 `favorites` |
 | F5 | **QwkSearch search provider** — LobeHub's web-browsing tool fans out over QwkSearch's 100+ engines | `apps/server/src/services/search/impls/qwksearch/` | LobeHub's existing search portal UI | none (stateless proxy) |
@@ -72,6 +72,39 @@ then LobeHub's tRPC/webapi/api, then the SPA catch-all.
   runs F2 fresh. `POST /api/doc/article` stores a Q&A pair or updates follow-ups.
 - Q&A and follow-ups run through LobeHub's `AiGenerationService`, so the signed-in
   user's own providers and key vaults apply — no separate key path.
+
+### F2 — Extraction chain contract
+
+The seam that makes the engine's article panel extract the way qwksearch.com does.
+
+```
+GET /api/doc/article?url=…
+  → classifyUrl(url) → UrlKind
+    → tiersForUrl(kind)
+      ├─ youtube │ pdf  → [extractViaQwkSearch]
+      └─ article        → [extractViaQwkSearch, extractViaScraper, extractViaTavily, extractViaCrawler]
+                             │                    └─ rendered HTML → extractContentAndCite
+                             └─ extract-webpage extractContent()
+                                  ├─ YouTube  → extract-youtube (transcript)
+                                  ├─ PDF      → extract-pdf
+                                  ├─ DOCX / Google Docs → export URL → mammoth
+                                  └─ HTML     → linkedom + readability/mercury + citation extraction
+```
+
+| Concern | Behavior |
+|---|---|
+| Loading | `extract-webpage` is imported through a memoised, injectable loader (`loadExtractWebpage`). A failed import returns `{ error }` like any other tier failure — it never takes the Worker down, and tests inject a fake module instead |
+| Why the package root | The barrel deliberately excludes `seektopic/` and `utils/documents`, so `@huggingface/transformers` and `chat-agent-toolkit` stay out of the Worker bundle even though they are dependencies of the package |
+| `linkedom` | **Not shimmed.** `vite.worker.config.ts` used to alias it to a throwing stub because LobeHub only reached it from the dev-server template rewriter. It is pure JS, runs on workerd, and `extract-webpage` parses every page with it |
+| Bundle cost | 7.39 MB → 7.93 MB gzipped, against Cloudflare's 10 MB limit |
+| Kind routing | `youtube` and `pdf` run tier 0 alone — the later tiers render HTML, which for those URLs is page chrome, not the transcript or the document. Serving that is worse than reporting the failure |
+| Rejected up front | `invalid`, `search-engine`, and `video` (Vimeo/Dailymotion/Twitch — no transcript route) |
+| Scraper tier | On a successful render, the HTML goes through `extractContentAndCite` (`articleFromRenderedHtml`) so the byline survives the bot check; falls back to LobeHub readability |
+| Field mapping | `fromQwkArticle` narrows the extractor's wider types onto the D1 columns — `author_type` (number \| string → text) and `error` (number \| string → text). `content` (markdown, read by the AI Q&A path), `source`, `word_count` and `cite` are filled in only when the extractor did not resolve them |
+
+No upstream LobeHub file is edited for this. `extract.ts` and the new
+`extractQwkSearch.ts` both live under `worker/`; the only build-side change is
+*removing* the `linkedom` alias.
 
 ### F5 — Search provider contract
 
@@ -146,6 +179,9 @@ scoped stylesheet (`react-reason-editor/style.css`).
 ```bash
 cd packages-lobe
 
+# The extraction chain alone (35 cases: kind routing, tier order, field mapping)
+bunx vitest run worker/qwksearch/extract.test.ts worker/qwksearch/extractQwkSearch.test.ts
+
 # Worker, Cloudflare adapters, QwkSearch features, the search provider
 bunx vitest run worker src/features/QwkSearch \
   src/libs/better-auth/utils/kvSecondaryStorage.test.ts \
@@ -162,6 +198,6 @@ cd packages/database && bunx vitest run src/core/cloudflare.test.ts
 ## 7. Not yet integrated
 
 Tracked with owners and next steps in [LobeHub Migration To-Do](./lobehub-migration-todo):
-the REASON editor inside `/docs`, `extract-webpage`/`extract-pdf`/`extract-youtube`
-as extraction tiers, the Search & Sources and Extraction settings panes, one login
-across both Workers, chat-history migration, and the OIDC/Redis/mobile-SPA ops gaps.
+the REASON editor inside `/docs`, the Search & Sources and Extraction settings
+panes, one login across both Workers, chat-history migration, and the
+OIDC/Redis/mobile-SPA ops gaps.

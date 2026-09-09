@@ -40,6 +40,7 @@
   },
   "devDependencies": {
     "@types/mdx": "^2.0.13",
+    "@vitest/coverage-v8": "^4.0.18",
     "@types/react": "^19.2.7",
     "typescript": "^5.9.3",
     "@types/node": "^24.10.1",

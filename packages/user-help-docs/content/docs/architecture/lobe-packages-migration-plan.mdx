@@ -48,7 +48,7 @@ Status: **plan — `packages-lobe/` builds and deploys; no traffic cutover yet.*
 | Auth | Better Auth with KV secondary storage (`src/libs/better-auth/utils/config.ts`) |
 | Article panel | `src/features/QwkSearch/ArticlePanel` — extract side panel, favorites, Q&A, follow-ups through LobeHub's `AiGenerationService` |
 | Docs | `/docs` route (`src/features/QwkSearch/Docs`) on D1 `documents` — **plain Markdown editor, REASON not yet embedded** |
-| Extraction | `worker/qwksearch/extract.ts`: Cloudflare Puppeteer scraper → Tavily → `@lobechat/web-crawler` — **does not yet use `extract-webpage`** |
+| Extraction | `worker/qwksearch/extract.ts`: **`extract-webpage`** → Cloudflare Puppeteer scraper → Tavily → `@lobechat/web-crawler`, routed per URL kind — YouTube goes to `extract-youtube`, PDF/arXiv to `extract-pdf` |
 | Known gaps | OIDC 501 (CLI/desktop sign-in), Redis in-memory fallbacks, mobile SPA optional, no sharp |
 
 What still runs the product today (`apps/qwksearch-web` + packages), i.e. what this
@@ -134,14 +134,20 @@ staging route.
   manifest's `searchCategories` enum to QwkSearch's 13 without breaking the other
   providers that share it, swapping the HTTPS hop for a service binding, and
   consulting `domain-rank` for ranking/favicons.
-- **1.3 Extraction chain, first tier = article extractor.** Today
-  `worker/qwksearch/extract.ts` tries Puppeteer scraper → Tavily →
-  `@lobechat/web-crawler`. Insert tier 0: call Worker A's
-  `GET /api/doc/article` (which runs `extract-webpage`'s `extractContent` +
-  citation extraction and caches in the shared D1 `articleCache`). This gives
-  the engine cited extraction for free and keeps one cache. Route
-  YouTube URLs to `extract-youtube` transcripts and PDFs/arXiv to `extract-pdf`
-  through the same API rather than rejecting video hosts up front.
+- **1.3 Extraction chain, first tier = article extractor.** ✅ Done, but not the
+  way this plan first proposed. Tier 0 was going to be an HTTPS call to Worker
+  A's `GET /api/doc/article`. Instead the engine imports `extract-webpage`
+  directly (`worker/qwksearch/extractQwkSearch.ts`) and calls `extractContent`
+  in-process. Three reasons: the engine already serves its own
+  `/api/doc/article` against the *same* D1 `articleCache`, so the network hop
+  bought no cache sharing that the binding did not already give; it would have
+  made every extraction depend on Worker A being up, which runs against the
+  point of the cutover; and 4.5 decommissions Worker A's agent routes anyway,
+  so tier 0 would have had to be rewritten later. YouTube and PDF/arXiv route
+  to `extract-youtube` / `extract-pdf` through the extractor's own branching
+  rather than being rejected up front. See the
+  [To-Do](./lobehub-migration-todo) §1.3 for what it cost (`linkedom` un-shimmed,
+  +0.54 MB gzipped) and what was left open.
 - **1.4 Agent parity checklist.** Reproduce the current chat-mode behaviors in
   the engine and record gaps: search-cited answers with follow-up suggestions
   (Lobe has both), file upload Q&A, voice input (Lobe TTS/STT settings tab vs

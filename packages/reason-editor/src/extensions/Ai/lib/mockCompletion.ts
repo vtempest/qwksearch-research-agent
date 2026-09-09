@@ -23,15 +23,19 @@ function wait(ms: number, signal: AbortSignal) {
   });
 }
 
-function transform(instruction: string, selectedText: string): string {
-  const lower = instruction.toLowerCase();
+function transform(commandId: string, instruction: string, selectedText: string): string {
+  const lower = `${commandId} ${instruction}`.toLowerCase();
   const text = selectedText.trim();
 
   if (!text) {
-    return `${instruction.trim() || 'New content'}.`;
+    // Nothing selected: the generate commands ask for fresh content.
+    if (lower.includes('outline')) {
+      return '- Background\n- What changed\n- Why it matters\n- Next steps';
+    }
+    return `${instruction.trim() || 'New content'}\n\n(Offline demo response — configure Ai.configure({ getCompletion }) to use a real model.)`;
   }
   if (lower.includes('emoji')) {
-    return `${text} ✨📝`;
+    return `${text} \u2728\ud83d\udcdd`;
   }
   if (lower.includes('shorter') || lower.includes('concise')) {
     const words = text.split(/\s+/);
@@ -40,6 +44,14 @@ function transform(instruction: string, selectedText: string): string {
   }
   if (lower.includes('longer') || lower.includes('expand')) {
     return `${text} In other words, this point matters because it clarifies the reader's understanding and adds useful context.`;
+  }
+  if (lower.includes('key-points') || lower.includes('action-items') || lower.includes('takeaway')) {
+    return text
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => `- ${s.replace(/[.!?]$/, '')}`)
+      .join('\n');
   }
   if (lower.includes('simplify')) {
     return text
@@ -55,15 +67,17 @@ function transform(instruction: string, selectedText: string): string {
 }
 
 export const mockAiCompletion: AiCompletionFn = async (request, onChunk, signal) => {
-  const full = transform(request.instruction, request.selectedText);
-  const words = full.split(' ');
+  const full = transform(request.commandId, request.instruction, request.selectedText);
+  // Split on whitespace but keep it, so multi-line demo output (lists,
+  // paragraphs) streams with its line breaks intact.
+  const chunks = full.split(/(\s+)/).filter(Boolean);
 
   let acc = '';
-  for (let i = 0; i < words.length; i++) {
+  for (const chunk of chunks) {
     if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-    acc += (i === 0 ? '' : ' ') + words[i];
+    acc += chunk;
     onChunk(acc);
-    await wait(35, signal);
+    if (chunk.trim()) await wait(35, signal);
   }
 
   return acc;

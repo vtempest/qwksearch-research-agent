@@ -646,3 +646,136 @@ export const PACKAGES: { name: string; blurb: string }[] = [
   { name: "shadcn-app-dock", blurb: "macOS-style dock with a shadcn theme switcher." },
   { name: "qwksearch-api-client", blurb: "Typed bindings generated from the OpenAPI spec." },
 ];
+
+export interface ProjectBadge {
+  /** Alt text, which doubles as the badge's tooltip and its React key. */
+  alt: string;
+  /** Badge image — shields.io, Zenodo, Codecov and friends. */
+  src: string;
+  /** Where the badge links; the plain tech-stack chips link nowhere. */
+  href?: string;
+}
+
+/**
+ * The README's badge wall, in the README's own order, so the homepage and the
+ * repo's front page say the same thing about the project. Rendered with plain
+ * <img> tags at a uniform height: every one of these is a remote SVG/PNG the
+ * Worker's image optimizer would not proxy anyway (see `faviconUrl`).
+ */
+export const PROJECT_BADGES: ProjectBadge[] = [
+  {
+    alt: "DOI",
+    src: "https://zenodo.org/badge/DOI/10.5281/zenodo.20951725.svg",
+    href: "https://doi.org/10.5281/zenodo.20951725",
+  },
+  {
+    alt: "Ask DeepWiki",
+    src: "https://deepwiki.com/badge.svg",
+    href: "https://deepwiki.com/OpenSourceAGI/qwksearch-research-agent",
+  },
+  {
+    alt: "Documentation",
+    src: "https://img.shields.io/badge/Docs-blue?logo=ReadTheDocs&logoColor=white",
+    href: "/docs",
+  },
+  {
+    alt: "API reference",
+    src: "https://img.shields.io/badge/API-blue?logo=fastapi&logoColor=white",
+    href: "https://qwksearch.com/api/docs",
+  },
+  {
+    alt: "YouTube",
+    src: "https://img.shields.io/badge/YouTube-red?style=for-the-badge&logo=youtube&logoColor=white",
+    href: "https://youtu.be/DzykBAdrw6s",
+  },
+  {
+    alt: "Deploy to Cloudflare Workers",
+    src: "https://deploy.workers.cloudflare.com/button",
+    href: "https://deploy.workers.cloudflare.com/?url=https://github.com/OpenSourceAGI/qwksearch-research-agent",
+  },
+  {
+    alt: "GitHub stars",
+    src: "https://img.shields.io/github/stars/vtempest/qwksearch-research-agent",
+    href: "https://github.com/OpenSourceAGI/qwksearch-research-agent/discussions",
+  },
+  {
+    alt: "NPM monthly downloads",
+    src: "https://img.shields.io/npm/dm/qwksearch-api-client.svg",
+    href: "https://www.npmjs.com/package/qwksearch-api-client",
+  },
+  {
+    alt: "Coverage",
+    src: "https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent/graph/badge.svg",
+    href: "https://codecov.io/gh/OpenSourceAGI/qwksearch-research-agent",
+  },
+  {
+    alt: "Commit activity",
+    src: "https://img.shields.io/github/commit-activity/m/vtempest/qwksearch-research-agent",
+    href: "https://github.com/OpenSourceAGI/qwksearch-research-agent/graphs/contributors",
+  },
+  {
+    alt: "GitHub last commit",
+    src: "https://img.shields.io/github/last-commit/vtempest/qwksearch-research-agent.svg",
+    href: "https://github.com/OpenSourceAGI/qwksearch-research-agent/commits/master/",
+  },
+  {
+    alt: "Test status for master",
+    src: "https://github.com/OpenSourceAGI/qwksearch-research-agent/actions/workflows/test-web-api.yml/badge.svg",
+    href: "https://github.com/OpenSourceAGI/qwksearch-research-agent/actions/workflows/test-web-api.yml",
+  },
+  {
+    alt: "Uptime status",
+    src: "https://img.shields.io/badge/Uptime-Status-brightgreen?logo=uptimerobot&logoColor=white",
+    href: "https://stats.uptimerobot.com/wgqOZtDv0i",
+  },
+  {
+    alt: "npm version",
+    src: "https://img.shields.io/npm/v/qwksearch-api-client.svg",
+    href: "https://www.npmjs.com/package/qwksearch-api-client",
+  },
+  {
+    alt: "Join Discord",
+    src: "https://img.shields.io/discord/1110227955554209923.svg?label=Chat&logo=Discord&colorB=7289da&style=flat",
+    href: "https://discord.gg/SJdBqBz3tV",
+  },
+  {
+    alt: "PRs welcome",
+    src: "https://img.shields.io/badge/PRs-welcome-brightgreen.svg",
+    href: "https://github.com/OpenSourceAGI/qwksearch-research-agent/pulls",
+  },
+  {
+    alt: "Claude AI",
+    src: "https://img.shields.io/badge/Claude-D97757?logo=claude&logoColor=fff",
+  },
+  {
+    alt: "Cloudflare",
+    src: "https://img.shields.io/badge/Cloudflare-F38020?logo=Cloudflare&logoColor=white",
+  },
+  { alt: "Next.js", src: "https://img.shields.io/badge/Next.js-black" },
+  {
+    alt: "grab.js.org",
+    src: "https://i.imgur.com/n3uYGcI.png",
+    href: "https://grab.js.org",
+  },
+];
+
+/** The README's product shot, reused so both surfaces show the same app. */
+export const APP_SCREENSHOT = {
+  src: "https://i.imgur.com/ZMY9Xy7.png",
+  alt: "The QwkSearch workspace: a research chat with cited sources beside the REASON editor",
+  caption:
+    "Search, the extracted article with its cites, and the REASON editor — one screen.",
+};
+
+/**
+ * The Claude Code skill checked into `.claude/skills/`, offered here as a
+ * one-line copy so anyone forking the repo starts with the same orientation
+ * Claude gets: which package owns which surface.
+ */
+export const CLAUDE_SKILL = {
+  name: "qwksearch-customize",
+  blurb:
+    "Teaches Claude Code where every surface lives — the web app, the chat UI, the REASON editor, the extension, and the ~20 packages behind them — so a change lands in the right layer instead of being re-implemented in the wrong one.",
+  command:
+    "npx degit OpenSourceAGI/qwksearch-research-agent/.claude/skills/qwksearch-customize ~/.claude/skills/qwksearch-customize",
+};

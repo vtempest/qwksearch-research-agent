@@ -106,6 +106,75 @@ already reached, and then went past by appending the `(merged)` marker.
 
 ## Completed
 
+## Homepage: the README's badges, a screenshot, and the Claude skill to copy
+
+**Status:** Completed
+**Source:** Direct request — "On the homepage feature the same badges as the
+readme", "To the homepage add skill to copy and also add screenshot", "add icon
+to docs in navbar. Don't show docs in nav when in docs already".
+**Branch:** `claude/grab-homepage-docs-navbar-ucd8l7`
+**PR:** Not created yet
+**Started:** 2026-09-09
+**Completed:** 2026-09-09
+
+### Goal
+The repo's front page sells the project — badges, a product shot, and the
+Claude Code skill that orients an agent in the monorepo. The homepage said
+none of it. Put the same three things on the marketing slab the homepage
+stacks below the workspace, and tidy the site links the dock carries.
+
+### Scope
+- `components/features/data.tsx` — `PROJECT_BADGES` (the README's wall, in the
+  README's order), `APP_SCREENSHOT`, and `CLAUDE_SKILL` (name, blurb, install
+  one-liner).
+- `components/features/FeaturesView.tsx` — a `BadgeWall` under the hero CTAs, a
+  `Screenshot` section between the hero and the demo video, and a
+  `ClaudeSkillSection` before the closing CTA.
+- `components/features/copy-command.tsx` — new: a command in a `<code>` box
+  with a copy button that reports success and failure.
+- `lib/config/site.ts` — the Docs site link now carries `BookOpen` rather than
+  a help circle.
+- `packages/research-agent-ui/src/lib/site-links.ts` (+ test) and
+  `app/CategoryDock.tsx` — the dock's Site Links menu drops the entry pointing
+  at the section already on screen.
+
+### Non-goals
+- **A second "Docs" button in the dock.** The dock's top-level `Docs` item is
+  the REASON workspace; a help-docs button beside it would put two entries
+  named "Docs" in one nav. The help docs stay in the Site Links menu.
+- **Checking the badge images into `public/`.** They are live status badges —
+  coverage, last commit, CI, npm version. A local copy would freeze them.
+- **Restating the README on the page.** Only the badges, the shot, and the
+  skill; the copy stays the page's own.
+
+### What changed
+The badge wall renders each badge at a uniform `h-5` — the README mixes `flat`
+and `for-the-badge` styles, which differ in height by a factor of two — and
+every badge carries its alt text as a `title`, since a shields.io image says
+nothing on hover. The `Docs` badge points at the site's own `/docs` rather than
+the README's API-docs URL, because on the site that route exists.
+
+`siteLinksForPath` hides a link only when it is genuinely where you are: the
+exact route or something nested under it (`/docs/guides/search` counts as
+`/docs`), never an external URL, never a link carrying a hash or query — the
+`/#downloads` entry opens the downloads dialog and is an action, not a
+destination — and `/` only on `/` itself.
+
+### Verification
+`bun install` cannot resolve `@cloudflare/vite-plugin@^1.43.0` in this
+environment, so `tsc` and `vitest` could not run. Instead every changed file
+was transpiled with `bun build --no-bundle` (all clean), and the ten cases in
+`site-links.test.ts` were executed directly against `siteLinksForPath` through
+`bun run` — all pass. The badge, screenshot and copy-command markup is
+unverified in a browser.
+
+### Remaining work
+- Run `bun run test` and the type check once dependencies install, and look at
+  the homepage in a browser.
+- If the intent behind "add icon to docs in navbar" was a top-level dock button
+  for the help docs rather than an icon on the existing Site Links entry, that
+  is a small follow-up — and it wants the REASON `Docs` item renamed first.
+
 ## Give the extraction chain's user layer somewhere to live
 
 **Status:** Completed

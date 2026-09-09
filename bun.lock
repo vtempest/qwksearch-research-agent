@@ -1060,6 +1060,7 @@
         "@types/mdx": "^2.0.13",
         "@types/node": "^24.10.1",
         "@types/react": "^19.2.7",
+        "@vitest/coverage-v8": "^4.0.18",
         "typescript": "^5.9.3",
         "vitest": "^4.1.10",
       },

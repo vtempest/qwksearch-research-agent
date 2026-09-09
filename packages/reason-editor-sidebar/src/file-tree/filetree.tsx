@@ -173,9 +173,12 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
       const built = buildItems(documents);
       return built;
     }, [documents]);
+    // Use the tree's own notion of a folder (`buildItems` promotes any item
+    // with children) so an id set written back by the host round-trips
+    // instead of dropping entries the tree still draws as folders.
     const expandedItems = useMemo(
-      () => documents.filter((doc) => doc.isFolder && doc.isExpanded).map((doc) => doc.id),
-      [documents],
+      () => documents.filter((doc) => items[doc.id]?.isFolder && doc.isExpanded).map((doc) => doc.id),
+      [documents, items],
     );
 
     const [state, setState] = useState<Partial<TreeState<FileTreeItem>>>({

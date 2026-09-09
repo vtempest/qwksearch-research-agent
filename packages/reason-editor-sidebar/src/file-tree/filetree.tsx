@@ -328,6 +328,9 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
           tree.getItemInstance(nodeId).startRenaming();
         }
       },
+      // Every folder at once, taken from the level math rather than
+      // headless-tree's asynchronous walk: the set has to be known
+      // synchronously to be handed to the host.
       expandAll: () => {
         const ids = getFolderIdsUpToLevel(items, ROOT_ID, maxExpandLevel);
         setState((prev) => ({ ...prev, expandedItems: ids }));

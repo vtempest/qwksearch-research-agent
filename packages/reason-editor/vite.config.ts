@@ -310,6 +310,30 @@ export default defineConfig(async ({ mode }) => {
           // use-sync-external-store shim above (same dynamic-require issue),
           // so it must stay external too rather than get re-bundled here.
           'grab-url',
+          // React Compiler's runtime, reached from every `@platejs/*` (they all
+          // depend on `platejs`, whose compiled output calls into it). It is
+          // CommonJS-only — no `exports`, no `module`, no `"type": "module"`,
+          // just `main: dist/index.js` — and its single dependency is
+          // `require("react")`. Bundled in against an externalized `react`,
+          // Rolldown wraps it as CJS and emits that `require` literally into
+          // the chunk, where it has nothing to call: the browser throws
+          // "Calling `require` for \"react\" in an environment that doesn't
+          // expose the `require` function" the moment the editor chunk is
+          // lazy-loaded, and the Cloudflare Worker's SSR pass throws
+          // "Dynamic require of \"react\" is not supported" and serves a 500.
+          // Left external, the host bundler resolves the real CJS package and
+          // its `require("react")` the normal way.
+          'react-compiler-runtime',
+          // `@platejs/core`'s static renderer reaches this through
+          // `await import("react-dom/server")`. The subpath is not covered by
+          // the plain `react-dom` entry above (externals match the specifier),
+          // so it gets bundled — and in the browser that resolves to
+          // `react-dom/server.browser`'s CommonJS build, whose own
+          // `require("react")` fails the same way `react-compiler-runtime`
+          // does. Latent rather than constant (only Plate's HTML
+          // serialization loads the chunk), but the same defect.
+          'react-dom/server',
+          'react-dom/server.browser',
           // The voice engines behind the ReadAloud/Transcribe extensions. Left
           // external so the host resolves the real package: bundling them drags
           // in Moonshine's on-device speech model runtime as a 2 MB chunk, and

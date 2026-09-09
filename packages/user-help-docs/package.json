@@ -29,8 +29,8 @@
     "clsx": "^2.1.1",
     "fumadocs-core": "^16.15.8",
     "fumadocs-ui": "^16.15.8",
-    "lucide-react": "^1.17.0",
-    "shadcn-theme-menu": "^1.1.13",
+    "lucide-react": "^1.43.0",
+    "shadcn-theme-menu": "^1.1.47",
     "tailwind-merge": "^3.6.0"
   },
   "peerDependencies": {
@@ -39,12 +39,12 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@types/mdx": "^2.0.13",
-    "@vitest/coverage-v8": "^4.0.18",
-    "@types/react": "^19.2.7",
-    "typescript": "^5.9.3",
-    "@types/node": "^24.10.1",
-    "vitest": "^4.1.10"
+    "@types/mdx": "^2.0.14",
+    "@vitest/coverage-v8": "^5.0.0",
+    "@types/react": "^19.2.18",
+    "typescript": "^7.0.2",
+    "@types/node": "^26.5.0",
+    "vitest": "^5.0.0"
   },
   "scripts": {
     "type-check": "tsc --noEmit",

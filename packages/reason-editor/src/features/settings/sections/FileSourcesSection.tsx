@@ -1,8 +1,9 @@
 /**
  * @module FileSourcesSection
- * @description Settings panel for managing external file sources (SSH, S3, R2,
- * B2, Google Docs, Turso DB). Handles create/edit/delete with an inline form.
- * Rendered as one tab inside the Settings dialog.
+ * @description "Storage Sources" settings panel: where documents live. Covers
+ * the database-sync toggle (local-only vs. SQL) and the external storage
+ * sources (SSH, S3, R2, B2, Google Docs, Turso DB), with create/edit/delete
+ * through an inline form. Rendered as one tab inside the Settings dialog.
  */
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, HardDrive, Server, Cloud, Database, FileText, Workflow, LogIn } from 'lucide-react';
@@ -31,6 +32,10 @@ import { toast } from 'sonner';
 interface FileSourcesSectionProps {
   /** Whether the parent dialog is open; triggers a reload of sources when it opens. */
   open: boolean;
+  /** Whether documents are synced to the SQL database rather than kept local-only. */
+  enableDatabaseSync?: boolean;
+  /** Toggles database sync. */
+  onEnableDatabaseSyncChange?: (enabled: boolean) => void;
 }
 
 type SourceForm = {
@@ -41,7 +46,7 @@ type SourceForm = {
 
 const emptyForm: SourceForm = { name: '', type: 'local', credentials: {} };
 
-export const FileSourcesSection = ({ open }: FileSourcesSectionProps) => {
+export const FileSourcesSection = ({ open, enableDatabaseSync = false, onEnableDatabaseSyncChange }: FileSourcesSectionProps) => {
   const [fileSources, setFileSources] = useState<AnyFileSource[]>([]);
   const [editingSource, setEditingSource] = useState<string | null>(null);
   const [sourceForm, setSourceForm] = useState<SourceForm>(emptyForm);
@@ -173,8 +178,31 @@ export const FileSourcesSection = ({ open }: FileSourcesSectionProps) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold mb-2">File Sources</h2>
-        <p className="text-sm text-muted-foreground">Manage storage sources (SSH, S3, R2, B2, Google Docs, Turso DB)</p>
+        <h2 className="text-xl font-semibold mb-2">Storage Sources</h2>
+        <p className="text-sm text-muted-foreground">Choose where documents are stored (local, SQL database, SSH, S3, R2, B2, Google Docs, Turso DB)</p>
+      </div>
+
+      <Separator />
+
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <Label className="text-base flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            Database Sync
+          </Label>
+          <p className="text-sm text-muted-foreground">
+            {enableDatabaseSync
+              ? 'Documents are saved to the SQL database, synced a couple of seconds after each edit.'
+              : "Documents stay in this browser's local storage and won't be available on other devices."}
+          </p>
+        </div>
+        <input
+          type="checkbox"
+          id="database-sync"
+          checked={enableDatabaseSync}
+          onChange={(e) => onEnableDatabaseSyncChange?.(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300"
+        />
       </div>
 
       <Separator />
@@ -231,7 +259,7 @@ export const FileSourcesSection = ({ open }: FileSourcesSectionProps) => {
       {editingSource !== 'new' && (
         <Button variant="outline" size="sm" onClick={() => { setEditingSource('new'); setSourceForm({ name: '', type: 'ssh', credentials: { port: 22 } }); }} className="w-full gap-2">
           <Plus className="h-4 w-4" />
-          Add New File Source
+          Add New Storage Source
         </Button>
       )}
     </div>

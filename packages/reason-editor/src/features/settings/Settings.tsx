@@ -2,11 +2,11 @@
  * @module Settings
  * @description Full-screen settings dialog with a sectioned sidebar nav.
  * Each section is rendered by its own component:
- * AppearanceSection, StorageSection, FileSourcesSection,
- * AIRewriteModesSection, and AboutSection.
+ * AppearanceSection, FileSourcesSection (the "Storage Sources" tab),
+ * AIRewriteModesSection, KeyboardShortcutsSection, and AboutSection.
  */
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Paintbrush, Database, HardDrive, Wand2, Info, Keyboard } from 'lucide-react';
+import { Settings as SettingsIcon, Paintbrush, Database, Wand2, Info, Keyboard } from 'lucide-react';
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
   BreadcrumbPage, BreadcrumbSeparator,
@@ -19,7 +19,6 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider,
 } from '../../app-ui/sidebar';
 import { AppearanceSection } from './sections/AppearanceSection';
-import { StorageSection } from './sections/StorageSection';
 import { FileSourcesSection } from './sections/FileSourcesSection';
 import { AIRewriteModesSection } from './sections/AIRewriteModesSection';
 import { KeyboardShortcutsSection } from './sections/KeyboardShortcutsSection';
@@ -37,32 +36,48 @@ interface SettingsProps {
 
 const NAV = [
   { name: 'Appearance', icon: Paintbrush },
-  { name: 'Storage', icon: Database },
-  { name: 'File Sources', icon: HardDrive },
+  { name: 'Storage Sources', icon: Database },
   { name: 'AI Rewrite Modes', icon: Wand2 },
   { name: 'Keyboard Shortcuts', icon: Keyboard },
   { name: 'About', icon: Info },
 ];
+
+/**
+ * The "Storage" and "File Sources" tabs were merged into a single "Storage
+ * Sources" tab; map either legacy name so an older deep link or a stored
+ * section still opens the right panel instead of falling back to Appearance.
+ */
+const LEGACY_SECTIONS: Record<string, string> = {
+  Storage: 'Storage Sources',
+  'File Sources': 'Storage Sources',
+};
+
+const resolveSection = (section?: string) =>
+  (section && (LEGACY_SECTIONS[section] ?? section)) || 'Appearance';
 
 export const Settings = ({
   open, onOpenChange, initialSection,
   defaultSidebarView = 'last-used', onDefaultSidebarViewChange,
   enableDatabaseSync = false, onEnableDatabaseSyncChange,
 }: SettingsProps) => {
-  const [activeSection, setActiveSection] = useState(initialSection || 'Appearance');
+  const [activeSection, setActiveSection] = useState(() => resolveSection(initialSection));
 
   useEffect(() => {
-    if (open) setActiveSection(initialSection || 'Appearance');
+    if (open) setActiveSection(resolveSection(initialSection));
   }, [open, initialSection]);
 
   const renderContent = () => {
     switch (activeSection) {
       case 'Appearance':
         return <AppearanceSection defaultSidebarView={defaultSidebarView} onDefaultSidebarViewChange={onDefaultSidebarViewChange} />;
-      case 'Storage':
-        return <StorageSection enableDatabaseSync={enableDatabaseSync} onEnableDatabaseSyncChange={onEnableDatabaseSyncChange} />;
-      case 'File Sources':
-        return <FileSourcesSection open={open} />;
+      case 'Storage Sources':
+        return (
+          <FileSourcesSection
+            open={open}
+            enableDatabaseSync={enableDatabaseSync}
+            onEnableDatabaseSyncChange={onEnableDatabaseSyncChange}
+          />
+        );
       case 'AI Rewrite Modes':
         return <AIRewriteModesSection open={open} />;
       case 'Keyboard Shortcuts':

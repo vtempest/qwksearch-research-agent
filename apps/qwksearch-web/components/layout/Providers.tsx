@@ -1,98 +1,40 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import {
-  ChatProvider,
-  SessionProvider,
-  ExtractPanelProvider,
-  configureResearchAgentUI,
-} from 'research-agent-ui';
-import { ThemeProvider } from 'shadcn-theme-menu';
-import { CategoryDockProvider } from 'shadcn-app-dock';
-import { Toaster } from 'sonner';
+import { QwkSearchProviders } from 'research-agent-ui';
 import { authClient } from '@/lib/auth/client';
-import { CategoryDock } from '@/components/layout/CategoryDock';
-import { CookieConsent } from '@/components/layout/CookieConsent';
-import { useChunkErrorReload } from '@/components/layout/useChunkErrorReload';
 import { SettingsModalProvider } from '@/components/Settings/SettingsModal';
-import { MainViewProvider } from '@/components/layout/MainViewProvider';
 import { config, listFooterLinks } from '@/lib/config/site';
 
-configureResearchAgentUI({
-  appName: config.appName,
-  defaultSummarizePrompt: config.defaultSummarizePrompt,
-  maxArticleLength: config.maxArticleLength,
-  downloadChromeUrl: config.downloadChromeUrl,
-  downloadWindowsStoreId: config.downloadWindowsStoreId,
-  footerLinks: listFooterLinks,
-  googleApiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '',
-  // Cloud project number the Drive picker identifies this app by. It is the
-  // numeric prefix of the OAuth client ID, so it needs no separate secret.
-  googleAppId:
-    process.env.NEXT_PUBLIC_GOOGLE_APP_ID || config.googleClientId.split('-')[0],
-  getAutoMediaSearch: () => true,
-});
-
+/**
+ * The app's root providers. The stack itself — theming, session, chat,
+ * dock, cookie banner, the research/docs view switch — lives in
+ * `research-agent-ui` so the desktop app, the extension, and any external
+ * consumer mount the same shell. This file supplies only what is specific
+ * to the web app: its auth client, its site config, and its settings modal.
+ */
 export function Providers({ children }: { children: React.ReactNode }) {
-  // Google One Tap should only be prompted when the backend actually has the
-  // Google provider configured — otherwise the prompt can only fail (a
-  // sign-in with no provider to complete it against).
-  const [googleOneTapEnabled, setGoogleOneTapEnabled] = useState(false);
-
-  useChunkErrorReload();
-
-  useEffect(() => {
-    fetch('/api/auth/providers')
-      .then((res) => res.json())
-      .then((data) => setGoogleOneTapEnabled(!!data.providers?.includes('google')))
-      .catch(() => setGoogleOneTapEnabled(false));
-  }, []);
-
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
+    <QwkSearchProviders
+      authClient={authClient}
+      ChromeProvider={SettingsModalProvider}
+      config={{
+        appName: config.appName,
+        defaultSummarizePrompt: config.defaultSummarizePrompt,
+        maxArticleLength: config.maxArticleLength,
+        downloadChromeUrl: config.downloadChromeUrl,
+        downloadWindowsStoreId: config.downloadWindowsStoreId,
+        footerLinks: listFooterLinks,
+        googleApiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '',
+        // Cloud project number the Drive picker identifies this app by. It is
+        // the numeric prefix of the OAuth client ID, so it needs no separate
+        // secret.
+        googleAppId:
+          process.env.NEXT_PUBLIC_GOOGLE_APP_ID ||
+          config.googleClientId.split('-')[0],
+        getAutoMediaSearch: () => true,
+      }}
     >
-      <SessionProvider authClient={authClient} enableGoogleOneTap={googleOneTapEnabled}>
-        <ExtractPanelProvider>
-          <ChatProvider>
-            <CategoryDockProvider>
-              <SettingsModalProvider>
-                <MainViewProvider>
-                  {/* The app's single scroll container. `overflow-x` is clipped
-                      rather than auto because full-bleed `w-screen` children
-                      (the workspace shell) measure 100vw, which overhangs this
-                      box by the scrollbar's width as soon as a page — the
-                      homepage, now that /features stacks below it — actually
-                      scrolls. Identified so scroll-driven UI can listen here
-                      instead of on `window`, which never scrolls. */}
-                  <div
-                    id="app-scroll-root"
-                    className="w-screen h-screen overflow-y-auto overflow-x-hidden pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0"
-                  >
-                    <CategoryDock />
-                    <main className="bg-light-primary dark:bg-dark-primary min-h-screen">
-                      {children}
-                    </main>
-                  </div>
-                </MainViewProvider>
-              </SettingsModalProvider>
-            </CategoryDockProvider>
-            <Toaster
-              toastOptions={{
-                unstyled: true,
-                classNames: {
-                  toast:
-                    'bg-light-secondary dark:bg-dark-secondary dark:text-white/70 text-black-70 rounded-lg p-4 flex flex-row items-center space-x-2',
-                },
-              }}
-            />
-            <CookieConsent />
-          </ChatProvider>
-        </ExtractPanelProvider>
-      </SessionProvider>
-    </ThemeProvider>
+      {children}
+    </QwkSearchProviders>
   );
 }

@@ -3,7 +3,7 @@
  */
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from 'vitest';
 import grab from 'grab-url';
-import { getTopicSearches } from '../topic-searches';
+import { getTopicSearches } from '../src/workspace/topic-searches';
 
 vi.mock('grab-url');
 const mockGrab = grab as MockedFunction<typeof grab>;
@@ -21,7 +21,7 @@ describe('getTopicSearches', () => {
     expect(mockGrab).toHaveBeenCalledTimes(1);
     const [path, opts] = mockGrab.mock.calls[0];
     expect(path).toBe('agent/topic-searches');
-    const body = JSON.parse((opts as RequestInit).body as string);
+    const body = JSON.parse(opts?.body as string);
     expect(body).toEqual({ title: 'My Doc', content: 'Some plain text content' });
     expect(result).toEqual(['topic one', 'topic two']);
   });

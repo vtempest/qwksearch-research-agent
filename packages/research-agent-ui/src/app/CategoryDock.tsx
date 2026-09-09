@@ -15,29 +15,34 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "shadcn-app-dock"
-import { useSession, useChat } from "research-agent-ui"
-import { listFooterLinks } from "@/lib/config/site"
-import { useSettingsModal } from "@/components/Settings/SettingsModal"
-import { useMainView } from "@/components/layout/MainViewProvider"
+import { useSession } from "../hooks/useSession"
+import { useChat } from "../hooks/useChat"
+import { researchAgentUIConfig } from "../config"
+import { useMainView } from "./MainViewProvider"
 import iconRead from "../icons/icon-read.svg"
 import iconConfigure from "../icons/icon-configure.svg"
-
-const NAV_ITEMS = [
-  { href: "/", label: "Research", icon: "/apple-touch-icon.png" },
-  {
-    href: "/workspace",
-    label: "Docs",
-    icon: <Image src={iconRead} alt="Docs" width={24} height={24} className="w-full h-full" />,
-  },
-]
 
 export function CategoryDock() {
   const pathname = usePathname()
   const router = useRouter()
   const { isAuthenticated, signIn, signOut } = useSession()
   const { newChat } = useChat()
-  const { openSettings } = useSettingsModal()
-  const { activeView, setActiveView, requestFilesSidebar } = useMainView()
+  const { activeView, setActiveView, docsEnabled, requestFilesSidebar } = useMainView()
+
+  // The Docs entry is only reachable in the build that bundles the REASON
+  // editor — in the chat-only build there is no document surface to switch to.
+  const NAV_ITEMS = [
+    { href: "/", label: "Research", icon: researchAgentUIConfig.appIconUrl },
+    ...(docsEnabled
+      ? [
+          {
+            href: "/workspace",
+            label: "Docs",
+            icon: <Image src={iconRead} alt="Docs" width={24} height={24} className="w-full h-full" />,
+          },
+        ]
+      : []),
+  ]
 
   const isOnResearch = pathname === "/" || pathname.startsWith("/c")
 
@@ -62,15 +67,19 @@ export function CategoryDock() {
         setActiveView("docs")
       },
     })),
-    {
-      key: "files",
-      label: "Files",
-      icon: <FileText className="w-full h-full p-1" />,
-      onClick: () => {
-        setActiveView("docs")
-        requestFilesSidebar()
-      },
-    },
+    ...(docsEnabled
+      ? [
+          {
+            key: "files",
+            label: "Files",
+            icon: <FileText className="w-full h-full p-1" />,
+            onClick: () => {
+              setActiveView("docs")
+              requestFilesSidebar()
+            },
+          },
+        ]
+      : []),
     {
       key: "settings",
       label: "Settings",
@@ -82,7 +91,7 @@ export function CategoryDock() {
               onClick={() => {
                 // Open settings in a modal on large desktop screens; otherwise
                 // navigate to the /settings route.
-                if (!openSettings()) router.push("/settings")
+                if (!researchAgentUIConfig.onOpenSettings?.()) router.push("/settings")
               }}
               className="cursor-pointer py-1 h-7"
             >
@@ -95,7 +104,7 @@ export function CategoryDock() {
                 <span className="text-sm">Site Links</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
-                {listFooterLinks.map(({ url, text, icon }) => {
+                {researchAgentUIConfig.footerLinks.map(({ url, text, icon }) => {
                   const IconComponent = icon ? (LucideIcons as any)[icon] : null
                   const isExternal = url.startsWith("http")
                   return (

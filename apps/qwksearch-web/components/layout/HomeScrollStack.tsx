@@ -4,7 +4,7 @@ import * as React from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
-import { useChat } from 'research-agent-ui';
+import { useChat, useMainView } from 'research-agent-ui';
 
 import { ResearchWorkspaceView } from 'research-agent-ui/workspace';
 import { cn } from '@/lib/utils';

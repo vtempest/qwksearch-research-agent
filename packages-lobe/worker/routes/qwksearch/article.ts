@@ -11,11 +11,18 @@ import { Hono } from 'hono';
 
 import { getQwkDB } from '../../qwksearch/db';
 import {
+  buildCite,
   classifyUrl,
   extractArticle,
   type ExtractedArticle,
   isExtractableKind,
+  tiersForUrl,
 } from '../../qwksearch/extract';
+import {
+  type CitationStyle,
+  parseClientExtractionOverrides,
+  resolveExtractionSettings,
+} from '../../qwksearch/extractSettings';
 import { articleCache, articleQA } from '../../qwksearch/schema';
 
 interface CachedArticle extends ExtractedArticle {
@@ -37,6 +44,19 @@ const toResponseArticle = (row: typeof articleCache.$inferSelect): CachedArticle
   url: row.url,
   word_count: row.word_count || undefined,
 });
+
+/**
+ * Re-render a cached article's citation in the requested style.
+ *
+ * `articleCache` is keyed by URL alone and stores one `cite` string, written in
+ * whatever style produced it. Rather than fragmenting the cache per style, the
+ * response rebuilds the citation from the fields that *are* cached whenever a
+ * non-APA style is asked for. APA keeps the stored string, because that one
+ * came out of the extractor's name database and is better than anything the
+ * fallback builder can assemble from the columns.
+ */
+export const restyleCite = (article: CachedArticle, style: CitationStyle): CachedArticle =>
+  style === 'apa' ? article : { ...article, cite: buildCite(article, article.url || '', style) };
 
 export const articleApp = new Hono();
 
@@ -69,6 +89,15 @@ articleApp.get('/api/doc/article', async (c) => {
     return c.json({ error: 'URL is not an extractable article' }, 400);
   }
 
+  // Operator config (Worker vars and secrets) narrowed by the two request
+  // parameters that are safe to honour: `cite` and `lang`. Hosts, keys and the
+  // PDF OCR mode are deliberately not readable from the query string — see the
+  // module comment in `extractSettings.ts`.
+  const settings = resolveExtractionSettings(
+    process.env as Record<string, string | undefined>,
+    parseClientExtractionOverrides((name) => c.req.query(name)),
+  );
+
   try {
     const db = getQwkDB();
     const cached = await db.select().from(articleCache).where(eq(articleCache.url, url)).limit(1);
@@ -84,10 +113,16 @@ articleApp.get('/api/doc/article', async (c) => {
         .from(articleQA)
         .where(eq(articleQA.articleUrl, url));
 
-      return c.json({ article: { ...toResponseArticle(cached[0]), qaHistory }, cached: true });
+      return c.json({
+        article: {
+          ...restyleCite(toResponseArticle(cached[0]), settings.citationStyle),
+          qaHistory,
+        },
+        cached: true,
+      });
     }
 
-    const extracted = await extractArticle(url);
+    const extracted = await extractArticle(url, tiersForUrl(url, kind, settings));
     if (!extracted.html || extracted.error) {
       return c.json(
         { detail: extracted.error, error: 'Article extraction returned no content', url },

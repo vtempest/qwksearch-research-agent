@@ -68,6 +68,7 @@ then LobeHub's tRPC/webapi/api, then the SPA catch-all.
 |---|---|---|---|---|
 | F1 | **Article extract side panel** — external links in chat open in a resizable right panel; citation, favorites, Q&A, follow-ups | `worker/routes/qwksearch/article.ts`, `articleAi.ts` | `src/features/QwkSearch/ArticlePanel/` (`ArticlePanel.tsx`, `store.ts`, `api.ts`, `useArticleLinkInterceptor.ts`) | D1 `articleCache`, `articleQA`, `favorites` |
 | F2 | **Extraction chain** — `extract-webpage` → Puppeteer scraper (8s deadline) → Tavily → `@lobechat/web-crawler`, routed per URL kind | `worker/qwksearch/extract.ts`, `worker/qwksearch/extractQwkSearch.ts` | — | writes through F1's cache |
+| F2a | **Extraction settings** — one resolved value behind F2's knobs: citation style, transcript languages, timeout, enabled tiers, render backend, PDF OCR mode | `worker/qwksearch/extractSettings.ts` | — | none (per-request) |
 | F3 | **Docs** (`/docs`) — Markdown research documents, autosaved, write/preview | `worker/routes/qwksearch/documents.ts` | `src/features/QwkSearch/Docs/` (`DocsWorkspace.tsx`, `DocsSidebar.tsx`, `DocsLayout.tsx`, `store.ts`) | D1 `documents` — the same table `apps/qwksearch-web` writes |
 | F4 | **Favorites** | `worker/routes/qwksearch/favorites.ts` | inside F1 | D1 `favorites` |
 | F5 | **QwkSearch search provider** — LobeHub's web-browsing tool fans out over QwkSearch's 100+ engines | `apps/server/src/services/search/impls/qwksearch/` | LobeHub's existing search portal UI | none (stateless proxy) |
@@ -118,6 +119,40 @@ GET /api/doc/article?url=…
 No upstream LobeHub file is edited for this. `extract.ts` and the new
 `extractQwkSearch.ts` both live under `worker/`; the only build-side change is
 *removing* the `linkedom` alias.
+
+### F2a — Extraction settings contract
+
+The chain used to read its configuration inline: `['en']` for transcript
+languages, an APA-shaped citation, `process.env.SCRAPER_URL` inside the tier
+that used it. `extractSettings.ts` replaces all of it with one resolved
+`ExtractionSettings`, folded out of three layers.
+
+```
+DEFAULT_EXTRACTION_SETTINGS          shipped behaviour
+  ← extractionSettingsFromEnv(env)   Worker vars + secrets   (operator)
+  ← UserExtractionOverrides          persisted preferences   (signed-in user)
+  ← ClientExtractionOverrides        ?cite= / ?lang=         (any caller)
+      ↓
+  tiersForUrl(url, kind, settings) → tiers bound to it, each tagged with `tierId`
+```
+
+| Concern | Behavior |
+|---|---|
+| Validation | Every value is normalized on the way in — language tags matched against a BCP-47 shape and capped at 5, numbers clamped, enums matched case-insensitively. A value that fails falls back to the layer below; nothing throws, because a bad preference must not become a 500 on an article fetch |
+| Layer asymmetry | `ClientExtractionOverrides` is a strict subset of `UserExtractionOverrides`, which is a strict subset of the settings. Hosts and credentials (`scraperUrl`, `scraperApiKey`, `tavilyApiKey`, `pdfProcessorUrl`, `proxy`) resolve **from the environment only** — a caller-supplied backend URL would make `/api/doc/article` an open request proxy and leak the configured bearer token to it |
+| `pdfProcessor` | Withheld from the client layer as well: `docling` OCRs every page, so selecting it is compute amplification rather than a preference |
+| Citation styles | `apa` (default, unchanged output), `mla`, `chicago`. The extractor emits APA only, so a non-APA style is rebuilt from `author_cite` / `title` / `source` / `date`; APA keeps the extractor's own string, which came from its 90k-name database |
+| Cache interaction | `articleCache` is keyed by URL and holds one `cite`. A non-APA request re-renders the citation from the cached columns instead of fragmenting the cache per style |
+| Tier selection | `settings.tiers` filters the per-kind chain and can legitimately empty it (`QWKSEARCH_EXTRACT_TIERS=scraper` + a PDF URL). The caller then gets the "no extraction tier configured" error rather than a tier the operator disabled |
+| Diagnostics | `redactExtractionSettings` returns the settings with each credential replaced by a boolean, so they can be logged or surfaced in the settings pane |
+
+Env vars, all optional and all defaulted: `QWKSEARCH_CITATION_STYLE`,
+`QWKSEARCH_EXTRACT_LANGUAGES`, `QWKSEARCH_EXTRACT_TIMEOUT`,
+`QWKSEARCH_EXTRACT_TIERS`, `QWKSEARCH_SCRAPER_DEADLINE_MS`,
+`PDF_PROCESSOR`, `PDF_PROCESSOR_URL`,
+`QWKSEARCH_EXTRACT_PROXY`, `QWKSEARCH_EXTRACT_THIRD_PARTY_BACKUP`. The existing
+`SCRAPER_URL`, `SCRAPER_API_KEY` and `TAVILY_API_KEY` keep their names, so no
+deployment needs to change.
 
 ### F5 — Search provider contract
 
@@ -184,8 +219,10 @@ Vars in `wrangler.jsonc` (both the default and `production` env):
 `APP_URL`, `DATABASE_DRIVER`, `DISABLE_REDIS`, `EMAIL_SERVICE_PROVIDER`,
 `SMTP_FROM`, `SCRAPER_URL`, `SEARCH_PROVIDERS`, `QWKSEARCH_SEARCH_URL`.
 
-Optional, unset by default: `PDF_PROCESSOR_URL` (F2's Granite Docling OCR
-processor for scanned PDFs).
+Optional extraction vars, all defaulted, are listed under §F2a and in
+`packages-lobe/README.md` — among them `PDF_PROCESSOR_URL` (F2's Granite Docling
+OCR processor for scanned PDFs) and its companion `PDF_PROCESSOR`. Setting none
+of them reproduces the behavior the chain had before the settings layer existed.
 
 Secrets (`wrangler secret put`): `KEY_VAULTS_SECRET`, `AUTH_SECRET`,
 `DATABASE_URL` (when not using Hyperdrive), `S3_*`, `TAVILY_API_KEY`,
@@ -204,8 +241,9 @@ scoped stylesheet (`react-reason-editor/style.css`).
 ```bash
 cd packages-lobe
 
-# The extraction chain alone (35 cases: kind routing, tier order, field mapping)
-bunx vitest run worker/qwksearch/extract.test.ts worker/qwksearch/extractQwkSearch.test.ts
+# The extraction chain and its settings (62 cases: kind routing, tier order,
+# field mapping, citation styles, layer resolution and what the client may set)
+bunx vitest run worker/qwksearch
 
 # Worker, Cloudflare adapters, QwkSearch features, the search provider
 bunx vitest run worker src/features/QwkSearch \

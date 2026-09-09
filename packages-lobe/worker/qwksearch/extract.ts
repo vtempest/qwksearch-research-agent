@@ -23,6 +23,13 @@ import {
   runQwkSearchExtractor,
   runQwkSearchHtmlExtractor,
 } from './extractQwkSearch';
+import {
+  type CitationStyle,
+  DEFAULT_TIER_ORDER,
+  type ExtractionSettings,
+  resolveExtractionSettings,
+  type TierId,
+} from './extractSettings';
 
 export interface ExtractedArticle {
   author?: string;
@@ -130,16 +137,92 @@ export const countWords = (text?: string | null): number =>
         .filter(Boolean).length
     : 0;
 
-/** APA-ish citation string, same shape as the original extractor's URL branch. */
-export const buildCite = (article: ExtractedArticle, url: string): string => {
+/**
+ * A publication date we are willing to print.
+ *
+ * Anything at or before 1971 is treated as absent: unparsed dates and missing
+ * timestamps land on the Unix epoch, and a citation that claims an article was
+ * published in 1970 is worse than one with no date at all.
+ */
+const citableDate = (article: ExtractedArticle): Date | undefined => {
+  const parsed = article.date ? new Date(article.date) : undefined;
+  if (!parsed || Number.isNaN(parsed.getTime()) || parsed.getFullYear() <= 1971) return undefined;
+  return parsed;
+};
+
+const citeLink = (url: string) => `<a href="${url}" target="_blank">${url}</a>`;
+
+/** Terminal punctuation MLA and Chicago treat as already closing a segment. */
+const ENDS_SENTENCE = /[!.?]$/;
+
+/**
+ * `Lovelace, A.` → `Lovelace, A. ` — one period, not two.
+ *
+ * `author_cite` arrives as `Last, F.` from the extractor's name database, so
+ * appending the style's own period unconditionally doubles it.
+ */
+const citeSegment = (value?: string): string =>
+  value ? `${ENDS_SENTENCE.test(value) ? value : `${value}.`} ` : '';
+
+/** MLA/Chicago title: quoted, with the period inside unless it ends in ? or !. */
+const citeTitle = (title?: string): string =>
+  title ? `"<b>${title}</b>${ENDS_SENTENCE.test(title) ? '' : '.'}" ` : '';
+
+const buildApaCite = (article: ExtractedArticle, url: string, date?: Date): string => {
   const source = article.source || '';
-  const parsedDate = article.date ? new Date(article.date) : undefined;
-  const year = parsedDate ? parsedDate.getFullYear() : Number.NaN;
-  const apaDate =
-    parsedDate && year > 1971
-      ? ` (${year}, ${parsedDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })})`
-      : '';
-  return `${article.author_cite || source || ' '}${apaDate}. <b>${article.title || ''}</b>. <i>${source}</i>. <a href="${url}" target="_blank">${url}</a>`;
+  const apaDate = date
+    ? ` (${date.getFullYear()}, ${date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })})`
+    : '';
+  return `${article.author_cite || source || ' '}${apaDate}. <b>${article.title || ''}</b>. <i>${source}</i>. ${citeLink(url)}`;
+};
+
+/** `Lovelace, A. "Title." Source, 5 Mar. 2024, url.` */
+const buildMlaCite = (article: ExtractedArticle, url: string, date?: Date): string => {
+  const head = citeSegment(article.author_cite);
+  const title = citeTitle(article.title);
+  const day = date
+    ? `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' })}. ${date.getFullYear()}`
+    : '';
+  const tail = [article.source ? `<i>${article.source}</i>` : '', day, citeLink(url)]
+    .filter(Boolean)
+    .join(', ');
+  return `${head}${title}${tail}.`;
+};
+
+/** `Lovelace, A. "Title." Source, March 5, 2024. url.` */
+const buildChicagoCite = (article: ExtractedArticle, url: string, date?: Date): string => {
+  const head = citeSegment(article.author_cite);
+  const title = citeTitle(article.title);
+  const day = date
+    ? date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '';
+  const mid = [article.source ? `<i>${article.source}</i>` : '', day].filter(Boolean).join(', ');
+  return `${head}${title}${mid}${mid ? '. ' : ''}${citeLink(url)}.`;
+};
+
+/**
+ * Citation string for an article, in the configured style.
+ *
+ * APA is the default and keeps the exact shape the extractor's own URL branch
+ * produces, so an APA deployment sees no change from before styles existed.
+ */
+export const buildCite = (
+  article: ExtractedArticle,
+  url: string,
+  style: CitationStyle = 'apa',
+): string => {
+  const date = citableDate(article);
+  switch (style) {
+    case 'chicago': {
+      return buildChicagoCite(article, url, date);
+    }
+    case 'mla': {
+      return buildMlaCite(article, url, date);
+    }
+    default: {
+      return buildApaCite(article, url, date);
+    }
+  }
 };
 
 const escapeHtml = (s: string) =>
@@ -283,6 +366,7 @@ export const articleFromHtmlViaCrawler = (
   html: string,
   url: string,
   via: ExtractedArticle['via'],
+  citationStyle: CitationStyle = 'apa',
 ): ExtractedArticle => {
   const parsed = htmlToMarkdown(html, { filterOptions: { enableReadability: true }, url });
   if (!parsed.content || parsed.content.trim().length < MIN_CONTENT_CHARS) {
@@ -301,7 +385,7 @@ export const articleFromHtmlViaCrawler = (
     via,
     word_count: countWords(parsed.content),
   };
-  article.cite = buildCite(article, url);
+  article.cite = buildCite(article, url, citationStyle);
   return article;
 };
 
@@ -326,11 +410,18 @@ const completeQwkArticle = (
   article: ExtractedArticle,
   url: string,
   html: string,
+  citationStyle: CitationStyle = 'apa',
 ): ExtractedArticle => {
   article.content = contentFromExtractedHtml(html, article.url || url);
   article.source ||= hostnameOf(article.url || url);
   article.word_count ||= countWords(article.content || html);
-  article.cite ||= buildCite(article, article.url || url);
+  // The extractor builds its own citation, and it is APA — so it is kept as-is
+  // when APA is what was asked for, and rebuilt from the extracted fields when
+  // it is not. Rebuilding unconditionally would throw away the name-database
+  // formatting APA users are getting today.
+  if (!article.cite || citationStyle !== 'apa') {
+    article.cite = buildCite(article, article.url || url, citationStyle);
+  }
   return article;
 };
 
@@ -343,7 +434,7 @@ const completeQwkArticle = (
  */
 export const extractViaQwkSearch = async (
   url: string,
-  options: QwkSearchExtractOptions = {},
+  options: QwkSearchExtractOptions & { citationStyle?: CitationStyle } = {},
 ): Promise<ExtractedArticle> => {
   let raw;
   try {
@@ -361,7 +452,7 @@ export const extractViaQwkSearch = async (
   if (looksLikeChallenge(article.html)) {
     return { error: 'QwkSearch extractor returned a challenge page' };
   }
-  return completeQwkArticle(article, url, article.html);
+  return completeQwkArticle(article, url, article.html, options.citationStyle);
 };
 
 /**
@@ -377,20 +468,24 @@ export const articleFromRenderedHtml = async (
   url: string,
   fallbackVia: ExtractedArticle['via'],
   loader?: ExtractWebpageLoader,
+  citationStyle: CitationStyle = 'apa',
 ): Promise<ExtractedArticle> => {
   try {
     const raw = await runQwkSearchHtmlExtractor(html, url, { loader });
     const article = fromQwkArticle(raw, url, 'qwksearch-html') as ExtractedArticle;
-    if (!article.error && article.html) return completeQwkArticle(article, url, article.html);
+    if (!article.error && article.html) {
+      return completeQwkArticle(article, url, article.html, citationStyle);
+    }
   } catch {
     // Fall through to LobeHub readability below.
   }
-  return articleFromHtml(html, url, fallbackVia);
+  return articleFromHtmlViaCrawler(html, url, fallbackVia, citationStyle);
 };
 
 export interface ScraperConfig {
   apiKey?: string;
   baseUrl?: string;
+  citationStyle?: CitationStyle;
   deadlineMs?: number;
   fetcher?: typeof fetch;
   /** Injected in tests; production uses the real `extract-webpage`. */
@@ -439,7 +534,13 @@ export const extractViaScraper = async (
       return { error: 'Scraper returned a challenge page or no content' };
     }
 
-    return await articleFromRenderedHtml(html, data?.url || url, 'scraper', config.loader);
+    return await articleFromRenderedHtml(
+      html,
+      data?.url || url,
+      'scraper',
+      config.loader,
+      config.citationStyle,
+    );
   } catch (error) {
     const e = error as Error;
     const aborted = e?.name === 'AbortError' || controller.signal.aborted;
@@ -458,6 +559,7 @@ export const extractViaTavily = async (
   url: string,
   apiKey = process.env.TAVILY_API_KEY,
   fetcher: typeof fetch = fetch,
+  citationStyle: CitationStyle = 'apa',
 ): Promise<ExtractedArticle> => {
   if (!apiKey) return { error: 'No Tavily API key configured' };
 
@@ -493,14 +595,17 @@ export const extractViaTavily = async (
     via: 'tavily',
     word_count: countWords(result.raw_content),
   };
-  article.cite = buildCite(article, url);
+  article.cite = buildCite(article, url, citationStyle);
   return article;
 };
 
 /**
  * Tier 3: LobeHub's own crawler (plain fetch + readability), no external service.
  */
-export const extractViaCrawler = async (url: string): Promise<ExtractedArticle> => {
+export const extractViaCrawler = async (
+  url: string,
+  citationStyle: CitationStyle = 'apa',
+): Promise<ExtractedArticle> => {
   try {
     const { Crawler } = await import('@lobechat/web-crawler');
     const crawler = new Crawler({ impls: ['naive'] });
@@ -526,7 +631,7 @@ export const extractViaCrawler = async (url: string): Promise<ExtractedArticle> 
       via: 'crawler',
       word_count: countWords(data.content),
     };
-    article.cite = buildCite(article, url);
+    article.cite = buildCite(article, url, citationStyle);
     return article;
   } catch (error) {
     return { error: (error as Error)?.message || 'Crawler failed' };
@@ -709,7 +814,14 @@ export const extractViaPdf = async (
   );
 };
 
-export type ExtractionTier = (url: string) => Promise<ExtractedArticle>;
+/**
+ * One step of the chain. Carries the id it was built from so a caller — or a
+ * test — can see *which* tiers a URL got without invoking them.
+ */
+export interface ExtractionTier {
+  (url: string): Promise<ExtractedArticle>;
+  tierId?: TierId;
+}
 
 /** The web-page chain: rendered HTML first, then remote extraction services. */
 export const WEB_TIERS: ExtractionTier[] = [extractViaScraper, extractViaTavily, extractViaCrawler];
@@ -718,6 +830,14 @@ export const WEB_TIERS: ExtractionTier[] = [extractViaScraper, extractViaTavily,
  * The chain for a URL, chosen by {@link classifyUrl}. Media kinds lead with the
  * extractor built for them and keep a web fallback so a missing transcript or
  * an unreadable PDF still yields whatever the page itself carries.
+ *
+ * NOT WIRED UP. `extractArticle` runs {@link tiersForUrl} instead, which is the
+ * chain this Worker has always served and the one the integrations reference
+ * documents. This function and the `extractViaYouTube` / `extractViaPdf` tiers
+ * it names arrived together and have never been on the request path; switching
+ * to them changes what every article extraction actually does, which is a call
+ * for a human rather than a merge resolution. See the note on this in the
+ * migration to-do § 1.3.
  */
 export const defaultTiersFor = (url: string): ExtractionTier[] => {
   switch (classifyUrl(url)) {
@@ -735,26 +855,63 @@ export const defaultTiersFor = (url: string): ExtractionTier[] => {
 
 const isUsable = (article: ExtractedArticle) => !!article.html && !article.error;
 
-export type ExtractionTier = (url: string) => Promise<ExtractedArticle>;
+/** The options `extract-webpage` needs, projected out of the settings. */
+export const toQwkSearchExtractOptions = (
+  settings: ExtractionSettings,
+): QwkSearchExtractOptions & { citationStyle: CitationStyle } => ({
+  citationStyle: settings.citationStyle,
+  languages: settings.languages,
+  pdfProcessor: settings.pdfProcessor,
+  pdfProcessorUrl: settings.pdfProcessorUrl,
+  proxy: settings.proxy ?? null,
+  timeoutSeconds: settings.timeoutSeconds,
+  useThirdPartyBackup: settings.useThirdPartyBackup,
+});
+
+/** The Puppeteer render tier's config, projected out of the settings. */
+export const toScraperConfig = (settings: ExtractionSettings): ScraperConfig => ({
+  apiKey: settings.scraperApiKey,
+  baseUrl: settings.scraperUrl,
+  citationStyle: settings.citationStyle,
+  deadlineMs: settings.scraperDeadlineMs,
+});
+
+const tagTier = (tierId: TierId, run: (url: string) => Promise<ExtractedArticle>): ExtractionTier =>
+  Object.assign(run, { tierId });
 
 /**
- * The tier chain for a URL, by kind.
+ * The tier chain for a URL, by kind, bound to the resolved settings.
  *
  * YouTube and PDF get the QwkSearch extractor alone: the remaining tiers render
  * or fetch HTML, which for a video page is the description and chrome rather
  * than the transcript, and for a PDF is bytes readability cannot parse. Serving
  * that would be worse than reporting the extraction failure.
+ *
+ * `settings.tiers` then filters what is left. It can legitimately empty the
+ * chain — `QWKSEARCH_EXTRACT_TIERS=scraper` leaves a PDF URL with nothing to run
+ * — and when it does the caller gets the "no tier configured" error rather than
+ * a tier the operator switched off.
  */
-export const tiersForUrl = (url: string, kind: UrlKind = classifyUrl(url)): ExtractionTier[] => {
-  switch (kind) {
-    case 'pdf':
-    case 'youtube': {
-      return [extractViaQwkSearch];
-    }
-    default: {
-      return [extractViaQwkSearch, extractViaScraper, extractViaTavily, extractViaCrawler];
-    }
-  }
+export const tiersForUrl = (
+  url: string,
+  kind: UrlKind = classifyUrl(url),
+  settings: ExtractionSettings = resolveExtractionSettings(),
+): ExtractionTier[] => {
+  const build: Record<TierId, () => ExtractionTier> = {
+    crawler: () => tagTier('crawler', (u) => extractViaCrawler(u, settings.citationStyle)),
+    qwksearch: () =>
+      tagTier('qwksearch', (u) => extractViaQwkSearch(u, toQwkSearchExtractOptions(settings))),
+    scraper: () => tagTier('scraper', (u) => extractViaScraper(u, toScraperConfig(settings))),
+    tavily: () =>
+      tagTier('tavily', (u) =>
+        extractViaTavily(u, settings.tavilyApiKey, undefined, settings.citationStyle),
+      ),
+  };
+
+  const candidates: TierId[] =
+    kind === 'pdf' || kind === 'youtube' ? ['qwksearch'] : DEFAULT_TIER_ORDER;
+
+  return candidates.filter((id) => settings.tiers.includes(id)).map((id) => build[id]());
 };
 
 /**

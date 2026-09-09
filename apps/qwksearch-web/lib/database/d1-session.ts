@@ -68,7 +68,8 @@ export const FIRST_PRIMARY = "first-primary";
  *                   writes and any replica for reads
  *   primary         always start on the primary — replicas still serve, but
  *                   only from the latest version
- *   unconstrained   always start anywhere — lowest latency, weakest freshness
+ *   unconstrained   always start anywhere — lowest latency, weakest freshness,
+ *                   except /api/auth/*, which stays pinned to the primary
  *   off             bypass the Sessions API entirely (rollback switch)
  */
 export type D1SessionMode = "auto" | "primary" | "unconstrained" | "off";
@@ -194,10 +195,10 @@ function needsPrimary(request: Request): boolean {
  */
 function resolveStart(request: Request, mode: D1SessionMode): string {
   if (mode === "primary") return FIRST_PRIMARY;
-  if (requiresPrimary(request)) return FIRST_PRIMARY;
-  if (mode === "unconstrained") return FIRST_UNCONSTRAINED;
-
+  // Before the `unconstrained` check on purpose: for auth traffic neither a
+  // client bookmark nor the low-latency override is a strong enough guarantee.
   if (needsPrimary(request)) return FIRST_PRIMARY;
+  if (mode === "unconstrained") return FIRST_UNCONSTRAINED;
 
   const bookmark = readClientBookmark(request);
   if (bookmark) return bookmark;

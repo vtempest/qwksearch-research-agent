@@ -3,9 +3,9 @@
  * @description Mobile-aware sidebar shell. Renders the toolbar and content
  * inside a Sheet on mobile and directly in the layout on desktop.
  */
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import type { DocumentTreeHandle } from './file-tree/filetree';
-import { expandToggleLabelFor, nextExpandLevel } from './file-tree/expandLevels';
+import { useExpandCycle } from './file-tree/useExpandCycle';
 import type { OutlineViewHandle } from './search/OutlineView';
 import type { AnyFileSource } from './app-types/fileSource';
 import type { SidebarProps } from './layout/sidebar/types';
@@ -72,24 +72,17 @@ export const Sidebar = ({
 
   const activeDocuments = useMemo(() => documents.filter(doc => !doc.isDeleted), [documents]);
 
-  // Expansion depth of the file tree, reported by the tree itself: 0 =
-  // fully collapsed, then 1, 2, 3... one folder level at a time up to the
-  // deepest nesting level, before wrapping back to collapsed. Sourcing it
-  // from the tree (rather than counting clicks) keeps the button honest
-  // when folders are opened by hand or restored from persisted state.
-  const [expandState, setExpandState] = useState({ level: 0, maxLevel: 0 });
-  const handleExpandStateChange = useCallback(
-    (next: { level: number; maxLevel: number }) => {
-      setExpandState((prev) =>
-        prev.level === next.level && prev.maxLevel === next.maxLevel ? prev : next,
-      );
-    },
-    [],
-  );
   // Track expand/collapse all state for outline
   const [outlineExpanded, setOutlineExpanded] = useState(true);
   // Ref for file tree
   const treeRef = useRef<DocumentTreeHandle>(null);
+
+  // Expansion depth of the file tree, reported by the tree itself: 0 = fully
+  // collapsed, then 1, 2, 3... one folder level at a time up to the deepest
+  // nesting level, before wrapping back to collapsed. The tree only reports
+  // in while it is mounted, so `canCycle` also tells the toolbar whether the
+  // Files panel is in this sidebar at all.
+  const expandCycle = useExpandCycle(treeRef);
   // Ref for outline view
   const outlineRef = useRef<OutlineViewHandle>(null);
 
@@ -118,27 +111,6 @@ export const Sidebar = ({
       onFileSourceChange?.(sourceId);
     }
   };
-
-  const handleToggleAllExpanded = () => {
-    const tree = treeRef.current;
-    if (!tree) return;
-    // Cycle from the level the tree is actually at (folders may have been
-    // expanded/collapsed by hand since the last click), not from a stale
-    // local counter.
-    const currentLevel = tree.getExpandLevel?.() ?? expandState.level;
-    const maxLevel = tree.getMaxExpandLevel?.() ?? expandState.maxLevel;
-    if (maxLevel === 0) return;
-    const nextLevel = nextExpandLevel(currentLevel, maxLevel);
-    if (nextLevel === 0) {
-      tree.collapseAll();
-    } else {
-      tree.expandToLevel(nextLevel);
-    }
-  };
-
-  const isFullyExpanded =
-    expandState.maxLevel > 0 && expandState.level >= expandState.maxLevel;
-  const expandToggleLabel = expandToggleLabelFor(expandState.level, expandState.maxLevel);
 
   const handleToggleOutlineExpanded = () => {
     const newState = !outlineExpanded;
@@ -179,10 +151,13 @@ export const Sidebar = ({
     activeFileSourceId,
     onFileSourceChange,
     onSourceSelect: handleSourceSelect,
-    allExpanded: isFullyExpanded,
-    expandToggleLabel,
+    allExpanded: expandCycle.isFullyExpanded,
+    expandToggleLabel: expandCycle.label,
+    // Without a mounted file tree the toggle has nothing to act on; the
+    // toolbar disables it rather than offering a click that does nothing.
+    expandToggleDisabled: !expandCycle.canCycle,
     outlineExpanded,
-    onToggleAllExpanded: handleToggleAllExpanded,
+    onToggleAllExpanded: expandCycle.toggle,
     onToggleOutlineExpanded: handleToggleOutlineExpanded,
     treeRef,
     outlineRef,
@@ -201,7 +176,7 @@ export const Sidebar = ({
   };
 
   const contentProps = {
-    onExpandStateChange: handleExpandStateChange,
+    onExpandStateChange: expandCycle.onExpandStateChange,
     onSetExpandedFolders,
     panels: leftPanels,
     persistenceKey: 'left',

@@ -59,6 +59,12 @@ interface SidebarToolbarProps {
   allExpanded: boolean;
   /** Tooltip label describing what the expand-all toggle will do next (cycles by folder level). */
   expandToggleLabel: string;
+  /**
+   * Disables the expand-all toggle when there is no file tree behind it —
+   * the Files panel is turned off for this sidebar or lives in the other
+   * one — so the button doesn't advertise a cycle it cannot run.
+   */
+  expandToggleDisabled?: boolean;
   /** Whether all outline entries are currently expanded. */
   outlineExpanded: boolean;
   /** Steps the tree to its next expansion level (wraps to fully collapsed). */
@@ -117,6 +123,7 @@ export const SidebarToolbar = ({
   onSourceSelect,
   allExpanded,
   expandToggleLabel,
+  expandToggleDisabled = false,
   outlineExpanded,
   onToggleAllExpanded,
   onToggleOutlineExpanded,
@@ -282,7 +289,8 @@ export const SidebarToolbar = ({
                     size="sm"
                     onClick={onToggleAllExpanded}
                     aria-label={expandToggleLabel}
-                    className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                    disabled={expandToggleDisabled}
+                    className="size-8 shrink-0 p-0 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent disabled:opacity-40"
                   >
                     {/* The icon shows the action the next click performs. */}
                     {allExpanded ? (
@@ -293,7 +301,7 @@ export const SidebarToolbar = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                  <p>{expandToggleLabel}</p>
+                  <p>{expandToggleDisabled ? 'No file tree in this sidebar' : expandToggleLabel}</p>
                 </TooltipContent>
               </Tooltip>
 

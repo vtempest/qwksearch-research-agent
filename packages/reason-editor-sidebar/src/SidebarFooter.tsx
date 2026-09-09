@@ -12,12 +12,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from './app-ui/dropdown-menu';
-import { Settings, Trash2, RotateCcw, Paintbrush, Database, HardDrive, Wand2, Info, LogIn, LogOut } from 'lucide-react';
+import { Settings, Trash2, RotateCcw, Paintbrush, Database, Wand2, Info, LogIn, LogOut } from 'lucide-react';
 
 const settingsNav = [
   { name: "Appearance", icon: Paintbrush },
-  { name: "Storage", icon: Database },
-  { name: "File Sources", icon: HardDrive },
+  { name: "Storage Sources", icon: Database },
   { name: "AI Rewrite Modes", icon: Wand2 },
   { name: "About", icon: Info },
 ];

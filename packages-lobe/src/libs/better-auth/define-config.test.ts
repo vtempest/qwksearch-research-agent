@@ -156,6 +156,18 @@ describe('defineConfig', () => {
     );
   });
 
+  it('should keep verification values in the database so an eventually consistent secondary storage miss can fall back', async () => {
+    const { defineConfig } = await import('./define-config');
+
+    defineConfig({ plugins: [] });
+
+    expect(mocks.betterAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        verification: expect.objectContaining({ storeInDatabase: true }),
+      }),
+    );
+  });
+
   it('should clear a mismatched OIDC session before creating a Better Auth session', async () => {
     const { defineConfig } = await import('./define-config');
     const context = { getCookie: vi.fn(), setCookie: vi.fn() };

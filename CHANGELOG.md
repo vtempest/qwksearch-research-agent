@@ -1,8 +1,10 @@
 # Changelog
 
+Commit counts are commits authored that month on the default branch, merge commits included.
+
 # MVP Phase (2026)
 
-## September 2026
+## September 2026 — 72 commits
 
 The biggest bet this cycle is **LobeHub** (a Cloudflare Workers port of the lobe-chat monorepo) as the future core engine for chat and settings, with QwkSearch's homepage, article extraction, and REASON docs layered on top. It landed in stages: a full `packages-lobe` foundation — Hono worker, Better Auth, tRPC, D1/KV/R2/Hyperdrive bindings, plus QwkSearch's article side-panel and docs surfaces ported over — and a comprehensive test suite for it (#310); then all 96 upstream packages vendored verbatim into `packages-third-party` alongside a core-engine architecture plan (#313); the vendored tree was then removed again (#315) in favor of a phased migration plan for the chat-engine and settings cutover (#318). The first phase of that plan then landed: LobeHub's web-browsing tool can now search through QwkSearch's own engine fan-out via a new `qwksearch` search provider, and the plan gained two living companion docs — a per-item migration to-do list and a file-by-file reference of every QwkSearch↔LobeHub integration.
 
@@ -14,7 +16,7 @@ The **REASON editor sidebar** was extracted into its own `react-reason-editor-si
 
 **Other**: training jobs now provision GPUs on Vast.ai's marketplace from the web dashboard instead of running in-container (#303). The `/features` marketing page gained a product-comparison table against Perplexity/ChatGPT/Claude/Google/Grok (#317) and an updated hero tagline (#311).
 
-## August 2026
+## August 2026 — 168 commits
 
 Editor work centered on making **Plate** the default REASON editor engine, adding the dictation and sidebar plugins it was still missing relative to the Tiptap engine (#295), alongside layout fixes: the editable area now fills its pane without a stray border, zoom scales layout instead of applying a post-layout transform, and the Page Settings popup was fixed to render as its own portalled panel instead of clipping under a dropdown (#288). The `packages/reason-editor/demo/` app, documented throughout the package's README but missing from the repo, was reconstructed from its pre-rename history (#280).
 
@@ -28,7 +30,7 @@ Editor work centered on making **Plate** the default REASON editor engine, addin
 
 **Planning**: drafted an initial LobeHub package-integration plan triaging lobe-chat's ~90 workspace packages into adopt/port/skip (#286), and triaged 7 stale open PRs as already superseded by master (#287).
 
-## July 2026
+## July 2026 — 473 commits
 
 Major framework modernization with **Vinext** and **Vite 8** (rolldown-based). Replaced **LangChain** with **Vercel AI SDK** across the chat pipeline. Improved error handling in model loading and database operations. Fixed Worker deployments, CommonJS/ESM compatibility, and frozen lockfile issues.
 
@@ -57,41 +59,41 @@ Major framework modernization with **Vinext** and **Vite 8** (rolldown-based). R
 **Docs & Packaging**: Standardized package **READMEs** with NPM monthly-download and version badges, removed redundant badge sections, corrected the `search-web-api` package name, and updated PDF conversion expectations in the docs.
 
 
-## June 2026
+## June 2026 — 88 commits
 
 UI/UX overhaul with migration from **@opennextjs/cloudflare** to **Vinext**. Implemented **macOS-style category dock** with theme switching. Consolidated authentication with **better-auth 1.6.14** and **Web Crypto API**. Added responsive layouts, **dynamic island TOC** positioning, and font controls. Fixed vite-rolldown aliasing and turbopack build failures. Enhanced deployment scripts.
 
-## May 2026
+## May 2026 — 113 commits
 
 Editor and authentication enhancements. Integrated **Google One Tap** with FedCM and incognito mode. Added **Shiki code highlighting**, **Mermaid diagrams**, word count modals, and document export. Implemented file management with lazy initialization. Expanded settings with API key controls and sign-out. Added **reason-editor** module with new plugins. Refactored database schema for cross-environment compatibility. Updated **OpenNext Cloudflare** deployment with PWA assets.
 
-## April 2026
+## April 2026 — 3 commits
 
 **Major V2 rewrite** with fundamental restructuring. Optimized project structure and removed deprecated dependencies. Reorganized scraper infrastructure with rebuilt **Next.js** configuration. Overhauled documentation and README. Refactored research agent components and migrated chat/article modules. Enhanced editor with font customization and menu improvements. Improved **Cloudflare Workers** configuration.
 
 
 # Prototype Phase (2024)
 
-## December 2024
+## December 2024 — 6 commits
 
 **Beta V1 major release** with complete feature set. Comprehensive login and user management. Integrated editor with full capabilities. **Docusaurus** documentation with **OpenAPI** and **TypeDoc** support. Automatic API reference generation. First production-ready version.
 
-## November 2024
+## November 2024 — 1 commit
 
 Search infrastructure improvements. Enhanced **Docker-based** search system with better reliability. Fixed **YouTube** integration for video content. Added **DOCX** file format support. Fixed **USearch** vector accuracy issues. Enhanced content extraction capabilities.
 
-## October 2024
+## October 2024 — 2 commits
 
 Topic modeling and citations. Completed **SeekTopic** integration for topic extraction and analysis. Standardized citation formatting platform-wide. Improved README with better examples. Focused on academic and research features.
 
-## September 2024
+## September 2024 — 13 commits
 
 Core algorithm implementations. Built **VSEARCH** (Vector Similarity Embedding Approximation) as custom vector search. Added category systems for organization. Introduced **Tardigrade web crawler** for distributed crawling. Expanded documentation with categories. Enhanced main UI. Established algorithmic foundations.
 
-## August 2024
+## August 2024 — 26 commits
 
 Content extraction and NLP. Ported **Trafilatura.js** from Python (33 files) for article extraction. Enhanced **Readability2** accuracy. Added **UMAP** dimensionality reduction. Implemented **HNSW** vector search with demos. Modularized extractors (Readability, Postlight). Adopted "code as art" philosophy. Implemented **TypeDoc** documentation. Added **YouTube embed API** with transcript optimization. Enhanced extension with CORS support.
 
-## July 2024
+## July 2024 — 27 commits
 
 Search algorithms and autocomplete. Implemented **DSEEK** keyphrase extraction with **TextRank**, **WikiIDF**, and noun edge-grams. Added query autocomplete with live demo. Introduced new compression formats. Integrated **OpenEnglishWordnet** and 35k Wikipedia pages. Added **RAG** use case. Implemented **Wiki BM25** with 1M/2M datasets. Published results demo. Enhanced search quality and linguistic capabilities.

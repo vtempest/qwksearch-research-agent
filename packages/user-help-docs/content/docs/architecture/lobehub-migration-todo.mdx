@@ -200,10 +200,14 @@ Blocked on the LobeHub Community License answer, recorded in
   - ⬜ Upstash HTTP Redis provider in `src/libs/redis` — without it, agent stream
     fan-out, edit locks and some rate limits run on per-isolate memory.
   - ⬜ Mobile SPA build (`build:spa:mobile`); mobile currently gets the desktop bundle.
-  - ⬜ Worker bundle size budget in CI — now **~7.9 MB gzipped against a 10 MB
-    limit** after 1.3 pulled in `linkedom` and Prism. ~2 MB of headroom is thin
-    enough that the next dependency should not land without this check. Measure
-    with `gzip -9 -c dist/worker/index.js | wc -c` after `bun run build:worker:server`.
+  - 🚧 Worker bundle size budget — now **~7.9 MB gzipped against a 10 MB limit**
+    after 1.3 pulled in `linkedom` and Prism. `bun run cf:budget`
+    (`scripts/checkWorkerBudget.mts`) measures it, warns under ~1 MB of headroom
+    and fails over the limit. Still to do: run it in CI. No workflow builds
+    `packages-lobe` today — it is a separate pnpm workspace outside the root
+    turbo graph — so wiring this up means adding a job that does a full
+    `pnpm install` + Worker build, which is a CI-minutes decision rather than a
+    code one.
   - ⬜ Republish `extract-webpage` so the engine can drop the bundler workaround.
     Its published dist imports `prismjs/components/prism-markup` and 16 siblings
     without a `.js` extension, which Node's ESM resolver rejects — Vite/rolldown
@@ -220,10 +224,9 @@ Blocked on the LobeHub Community License answer, recorded in
 **Suggested next, in order** — all code-only, all testable without Cloudflare
 credentials:
 
-1. **5.4's bundle budget check.** Smallest of the three and the most urgent:
-   1.3 left ~2 MB of headroom, and nothing currently fails a build that crosses
-   the 10 MB line. A CI step that gzips `dist/worker/index.js` and compares is
-   an afternoon's work.
+1. **5.4's bundle budget in CI.** The measurement now exists
+   (`bun run cf:budget`); what is missing is a workflow that runs it. That needs
+   a job that installs and builds `packages-lobe`, which no workflow does yet.
 2. **2.2's Extraction pane.** 1.3 gave it real settings to bind — transcript
    language, PDF processor mode, render backend — that are hard-coded today.
 3. **2.1's settings map**, which 2.2 needs anyway and which is pure reading.

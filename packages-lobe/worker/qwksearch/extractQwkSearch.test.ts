@@ -16,6 +16,17 @@ const fakeModule = (overrides: Partial<ExtractWebpageModule> = {}): ExtractWebpa
   ...overrides,
 });
 
+/**
+ * Spies declared with their real parameters, so `mock.calls[0]` is typed and
+ * the assertions below need no casts.
+ */
+type ExtractOptions = Record<string, unknown> | undefined;
+const spyExtractContent = (result: Awaited<ReturnType<ExtractWebpageModule['extractContent']>>) =>
+  vi.fn(async (_url: string, _options?: ExtractOptions) => result);
+const spyExtractContentAndCite = (
+  result: ReturnType<ExtractWebpageModule['extractContentAndCite']>,
+) => vi.fn((_html: string, _options?: ExtractOptions) => result);
+
 describe('fromQwkArticle', () => {
   it('maps a full extractor result onto the panel article shape', () => {
     const article = fromQwkArticle(
@@ -67,46 +78,43 @@ describe('fromQwkArticle', () => {
 
 describe('runQwkSearchExtractor', () => {
   it('passes the url, a default transcript language and the timeout through', async () => {
-    const extractContent = vi.fn(async () => ({ html: '<p>ok</p>' }));
+    const extractContent = spyExtractContent({ html: '<p>ok</p>' });
     await runQwkSearchExtractor('https://youtu.be/dQw4w9WgXcQ', {
       loader: async () => fakeModule({ extractContent }),
     });
 
-    const [url, options] = extractContent.mock.calls[0] as [string, Record<string, unknown>];
+    const [url, options] = extractContent.mock.calls[0];
     expect(url).toBe('https://youtu.be/dQw4w9WgXcQ');
-    expect(options.languages).toEqual(['en']);
-    expect(options.timeout).toBe(QWKSEARCH_TIMEOUT_SECONDS);
-    expect(options.url).toBe('https://youtu.be/dQw4w9WgXcQ');
+    expect(options?.languages).toEqual(['en']);
+    expect(options?.timeout).toBe(QWKSEARCH_TIMEOUT_SECONDS);
+    expect(options?.url).toBe('https://youtu.be/dQw4w9WgXcQ');
   });
 
   it('forwards caller-supplied transcript languages and proxy', async () => {
-    const extractContent = vi.fn(async () => ({ html: '<p>ok</p>' }));
+    const extractContent = spyExtractContent({ html: '<p>ok</p>' });
     await runQwkSearchExtractor('https://youtu.be/dQw4w9WgXcQ', {
       languages: ['de', 'en'],
       loader: async () => fakeModule({ extractContent }),
       proxy: 'https://proxy.test',
     });
 
-    const options = (extractContent.mock.calls[0] as unknown[])[1] as Record<string, unknown>;
-    expect(options.languages).toEqual(['de', 'en']);
-    expect(options.proxy).toBe('https://proxy.test');
+    const options = extractContent.mock.calls[0][1];
+    expect(options?.languages).toEqual(['de', 'en']);
+    expect(options?.proxy).toBe('https://proxy.test');
   });
 });
 
 describe('runQwkSearchHtmlExtractor', () => {
   it('runs citation extraction over html somebody else rendered', async () => {
-    const extractContentAndCite = vi.fn(() => ({ html: '<p>ok</p>', title: 'T' }));
+    const extractContentAndCite = spyExtractContentAndCite({ html: '<p>ok</p>', title: 'T' });
     const result = await runQwkSearchHtmlExtractor('<html>…</html>', 'https://x.com/a', {
       loader: async () => fakeModule({ extractContentAndCite }),
     });
 
     expect(result.title).toBe('T');
-    const [html, options] = extractContentAndCite.mock.calls[0] as [
-      string,
-      Record<string, unknown>,
-    ];
+    const [html, options] = extractContentAndCite.mock.calls[0];
     expect(html).toBe('<html>…</html>');
     // The url is what makes relative links absolute and seeds the citation.
-    expect(options.url).toBe('https://x.com/a');
+    expect(options?.url).toBe('https://x.com/a');
   });
 });

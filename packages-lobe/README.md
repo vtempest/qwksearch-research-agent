@@ -105,6 +105,11 @@ bun run build:worker:server
 # or all of the above:
 bun run build:worker
 
+# 2b. Check the bundle against Cloudflare's compressed-size limit before
+#     spending a deploy on finding out. Warns under ~1 MB of headroom, fails
+#     over the limit. `WORKER_BUDGET_MB` / `WORKER_BUDGET_WARN_MB` override.
+bun run cf:budget
+
 # 3. D1 tables (idempotent; safe on the existing qwksearch-new database)
 bun run cf:d1:migrate              # remote
 bun run cf:d1:migrate:dev          # local wrangler dev

@@ -129,6 +129,10 @@
     "write-language": "workspace:*",
     "zod": "^4.5.4"
   },
+  "optionalDependencies": {
+    "@llamaindex/liteparse": "^2.14.4",
+    "@napi-rs/canvas": "^1.0.8"
+  },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.54.6",
     "@libsql/client": "^0.18.0",

@@ -86,10 +86,11 @@ interface FileTreeProps {
    */
   onExpandStateChange?: (state: { level: number; maxLevel: number }) => void;
   /**
-   * Reports the folder ids bulk expansion wants open — expand-to-level,
-   * expand-all and collapse-all — so the host can persist them onto the
-   * documents. Without it the stepped expansion lives only in the tree and
-   * is thrown away the next time the persisted flags re-sync.
+   * Hands the tree's current expanded-folder set to the host whenever it
+   * changes, so the host can persist it. Without this, a stepped
+   * expand/collapse lives only in the tree's local state and the next
+   * document change (e.g. a rename) resets the tree back to the persisted
+   * `isExpanded` flags, throwing the cycle away.
    */
   onExpandedFoldersChange?: (folderIds: string[]) => void;
 }
@@ -304,18 +305,23 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
       [],
     );
 
-    /**
-     * Applies a bulk expansion: the local state write keeps the repaint
-     * instant, and the callback hands the same set to the host to persist.
-     */
-    const applyExpandedFolders = (folderIds: string[]) => {
-      setState((prev) => ({ ...prev, expandedItems: folderIds }));
-      onExpandedFoldersChange?.(folderIds);
-    };
+    // Reports the tree's live expanded-folder set to the host so it can be
+    // persisted, keyed by content (not array identity) so it only fires when
+    // the actual set changes.
+    const currentExpandedItems = state.expandedItems ?? [];
+    const onExpandedFoldersChangeRef = useRef(onExpandedFoldersChange);
+    useEffect(() => {
+      onExpandedFoldersChangeRef.current = onExpandedFoldersChange;
+    }, [onExpandedFoldersChange]);
+    const currentExpandedItemsKey = currentExpandedItems.join('\n');
+    useEffect(() => {
+      onExpandedFoldersChangeRef.current?.(currentExpandedItems);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentExpandedItemsKey]);
 
     useImperativeHandle(ref, () => ({
       collapseAll: () => {
-        applyExpandedFolders([]);
+        setState((prev) => ({ ...prev, expandedItems: [] }));
       },
       edit: (nodeId: string) => {
         if (onRename) {
@@ -323,12 +329,12 @@ const FileTree = forwardRef<DocumentTreeHandle, FileTreeProps>(
         }
       },
       expandAll: () => {
-        applyExpandedFolders(getFolderIdsUpToLevel(items, ROOT_ID, maxExpandLevel));
+        const ids = getFolderIdsUpToLevel(items, ROOT_ID, maxExpandLevel);
+        setState((prev) => ({ ...prev, expandedItems: ids }));
       },
       expandToLevel: (level: number) => {
-        applyExpandedFolders(
-          getFolderIdsUpToLevel(items, ROOT_ID, Math.min(level, maxExpandLevel)),
-        );
+        const ids = getFolderIdsUpToLevel(items, ROOT_ID, Math.min(level, maxExpandLevel));
+        setState((prev) => ({ ...prev, expandedItems: ids }));
       },
       getExpandLevel: () => expandLevel,
       getMaxExpandLevel: () => maxExpandLevel,

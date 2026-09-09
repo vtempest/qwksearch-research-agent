@@ -53,6 +53,10 @@ export const componentMap = {
   [SettingsTabs.Devices]: dynamic(() => import('../devices'), {
     loading: loading('Settings > Devices'),
   }),
+  // QwkSearch
+  [SettingsTabs.Extraction]: dynamic(() => import('../extraction'), {
+    loading: loading('Settings > Extraction'),
+  }),
   [SettingsTabs.Labels]: dynamic(() => import('../labels'), {
     loading: loading('Settings > Labels'),
   }),

@@ -69,6 +69,8 @@ then LobeHub's tRPC/webapi/api, then the SPA catch-all.
 | F1 | **Article extract side panel** — external links in chat open in a resizable right panel; citation, favorites, Q&A, follow-ups | `worker/routes/qwksearch/article.ts`, `articleAi.ts` | `src/features/QwkSearch/ArticlePanel/` (`ArticlePanel.tsx`, `store.ts`, `api.ts`, `useArticleLinkInterceptor.ts`) | D1 `articleCache`, `articleQA`, `favorites` |
 | F2 | **Extraction chain** — `extract-webpage` → Puppeteer scraper (8s deadline) → Tavily → `@lobechat/web-crawler`, routed per URL kind | `worker/qwksearch/extract.ts`, `worker/qwksearch/extractQwkSearch.ts` | — | writes through F1's cache |
 | F2a | **Extraction settings** — one resolved value behind F2's knobs: citation style, transcript languages, timeout, enabled tiers, render backend, PDF OCR mode | `worker/qwksearch/extractSettings.ts` | — | none (per-request) |
+| F2b | **Extraction preferences** — storage and API for F2a's per-user layer | `worker/routes/qwksearch/extractionSettings.ts`, `worker/qwksearch/extractionPreferences.ts` | — | D1 `extraction_settings` |
+| F2c | **Extraction settings pane** (`/settings/extraction`) — the form over F2b, inside LobeHub's own settings shell | — | `src/features/Settings/extraction/` (`index.tsx`, `api.ts`, `formState.ts`, `features/ExtractionForm.tsx`) | through F2b |
 | F3 | **Docs** (`/docs`) — Markdown research documents, autosaved, write/preview | `worker/routes/qwksearch/documents.ts` | `src/features/QwkSearch/Docs/` (`DocsWorkspace.tsx`, `DocsSidebar.tsx`, `DocsLayout.tsx`, `store.ts`) | D1 `documents` — the same table `apps/qwksearch-web` writes |
 | F4 | **Favorites** | `worker/routes/qwksearch/favorites.ts` | inside F1 | D1 `favorites` |
 | F5 | **QwkSearch search provider** — LobeHub's web-browsing tool fans out over QwkSearch's 100+ engines | `apps/server/src/services/search/impls/qwksearch/` | LobeHub's existing search portal UI | none (stateless proxy) |
@@ -189,6 +191,42 @@ overrides → `?cite=` / `?lang=` on the request.
 No upstream LobeHub file is edited for this. The route, the preferences module
 and the table are new; `worker/app.ts` gains one mount line and the article
 route one `await`.
+
+### F2c — Extraction settings pane
+
+The client of F2b, and the first QwkSearch surface inside LobeHub's own settings
+shell rather than beside it. `/settings/extraction`.
+
+```
+src/features/Settings/extraction/
+  index.tsx           SettingHeader + the form
+  api.ts              GET/PUT/DELETE /api/doc/extraction-settings
+  formState.ts        form values ⇄ UserExtractionOverrides (pure)
+  features/ExtractionForm.tsx
+```
+
+| Concern | Behavior |
+|---|---|
+| Route | None added. `desktopRouter.shared.tsx` already routes `/settings/:tab` to the tab page, so registration is the `SettingsTabs.Extraction` enum member plus the two `componentMap`s |
+| Where the fields come from | The `GET` response alone. `options` carries the citation-style and PDF-processor enums, the tier ids and the timeout bounds, so the pane never restates the server's validation and a new enum member needs no UI edit |
+| Inherit vs. set | Every input has an explicit inherit state — `INHERIT` (`''`) for the enums, an empty list for `languages` and `tiers`, `null` for the timeout. `overridesFromFormValues` **omits** those keys, because `normalizeOverrides` drops `undefined` and an absent key is the only way to say "fall back to the operator's config" |
+| Why the fallback switch is a three-way select | `useThirdPartyBackup: false` and "unset" are different states: one pins the user to off, the other follows the operator. A `Switch` cannot express the difference |
+| Seeded from `overrides`, not `effective` | Seeding the inputs from what is in force would turn every inherited field into an explicit override the moment the user saved anything, silently pinning them to today's server config. `effective` appears only as the `desc` text under each input and as the timeout's placeholder |
+| After a write | The form re-renders from the response, not from what it sent — `PUT` validates and trims (a sixth language, an unknown tier, a 99s timeout clamped to 60) and the response is the authority |
+| Server configuration group | The five `configured` booleans, read-only. They stay Worker secrets (2.3 of the to-do), so the pane shows status and never an input |
+| i18n | The `qwksearch` namespace, not `setting` — the nav label reads `tQwkSearch('extraction.title')` the way Labs reads `tLabs('title')`. 48 keys in en-US and zh-CN |
+
+Upstream edits are five registration points, no logic: the `SettingsTabs` enum
+member, an entry in `componentMap.ts` and `componentMap.desktop.ts` (kept in
+step by `componentMap.sync.test.ts`), the sidebar item in `useCategory.tsx`, and
+the compact-header title map in `SettingsContent.tsx`.
+
+**The drift guard is `contract.test.ts`.** `src/` bundles for the browser and
+`worker/` for workerd, so `api.ts` restates the Worker's types instead of
+importing them. That test is the one place the two halves meet: it imports the
+real `extractSettings.ts`, rebuilds the exact document the route returns, and
+runs a load → edit → save cycle back through `normalizeOverrides`. A citation
+style, tier or override field added on the server and not in `api.ts` fails it.
 
 ### F5 — Search provider contract
 

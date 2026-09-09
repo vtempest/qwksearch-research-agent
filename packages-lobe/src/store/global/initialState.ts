@@ -73,6 +73,8 @@ export enum SettingsTabs {
   Credits = 'credits',
   Creds = 'credential',
   Devices = 'devices',
+  /** QwkSearch: per-user article extraction preferences. */
+  Extraction = 'extraction',
   Hotkey = 'hotkey',
   /** @deprecated Use ServiceModel instead */
   Image = 'image',

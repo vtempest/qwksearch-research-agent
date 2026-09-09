@@ -29,6 +29,7 @@ const COMPACT_HEADER_TABS = [
   SettingsTabs.Billing,
   SettingsTabs.Credits,
   SettingsTabs.Devices,
+  SettingsTabs.Extraction,
   SettingsTabs.Hotkey,
   SettingsTabs.Labels,
   SettingsTabs.Labs,
@@ -50,6 +51,7 @@ interface SettingsContentProps {
 
 const SettingsContent = ({ mobile, activeTab }: SettingsContentProps) => {
   const { t } = useTranslation(['auth', 'labs', 'setting', 'subscription']);
+  const { t: tQwkSearch } = useTranslation('qwksearch');
   const enableBusinessFeatures = useServerConfigStore(serverConfigSelectors.enableBusinessFeatures);
   const navigate = useWorkspaceAwareNavigate();
 
@@ -60,6 +62,9 @@ const SettingsContent = ({ mobile, activeTab }: SettingsContentProps) => {
     [SettingsTabs.Billing]: t('subscription:tab.billing'),
     [SettingsTabs.Credits]: t('subscription:tab.credits'),
     [SettingsTabs.Devices]: t('setting:devices.title'),
+    // QwkSearch tabs name themselves from the `qwksearch` namespace, the way
+    // Labs names itself from `labs` — there is no `setting:tab.*` entry.
+    [SettingsTabs.Extraction]: tQwkSearch('extraction.title'),
     [SettingsTabs.Hotkey]: t('setting:tab.hotkey'),
     [SettingsTabs.Labels]: t('setting:tab.labels'),
     // Labs has no `setting:tab.*` entry — the nav label comes from the labs namespace.

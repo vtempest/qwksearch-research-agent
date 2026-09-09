@@ -10,7 +10,12 @@ import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { getQwkDB } from '../../qwksearch/db';
-import { classifyUrl, extractArticle,type ExtractedArticle } from '../../qwksearch/extract';
+import {
+  classifyUrl,
+  extractArticle,
+  type ExtractedArticle,
+  isExtractableKind,
+} from '../../qwksearch/extract';
 import { articleCache, articleQA } from '../../qwksearch/schema';
 
 interface CachedArticle extends ExtractedArticle {
@@ -40,9 +45,6 @@ articleApp.get('/api/doc/article', async (c) => {
   if (!url) return c.json({ error: 'URL parameter is required' }, 400);
 
   const kind = classifyUrl(url);
-  if (kind === 'invalid' || kind === 'search-engine') {
-    return c.json({ error: 'URL is not an extractable article' }, 400);
-  }
 
   if (kind === 'video') {
     return c.json({
@@ -57,6 +59,14 @@ articleApp.get('/api/doc/article', async (c) => {
       cached: false,
       isVideo: true,
     });
+  }
+
+  // Everything still standing goes through the chain: `article`, and also
+  // `youtube` and `pdf`, which `tiersForUrl` routes to `extract-youtube` and
+  // `extract-pdf`. Asking the predicate rather than listing the refused kinds
+  // means a kind added later cannot silently fall into extraction.
+  if (!isExtractableKind(kind)) {
+    return c.json({ error: 'URL is not an extractable article' }, 400);
   }
 
   try {

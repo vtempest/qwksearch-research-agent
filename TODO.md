@@ -106,6 +106,120 @@ already reached, and then went past by appending the `(merged)` marker.
 
 ## Completed
 
+## Give the extraction chain's user layer somewhere to live
+
+**Status:** Completed
+**Source:** Scheduled task — "merge lobehub and qwksearch.com so that lobehub is
+the core engine…". The LobeHub Migration To-Do's own "suggested next" was 2.2's
+Extraction settings pane; this is the server half that item turned out to be
+missing.
+**Branch:** `claude/magical-bohr-ufz62v`
+**PR:** #385
+**Started:** 2026-09-09
+**Completed:** 2026-09-09
+
+### Goal
+`resolveExtractionSettings` folds four layers into the settings the article
+extraction chain runs with: shipped defaults, Worker environment, the signed-in
+user's overrides, then the request's query parameters. The third layer was a
+type and nothing else — `UserExtractionOverrides` was accepted by the resolver
+and no code path ever produced one. Give it storage, an API and a caller, so the
+Extraction pane has something to write to.
+
+### Scope
+All new files under `packages-lobe/worker/`, plus two one-line edits to existing
+Worker files.
+
+- `worker/qwksearch/extractionPreferences.ts` — load / save / clear one user's
+  overrides on D1, and `userExtractionOverridesForRequest(headers)` for the
+  article route.
+- `worker/routes/qwksearch/extractionSettings.ts` —
+  `GET`/`PUT`/`DELETE /api/doc/extraction-settings`, sign-in required.
+- `worker/qwksearch/schema.ts` — the `extraction_settings` table;
+  `migrations/d1/0002_extraction_settings.sql` creates it idempotently, and both
+  D1 migration files now run from `cf:d1:migrate`.
+- `worker/qwksearch/extractSettings.ts` — `extractionSettingsForClient`, the
+  response shape that reduces every host and credential to a presence flag.
+- `worker/routes/qwksearch/article.ts` and `worker/app.ts` — one `await` and one
+  mount line.
+
+### Non-goals
+- **The pane itself.** It is 2.2 and it is pure UI now; adding an unconsumed
+  client module in this change would only have added dead code for lint to flag.
+- **A Search & Sources equivalent.** `QwkSearchImpl` still reads its config
+  straight from env, the way the extraction tiers used to. That wants its own
+  `searchSettings.ts` first.
+- **Migrating anything.** No existing preference storage is being replaced;
+  there was none.
+
+### What changed
+Precedence is now **shipped default → Worker env → the user's saved overrides →
+`?cite=`/`?lang=`**. `GET /api/doc/extraction-settings` returns
+`{ overrides, effective, options }`: what the user set, what is in force once
+the environment is folded in, and the enums and bounds the pane needs so it does
+not restate the server's validation.
+
+Three decisions worth knowing:
+
+- **Overrides are validated twice**, on write and again on read. The write pass
+  is the gate; the read pass means a row left by an older build, a hand-edited
+  D1 row, or a knob since removed cannot push an unvalidated value into the
+  chain.
+- **Reads never throw.** An unreadable row, unparseable JSON or a D1 outage
+  resolves to `{}`, and the article is extracted on the operator's
+  configuration. An article fetch must not 500 over a preferences row.
+- **A request with no `cookie` header skips the session lookup entirely**, so
+  `/api/doc/article` still serves anonymous callers without paying an auth
+  round-trip on every extraction.
+
+### Deliberate deviation from the plan
+The migration to-do said to persist through LobeHub's
+`src/store/user/slices/settings/`, i.e. Postgres `user_settings`. The overrides
+are on D1 instead, keyed by the same LobeHub Better Auth user id as favorites
+and documents. Reading Postgres from a Hono Worker route would couple the
+extraction chain to Hyperdrive for a six-field blob, and adding a namespace to
+LobeHub's settings type means an upstream type edit plus a Postgres migration —
+against the migration plan's own "keep changes additive, edits to upstream files
+are the merge cost" rule. Phase 2's "one system of record" is about the settings
+*surface*, and there is still exactly one of those. Recorded in § 1.6 of the
+to-do, along with the correction that 2.2 previously claimed "nothing further is
+needed server-side".
+
+### Verification
+- [x] `worker/qwksearch/extractionPreferences.test.ts` — 13 cases: validation on
+      write, the two-way rejection of host and credential fields, replace-not-merge,
+      a JSON column that came back as a string, a stale row re-validated away,
+      unparseable JSON, a failing database, and the no-cookie short circuit.
+- [x] `worker/routes/qwksearch/extractionSettings.test.ts` — 13 cases across the
+      three verbs: the fresh-user defaults, the environment folded into
+      `effective` but not `overrides`, a `TAVILY_API_KEY` and a proxy URL with
+      credentials in its userinfo absent from the response body, the shipped
+      enums, clamping, a non-JSON body's 400, and a 401 for each verb.
+- [x] `worker/routes/qwksearch/article.test.ts` — extended from 7 to 11 cases:
+      a saved citation style applied, `?cite=` beating it, an anonymous request
+      left on the operator's configuration, and a 200 with the operator's
+      citation when the preferences row is unreadable.
+- [x] Whole `worker/` suite: 99 tests across the 6 files that can collect
+      without the LobeHub workspace installed; the two that cannot
+      (`articleAi.test.ts`, `spaVariants.test.ts`) fail on missing workspace
+      packages, identically before and after this change.
+- [x] `tsc --noEmit` over the four touched modules: clean apart from
+      pre-existing environment gaps (`@cloudflare/workers-types`, the `@/auth`
+      path alias) that the real tsconfig supplies.
+
+`packages-lobe` is a separate pnpm workspace with no `node_modules` in a fresh
+clone, so the suite was run against a scratch install of `vitest`, `drizzle-orm`
+and `hono` symlinked in — the recipe is now written down in the to-do's "How to
+pick up the next item", step 3.
+
+### Remaining work
+- **2.2's Extraction pane** — now pure UI, and the cheapest remaining item with
+  a user-visible result. Fields, enums and bounds all come from one `GET`.
+- **No client consumer yet**, so the API is reachable only by hand until the
+  pane lands.
+- **`bun run cf:d1:migrate`** must run before the first deploy that serves this
+  route; without the table every read degrades to `{}` and every write 500s.
+
 ## Offer QwkSearch's full category set to the model in the web-browsing tool
 
 **Status:** Completed

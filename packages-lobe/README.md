@@ -91,8 +91,15 @@ data is reused as-is.
   to the layer below instead of failing the request. `GET /api/doc/article` accepts exactly two of
   them as query parameters, `cite` (`apa` | `mla` | `chicago`) and `lang` (comma-separated
   transcript languages); hosts, credentials and the OCR mode are environment-only, because a
-  caller-supplied backend URL would make the endpoint an open request proxy. This is the sink the
-  Extraction settings pane writes to when it lands.
+  caller-supplied backend URL would make the endpoint an open request proxy.
+- **Extraction preferences** (`worker/qwksearch/extractionPreferences.ts`,
+  `GET`/`PUT`/`DELETE /api/doc/extraction-settings`): the signed-in user's half of those settings,
+  stored as JSON on the D1 `extraction_settings` table and folded into every article extraction
+  between the operator's environment and the request's query parameters. The API returns what the
+  user set, what is actually in force, and the enums and bounds a settings pane needs — with every
+  host and credential reduced to a presence flag, never a value. This is the sink the Extraction
+  settings pane writes to when it lands. Reads never fail an extraction: an unreadable row falls
+  back to the operator's configuration, and a request with no session cookie skips the lookup.
 - **Branding**: `BRANDING_NAME`/`ORG_NAME` = QwkSearch, QwkSearch favicons under `public/`,
   support/social URLs point at qwksearch.com.
 
@@ -119,7 +126,8 @@ bun run build:worker
 #     over the limit. `WORKER_BUDGET_MB` / `WORKER_BUDGET_WARN_MB` override.
 bun run cf:budget
 
-# 3. D1 tables (idempotent; safe on the existing qwksearch-new database)
+# 3. D1 tables (both migration files, idempotent; safe on the existing
+#    qwksearch-new database)
 bun run cf:d1:migrate              # remote
 bun run cf:d1:migrate:dev          # local wrangler dev
 

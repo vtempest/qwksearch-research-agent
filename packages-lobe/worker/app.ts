@@ -12,6 +12,7 @@ import { authApp } from './routes/auth';
 import { articleApp } from './routes/qwksearch/article';
 import { articleAiApp } from './routes/qwksearch/articleAi';
 import { documentsApp } from './routes/qwksearch/documents';
+import { extractionSettingsApp } from './routes/qwksearch/extractionSettings';
 import { favoritesApp } from './routes/qwksearch/favorites';
 import { spaApp } from './routes/spa';
 import { trpcApp } from './routes/trpc';
@@ -33,6 +34,7 @@ export const createApp = () => {
   app.route('/', favoritesApp);
   app.route('/', documentsApp);
   app.route('/', articleAiApp);
+  app.route('/', extractionSettingsApp);
 
   // LobeHub backend.
   app.route('/', trpcApp);

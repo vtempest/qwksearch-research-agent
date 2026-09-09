@@ -309,3 +309,47 @@ export const redactExtractionSettings = (
   const { scraperApiKey, tavilyApiKey, ...rest } = settings;
   return { ...rest, scraperApiKey: !!scraperApiKey, tavilyApiKey: !!tavilyApiKey };
 };
+
+/**
+ * What the Extraction settings pane is told is currently in force.
+ *
+ * The value fields are exactly {@link UserExtractionOverrides}' keys, so "what
+ * applies" and "what you may change" have the same shape. Everything the user
+ * cannot set is reduced to a presence flag under `configured`: those fields name
+ * hosts and credentials, and a proxy or scraper URL may itself carry basic-auth
+ * credentials in its userinfo, so the pane learns *whether* the operator
+ * configured one and never what it is.
+ */
+export interface ExtractionSettingsSummary extends Required<UserExtractionOverrides> {
+  configured: {
+    pdfProcessorUrl: boolean;
+    proxy: boolean;
+    scraperApiKey: boolean;
+    scraperUrl: boolean;
+    tavilyApiKey: boolean;
+  };
+}
+
+export const extractionSettingsForClient = (
+  settings: ExtractionSettings,
+): ExtractionSettingsSummary => {
+  const redacted = redactExtractionSettings(settings);
+
+  return {
+    citationStyle: redacted.citationStyle,
+    configured: {
+      pdfProcessorUrl: !!redacted.pdfProcessorUrl,
+      proxy: !!redacted.proxy,
+      scraperApiKey: redacted.scraperApiKey,
+      // Configured by default — the shipped render worker — but the flag stays
+      // honest if an operator blanks it.
+      scraperUrl: !!redacted.scraperUrl,
+      tavilyApiKey: redacted.tavilyApiKey,
+    },
+    languages: redacted.languages,
+    pdfProcessor: redacted.pdfProcessor,
+    tiers: redacted.tiers,
+    timeoutSeconds: redacted.timeoutSeconds,
+    useThirdPartyBackup: redacted.useThirdPartyBackup,
+  };
+};

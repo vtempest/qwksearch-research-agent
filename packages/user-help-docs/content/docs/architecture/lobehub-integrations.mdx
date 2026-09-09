@@ -145,6 +145,7 @@ DEFAULT_EXTRACTION_SETTINGS          shipped behaviour
 | Cache interaction | `articleCache` is keyed by URL and holds one `cite`. A non-APA request re-renders the citation from the cached columns instead of fragmenting the cache per style |
 | Tier selection | `settings.tiers` filters the per-kind chain and can legitimately empty it (`QWKSEARCH_EXTRACT_TIERS=scraper` + a PDF URL). The caller then gets the "no extraction tier configured" error rather than a tier the operator disabled |
 | Diagnostics | `redactExtractionSettings` returns the settings with each credential replaced by a boolean, so they can be logged or surfaced in the settings pane |
+| Where the user layer lives | `extractionPreferences.ts` on the D1 `extraction_settings` table — see F2b |
 
 Env vars, all optional and all defaulted: `QWKSEARCH_CITATION_STYLE`,
 `QWKSEARCH_EXTRACT_LANGUAGES`, `QWKSEARCH_EXTRACT_TIMEOUT`,
@@ -153,6 +154,41 @@ Env vars, all optional and all defaulted: `QWKSEARCH_CITATION_STYLE`,
 `QWKSEARCH_EXTRACT_PROXY`, `QWKSEARCH_EXTRACT_THIRD_PARTY_BACKUP`. The existing
 `SCRAPER_URL`, `SCRAPER_API_KEY` and `TAVILY_API_KEY` keep their names, so no
 deployment needs to change.
+
+### F2b — Extraction preferences contract
+
+F2a defined a user layer and gave it no storage: `UserExtractionOverrides` was a
+type the resolver accepted and nothing ever produced. This is the layer's
+storage and its API.
+
+```
+GET/PUT/DELETE /api/doc/extraction-settings   (worker/routes/qwksearch/extractionSettings.ts)
+  → extractionPreferences.ts
+    → D1 `extraction_settings` (userId PRIMARY KEY, overrides JSON, updatedAt)
+
+GET /api/doc/article
+  → userExtractionOverridesForRequest(headers)   ← the same table
+    → resolveExtractionSettings(env, userOverrides, clientOverrides)
+```
+
+| Concern | Behavior |
+|---|---|
+| Storage | One row per LobeHub Better Auth user id on the same D1 database as favorites and documents. A JSON blob, not a column per setting — the type is the schema, so a new knob is a change to `UserExtractionOverrides` rather than a D1 migration |
+| Why D1, not LobeHub's `user_settings` | Postgres `user_settings` is the plan's long-term home for settings *panes*, but reading it from a Hono Worker route would couple the extraction chain to Hyperdrive for a six-field preference blob, and adding a namespace to it means an upstream type edit plus a Postgres migration. The identity is still LobeHub's; only the blob is QwkSearch's |
+| Validation | Twice — `normalizeOverrides` on write and again on read. The write pass is the gate; the read pass means a row left by an older build, a hand-edited row, or a knob since removed cannot push an unvalidated value into the chain |
+| Response shape | `{ overrides, effective, options }`. `overrides` is what the user set, `effective` is what is actually in force once the environment is folded in, `options` carries the enums and the timeout bounds so the pane does not hard-code them |
+| What `effective` hides | Everything the user cannot set collapses to a presence flag under `configured` (`scraperUrl`, `scraperApiKey`, `tavilyApiKey`, `pdfProcessorUrl`, `proxy`). A proxy or scraper URL can carry basic-auth credentials in its userinfo, so the pane learns *whether* one is configured, never what it is |
+| Write semantics | PUT replaces rather than merges — the pane sends the whole set, and a merge would leave no way to clear a field. The response echoes what was stored, which differs from what was sent whenever a value failed validation. DELETE returns the user to the operator's configuration |
+| Auth | All three verbs require a session; the anonymous equivalent is `?cite=` / `?lang=` on the article route |
+| Anonymous cost | `/api/doc/article` still serves signed-out callers. A request with no `cookie` header skips the session lookup entirely, so the anonymous path pays no auth round-trip |
+| Failure | Reads never throw: an unreadable row, unparseable JSON or a D1 outage resolves to `{}` and the article is extracted on the operator's configuration |
+
+Precedence, lowest to highest: shipped default → Worker env → the user's saved
+overrides → `?cite=` / `?lang=` on the request.
+
+No upstream LobeHub file is edited for this. The route, the preferences module
+and the table are new; `worker/app.ts` gains one mount line and the article
+route one `await`.
 
 ### F5 — Search provider contract
 
@@ -207,7 +243,9 @@ gradual cutover possible at all.
 
 D1 tables the engine reads and writes: `articleCache`, `articleQA`, `favorites`,
 `documents`, `research_quotes`, `share_tokens`, `google_docs_sync` — created
-idempotently by `migrations/d1/0001_qwksearch_tables.sql` (`bun run cf:d1:migrate`).
+idempotently by `migrations/d1/0001_qwksearch_tables.sql` — plus
+`extraction_settings` (F2b) from `0002_extraction_settings.sql`. `bun run
+cf:d1:migrate` runs both, and both are safe to re-run.
 
 LobeHub's own data stays on Postgres (169 tables, 211 `jsonb` columns, 11
 `pgvector` columns, ~380 raw SQL fragments, 157 migrations). Porting it to D1
@@ -241,9 +279,14 @@ scoped stylesheet (`react-reason-editor/style.css`).
 ```bash
 cd packages-lobe
 
-# The extraction chain and its settings (62 cases: kind routing, tier order,
-# field mapping, citation styles, layer resolution and what the client may set)
+# The extraction chain and its settings (75 cases: kind routing, tier order,
+# field mapping, citation styles, layer resolution, what the client may set,
+# and the D1-backed user layer)
 bunx vitest run worker/qwksearch
+
+# The preferences API and the article route that folds the user layer in
+bunx vitest run worker/routes/qwksearch/extractionSettings.test.ts \
+  worker/routes/qwksearch/article.test.ts
 
 # Worker, Cloudflare adapters, QwkSearch features, the search provider
 bunx vitest run worker src/features/QwkSearch \
@@ -261,6 +304,6 @@ cd packages/database && bunx vitest run src/core/cloudflare.test.ts
 ## 7. Not yet integrated
 
 Tracked with owners and next steps in [LobeHub Migration To-Do](./lobehub-migration-todo):
-the REASON editor inside `/docs`, the Search & Sources and Extraction settings
-panes, one login across both Workers, chat-history migration, and the
-OIDC/Redis/mobile-SPA ops gaps.
+the REASON editor inside `/docs`, the Search & Sources pane, the Extraction
+pane's **UI** (its backend is complete — see F2b), one login across both
+Workers, chat-history migration, and the OIDC/Redis/mobile-SPA ops gaps.

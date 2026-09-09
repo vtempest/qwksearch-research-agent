@@ -18,6 +18,7 @@ import {
   isExtractableKind,
   tiersForUrl,
 } from '../../qwksearch/extract';
+import { userExtractionOverridesForRequest } from '../../qwksearch/extractionPreferences';
 import {
   type CitationStyle,
   parseClientExtractionOverrides,
@@ -89,12 +90,15 @@ articleApp.get('/api/doc/article', async (c) => {
     return c.json({ error: 'URL is not an extractable article' }, 400);
   }
 
-  // Operator config (Worker vars and secrets) narrowed by the two request
-  // parameters that are safe to honour: `cite` and `lang`. Hosts, keys and the
-  // PDF OCR mode are deliberately not readable from the query string — see the
-  // module comment in `extractSettings.ts`.
+  // Operator config (Worker vars and secrets), narrowed by the signed-in user's
+  // saved preferences, then by the two request parameters that are safe to
+  // honour: `cite` and `lang`. Hosts, keys and the PDF OCR mode are deliberately
+  // not readable from the query string — see the module comment in
+  // `extractSettings.ts`. The user layer resolves to `{}` for anonymous callers,
+  // which is why this route still serves them.
   const settings = resolveExtractionSettings(
     process.env as Record<string, string | undefined>,
+    await userExtractionOverridesForRequest(c.req.raw.headers),
     parseClientExtractionOverrides((name) => c.req.query(name)),
   );
 

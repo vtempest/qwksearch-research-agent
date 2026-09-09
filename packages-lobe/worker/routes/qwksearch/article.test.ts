@@ -1,31 +1,52 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { extractionSettings } from '../../qwksearch/schema';
+
 /**
  * A cached row and the drizzle chain the GET handler walks over it.
  *
- * The handler makes two selects, and they are told apart by their argument: the
- * article select takes no field list and ends in `.limit(1)`, the Q&A history
- * select passes one and is awaited directly.
+ * Three selects reach this fake now: the article row (no field list, ends in
+ * `.limit(1)`), the Q&A history (a field list, awaited directly), and the
+ * signed-in user's extraction overrides — told apart from the article select by
+ * the table it reads.
  */
 let cachedRow: Record<string, unknown> | undefined;
+let overridesRow: Record<string, unknown> | undefined;
 
 const db = {
   insert: () => ({ values: async () => undefined }),
   select: (fields?: unknown) => ({
-    from: () => ({
-      where: () =>
-        fields ? Promise.resolve([]) : { limit: async () => (cachedRow ? [cachedRow] : []) },
+    from: (table: unknown) => ({
+      where: () => {
+        if (fields) return Promise.resolve([]);
+        const rows = table === extractionSettings ? overridesRow : cachedRow;
+        return { limit: async () => (rows ? [rows] : []) };
+      },
     }),
   }),
   update: () => ({ set: () => ({ where: async () => undefined }) }),
 };
 
+/** The signed-in user, or `null` for an anonymous request. */
+let userId: null | string = null;
+
 vi.mock('../../qwksearch/db', () => ({ getQwkDB: () => db }));
+vi.mock('../../qwksearch/session', () => ({
+  getUserId: async () => userId,
+  requireUserId: async () => userId,
+  UnauthorizedError: class UnauthorizedError extends Error {},
+  unauthorizedResponse: () => Response.json({ message: 'Authentication required' }, { status: 401 }),
+}));
 
 const { articleApp, restyleCite } = await import('./article');
 
-const get = (query: string) => articleApp.request(`/api/doc/article?${query}`);
+/** Anonymous by default; `signedIn` adds the cookie the user layer looks for. */
+const get = (query: string, signedIn = false) =>
+  articleApp.request(
+    `/api/doc/article?${query}`,
+    signedIn ? { headers: { cookie: 'better-auth.session_token=abc' } } : undefined,
+  );
 
 const row = {
   author: 'Ada Lovelace',
@@ -44,6 +65,8 @@ const row = {
 
 beforeEach(() => {
   cachedRow = { ...row };
+  overridesRow = undefined;
+  userId = null;
 });
 
 describe('restyleCite', () => {
@@ -88,5 +111,43 @@ describe('GET /api/doc/article', () => {
 
   it('requires a url', async () => {
     expect((await articleApp.request('/api/doc/article')).status).toBe(400);
+  });
+});
+
+describe('GET /api/doc/article — the signed-in user layer', () => {
+  const cite = (body: unknown) => (body as { article: { cite: string } }).article.cite;
+
+  it('applies the citation style the user saved', async () => {
+    userId = 'user_1';
+    overridesRow = { overrides: { citationStyle: 'chicago' }, userId };
+
+    const body = await (await get('url=https://example.com/notes', true)).json();
+    expect(cite(body)).toContain('October 1, 1990');
+  });
+
+  it('lets an explicit ?cite= win over the saved preference', async () => {
+    userId = 'user_1';
+    overridesRow = { overrides: { citationStyle: 'chicago' }, userId };
+
+    const body = await (await get('url=https://example.com/notes&cite=mla', true)).json();
+    expect(cite(body)).toContain('1 Oct. 1990');
+  });
+
+  it('leaves an anonymous request on the operator configuration', async () => {
+    // A row exists, but no cookie means no session lookup and no user layer.
+    overridesRow = { overrides: { citationStyle: 'chicago' }, userId: 'user_1' };
+
+    const body = await (await get('url=https://example.com/notes')).json();
+    expect(cite(body)).toBe(row.cite);
+  });
+
+  it('serves the article on the operator configuration when the row is unreadable', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    userId = 'user_1';
+    overridesRow = { overrides: '{not json', userId };
+
+    const res = await get('url=https://example.com/notes', true);
+    expect(res.status).toBe(200);
+    expect(cite(await res.json())).toBe(row.cite);
   });
 });

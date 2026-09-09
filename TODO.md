@@ -113,7 +113,7 @@ already reached, and then went past by appending the `(merged)` marker.
 readme", "To the homepage add skill to copy and also add screenshot", "add icon
 to docs in navbar. Don't show docs in nav when in docs already".
 **Branch:** `claude/grab-homepage-docs-navbar-ucd8l7`
-**PR:** Not created yet
+**PR:** #388
 **Started:** 2026-09-09
 **Completed:** 2026-09-09
 

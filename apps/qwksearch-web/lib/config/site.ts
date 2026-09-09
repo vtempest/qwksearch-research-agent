@@ -38,7 +38,9 @@ export const listFooterLinks: FooterLink[] = [
   {
     url: "/docs",
     text: "Docs",
-    icon: "HelpCircle",
+    // A book, not a help circle: this is the product's documentation, and the
+    // dock renders the icon beside the label where the distinction reads.
+    icon: "BookOpen",
   },
   {
     url: "https://www.linkedin.com/company/qwksearch/posts/",

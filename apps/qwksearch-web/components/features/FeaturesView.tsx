@@ -14,6 +14,7 @@ import {
   PenLine,
   Search,
   Sparkles,
+  Terminal,
   X,
 } from "lucide-react";
 
@@ -30,18 +31,22 @@ import {
   SpotlightCard,
 } from "@/components/features/effects";
 import {
+  APP_SCREENSHOT,
+  CLAUDE_SKILL,
   COMPARISON_COLUMNS,
   COMPARISON_ROWS,
   ENGINE_NAMES,
   FEATURE_TABS,
   PIPELINE,
   PLATFORMS,
+  PROJECT_BADGES,
   PROVIDERS,
   SEARCH_CATEGORIES,
   STATS,
   faviconUrl,
   type ComparisonStatus,
 } from "@/components/features/data";
+import { CopyCommand } from "@/components/features/copy-command";
 import { config } from "@/lib/config/site";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +71,47 @@ function SectionHeading({
         </p>
       )}
     </Reveal>
+  );
+}
+
+/**
+ * The README's badge wall. Uniform height rather than each badge's natural
+ * size — the row mixes `flat` and `for-the-badge` styles, which differ by a
+ * factor of two — and every badge carries its alt text as a tooltip, since a
+ * shields.io image says nothing on hover by itself.
+ */
+function BadgeWall() {
+  return (
+    <ul className="flex flex-wrap items-center justify-center gap-x-2 gap-y-2">
+      {PROJECT_BADGES.map((badge) => {
+        const image = (
+          <img
+            src={badge.src}
+            alt={badge.alt}
+            title={badge.alt}
+            loading="lazy"
+            className="h-5 w-auto"
+          />
+        );
+
+        return (
+          <li key={badge.alt} className="flex">
+            {badge.href ? (
+              <a
+                href={badge.href}
+                target={badge.href.startsWith("/") ? undefined : "_blank"}
+                rel="noopener noreferrer"
+                className="opacity-80 transition-opacity hover:opacity-100"
+              >
+                {image}
+              </a>
+            ) : (
+              image
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -118,6 +164,9 @@ function Hero() {
           </div>
         </Reveal>
 
+        <Reveal delay={300} className="mx-auto mt-10 max-w-3xl">
+          <BadgeWall />
+        </Reveal>
       </div>
 
       {/* Search engines QwkSearch queries, orbiting the index. Deliberately
@@ -146,6 +195,35 @@ function Hero() {
           </dl>
         </Reveal>
       </div>
+    </section>
+  );
+}
+
+/**
+ * The README's product shot. A plain <img> at the source's own aspect ratio:
+ * it's a remote asset the Worker's image optimizer won't proxy, and the
+ * intrinsic size is what keeps the frame from collapsing before it loads.
+ */
+function Screenshot() {
+  return (
+    <section className="relative px-4 pt-2 pb-6 sm:px-6 lg:px-8">
+      <Reveal className="mx-auto max-w-5xl">
+        <figure>
+          <div className="qs-border-beam relative isolate overflow-hidden rounded-3xl p-px">
+            <div className="bg-card/90 relative z-10 overflow-hidden rounded-[calc(1.5rem-1px)] border backdrop-blur-sm">
+              <img
+                src={APP_SCREENSHOT.src}
+                alt={APP_SCREENSHOT.alt}
+                loading="lazy"
+                className="block w-full"
+              />
+            </div>
+          </div>
+          <figcaption className="text-muted-foreground mt-3 text-center text-xs">
+            {APP_SCREENSHOT.caption}
+          </figcaption>
+        </figure>
+      </Reveal>
     </section>
   );
 }
@@ -612,6 +690,54 @@ function Platforms() {
   );
 }
 
+/**
+ * The Claude Code skill this repo ships, as a one-line copy. It is the same
+ * `.claude/skills/qwksearch-customize` Claude reads when working in this
+ * monorepo, so a fork starts with the same map of which package owns what.
+ */
+function ClaudeSkillSection() {
+  return (
+    <section className="relative px-4 py-16 sm:px-6 lg:px-8">
+      <SectionHeading
+        eyebrow="Fork it"
+        title={
+          <>
+            Hand your agent the{" "}
+            <span className="qs-shimmer-text bg-gradient-to-r from-sky-500 via-violet-500 to-sky-500 bg-clip-text text-transparent">
+              codebase map
+            </span>
+          </>
+        }
+        blurb="Drop this repo's Claude Code skill into your own setup, and Claude already knows which of the ~20 packages a change belongs in."
+      />
+
+      <Reveal className="mx-auto max-w-3xl">
+        <SpotlightCard className="bg-card/90 rounded-3xl border px-6 py-7 backdrop-blur-sm sm:px-8">
+          <div className="flex flex-wrap items-center gap-3">
+            <Pill>
+              <Terminal className="size-3.5" />
+              Claude Code skill
+            </Pill>
+            <code className="font-mono text-sm font-semibold">
+              {CLAUDE_SKILL.name}
+            </code>
+          </div>
+
+          <p className="text-muted-foreground mt-4 text-sm leading-relaxed text-pretty">
+            {CLAUDE_SKILL.blurb}
+          </p>
+
+          <CopyCommand
+            className="mt-5"
+            command={CLAUDE_SKILL.command}
+            label={`Copy the ${CLAUDE_SKILL.name} install command`}
+          />
+        </SpotlightCard>
+      </Reveal>
+    </section>
+  );
+}
+
 function ClosingCta() {
   return (
     <section className="relative px-4 pt-10 pb-28 sm:px-6 lg:px-8">
@@ -660,6 +786,7 @@ export function FeaturesView() {
   return (
     <div className="qs-features relative min-h-screen md:pl-20">
       <Hero />
+      <Screenshot />
       <VideoDemo />
       <EngineMarquee />
       <BentoGrid />
@@ -667,6 +794,7 @@ export function FeaturesView() {
       <Pipeline />
       <FeatureExplorer />
       <Platforms />
+      <ClaudeSkillSection />
       <ClosingCta />
     </div>
   );

@@ -18,6 +18,7 @@ import {
 import { useSession } from "../hooks/useSession"
 import { useChat } from "../hooks/useChat"
 import { researchAgentUIConfig } from "../config"
+import { siteLinksForPath } from "../lib/site-links"
 import { useMainView } from "./MainViewProvider"
 import iconRead from "../icons/icon-read.svg"
 import iconConfigure from "../icons/icon-configure.svg"
@@ -45,6 +46,11 @@ export function CategoryDock() {
   ]
 
   const isOnResearch = pathname === "/" || pathname.startsWith("/c")
+
+  // A nav entry for the page you are already reading is dead weight — on
+  // /docs the "Docs" link led straight back to itself — so the current
+  // section drops out of the Site Links menu.
+  const siteLinks = siteLinksForPath(researchAgentUIConfig.footerLinks, pathname)
 
   const items: DockNavItem[] = [
     ...NAV_ITEMS.map(({ href, label, icon }) => ({
@@ -104,7 +110,7 @@ export function CategoryDock() {
                 <span className="text-sm">Site Links</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
-                {researchAgentUIConfig.footerLinks.map(({ url, text, icon }) => {
+                {siteLinks.map(({ url, text, icon }) => {
                   const IconComponent = icon ? (LucideIcons as any)[icon] : null
                   const isExternal = url.startsWith("http")
                   return (

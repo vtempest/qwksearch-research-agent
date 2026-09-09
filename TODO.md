@@ -107,6 +107,17 @@ server and not in `api.ts` fails it.
       (missing `electron` types and similar), pre-existing and untouched here.
 
 ### Notes for the next run
+- **PRs in this repo auto-merge.** `auto-merge-claude.yml` merged #393 about ten
+  seconds after it opened, before its own checks finished — so a PR is the
+  delivery, not a review checkpoint, and any commit pushed after it lands needs
+  its own PR against the new `master`.
+- **CI cannot see `packages-lobe`.** It is outside the root workspace graph, so
+  no job installs, builds or tests it; a green run says nothing about a change
+  made there. The Coverage workflow was also already red on the base commit
+  `f10e1091` for six packages (`extract-youtube`, `extract-pdf`, `qwksearch-web`,
+  `shadcn-settings`, `search-web-api`, `chat-agent-toolkit`), so check the same
+  job on the base before treating a failure as yours. Both findings are written
+  up in the to-do under "What CI will and will not tell you".
 - **`pnpm install --ignore-scripts` in `packages-lobe` works here**, takes a few
   minutes and ~3 GB, and is what a `src/` change needs. Earlier runs recorded a
   scratch-vitest recipe for `worker/`-only changes; the to-do now says to prefer

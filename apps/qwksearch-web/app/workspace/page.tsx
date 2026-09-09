@@ -1,7 +1,7 @@
 'use client'
 
-import { MainWorkspaceView } from '@/components/layout/MainWorkspaceView'
+import { ResearchWorkspaceView } from 'research-agent-ui/workspace'
 
 export default function Page() {
-  return <MainWorkspaceView />
+  return <ResearchWorkspaceView />
 }

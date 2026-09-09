@@ -49,6 +49,12 @@ export interface ResearchAgentUIConfig {
   /** Whether to auto-trigger image/video media search after a response completes. */
   getAutoMediaSearch: () => boolean;
   /**
+   * URL of the app's own icon, shown as the "Research" entry in the app dock.
+   * Served by the consuming app (it is a static asset, not a bundled one) so
+   * that a host with different branding can point at its own file.
+   */
+  appIconUrl: string;
+  /**
    * Requests that the settings UI be opened. Lets the consuming app render
    * settings in a modal (e.g. on large desktop screens) instead of navigating
    * to the `/settings` route. Return `true` when the request was handled — the
@@ -79,6 +85,7 @@ export const researchAgentUIConfig: ResearchAgentUIConfig = {
   googleApiKey: '',
   googleAppId: '',
   getAutoMediaSearch: () => true,
+  appIconUrl: '/apple-touch-icon.png',
 };
 
 /**

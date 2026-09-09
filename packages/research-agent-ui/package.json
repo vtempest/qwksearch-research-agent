@@ -1,6 +1,6 @@
 {
   "name": "research-agent-ui",
-  "description": "Chat research agent UI: conversation window, article reader, search config, file uploads, and chat history",
+  "description": "The QwkSearch app UI: conversation window, article reader, search config, file uploads, chat history, and the app shell \u2014 exported both with and without the REASON editor and its sidebar",
   "version": "0.1.142",
   "author": "vtempest",
   "repository": {
@@ -18,13 +18,18 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     },
+    "./workspace": {
+      "types": "./dist/workspace.d.ts",
+      "import": "./dist/workspace.mjs",
+      "require": "./dist/workspace.cjs"
+    },
     "./config": {
       "types": "./dist/config.d.ts",
       "import": "./dist/config.mjs",
       "require": "./dist/config.cjs"
     },
     "./api": {
-      "types": "./dist/api.d.ts",
+      "types": "./dist/api/index.d.ts",
       "import": "./dist/api.mjs",
       "require": "./dist/api.cjs"
     },
@@ -45,7 +50,11 @@
     "src/settings",
     "README.md"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css",
+    "./dist/workspace.mjs",
+    "./dist/workspace.cjs"
+  ],
   "scripts": {
     "build": "vite build && (tsc --project tsconfig.build.json || true)",
     "build:cloudflare": "tsc src/cloudflare/worker.ts --outDir dist/cloudflare --declaration --module esnext --target esnext --lib esnext --moduleResolution node",
@@ -69,7 +78,9 @@
   "peerDependencies": {
     "next": ">=14",
     "react": ">=18",
-    "react-dom": ">=18"
+    "react-dom": ">=18",
+    "react-reason-editor": ">=1",
+    "react-reason-editor-sidebar": ">=0.1"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
@@ -100,37 +111,51 @@
     "react-icons": "^5.6.0",
     "react-native-app-buttons": "^0.1.4",
     "react-textarea-autosize": "^8.5.9",
-    "trending-news-api": "workspace:*",
-    "use-weather-forecast": "workspace:*",
     "search-web-api": "workspace:*",
+    "shadcn-app-dock": "workspace:*",
+    "shadcn-theme-menu": "^1.1.13",
     "sonner": "^2.0.7",
     "streamdown": "^2.5.0",
     "tailwind-merge": "^3.6.0",
     "tldts": "^7.4.2",
+    "trending-news-api": "workspace:*",
     "turndown": "^7.2.4",
-    "use-voice-control": "^0.1.37"
+    "use-voice-control": "^0.1.37",
+    "use-weather-forecast": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250115.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@types/turndown": "^5.0.5",
     "@storybook/react-vite": "^9.0.0",
     "@tailwindcss/vite": "^4.3.0",
     "@testing-library/react": "^16.1.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/turndown": "^5.0.5",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.0.18",
+    "easydrawer": "^0.0.18",
     "itty-router": "^5.0.24",
     "jsdom": "^28.1.0",
-    "storybook": "^9.0.0",
-    "tailwindcss": "^4.3.0",
+    "katex": "^0.17.0",
     "next": "^16.2.10",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-reason-editor": "workspace:*",
+    "react-reason-editor-sidebar": "workspace:*",
+    "storybook": "^9.0.0",
+    "tailwindcss": "^4.3.0",
     "typescript": "^5.7.2",
     "vite": "^8.1.3",
     "vitest": "^4.0.18",
     "wrangler": "^3.88.0"
   },
-  "license": "rights.institute/PROSPER"
+  "license": "rights.institute/PROSPER",
+  "peerDependenciesMeta": {
+    "react-reason-editor": {
+      "optional": true
+    },
+    "react-reason-editor-sidebar": {
+      "optional": true
+    }
+  }
 }

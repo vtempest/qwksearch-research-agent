@@ -31,14 +31,74 @@
 # research-agent-ui
 
 
-Chat research agent UI: conversation window, article reader, search config,
-file uploads, and chat history for QwkSearch-style apps. Includes the shadcn
-primitives and icons the components depend on, so it can be dropped into a
-Next.js app with a single dependency.
+The QwkSearch app UI: conversation window, article reader, search config,
+file uploads, chat history — plus the app shell (providers, app dock, cookie
+banner, the research/docs view switch) that assembles them into a whole app.
+Includes the shadcn primitives and icons the components depend on, so it can be
+dropped into a Next.js app with a single dependency.
 
 ![img1](https://i.imgur.com/UxNJOKy.png)
 
+## Two entry points: with and without the editor
+
+The package ships the same app twice, and the only difference is whether the
+REASON document editor and its file sidebar come along:
+
+| Import from | You get | Extra dependencies |
+| --- | --- | --- |
+| `research-agent-ui` | Chat, search, article reader, app shell | none |
+| `research-agent-ui/workspace` | All of the above **plus** the REASON editor, document tree, and file sidebar | `react-reason-editor`, `react-reason-editor-sidebar` |
+
+`research-agent-ui/workspace` re-exports everything the root entry does, so a
+host that wants documents imports from that one path rather than mixing the
+two. Going the other way, the root entry's import graph never reaches
+`react-reason-editor` — the editor's (large) dependency tree stays out of a
+chat-only consumer's bundle entirely. `test/entryBoundaries.test.ts` enforces
+that in both directions.
+
+The two editor packages are declared as **optional** peer dependencies:
+installing `research-agent-ui` on its own is enough for the chat-only build,
+and package managers will not warn about the missing peers.
+
 ## Usage
+
+### The whole app in one component
+
+```tsx
+// Chat only — no editor, no sidebar.
+import { QwkSearchApp } from 'research-agent-ui';
+
+export default function Page() {
+  return (
+    <QwkSearchApp
+      authClient={myAuthClient}
+      config={{ appName: 'MyApp', footerLinks: myLinks }}
+    />
+  );
+}
+```
+
+```tsx
+// The same app, with documents.
+import { QwkSearchWorkspaceApp } from 'research-agent-ui/workspace';
+
+export default function Page() {
+  return (
+    <QwkSearchWorkspaceApp
+      authClient={myAuthClient}
+      config={{ appName: 'MyApp', footerLinks: myLinks }}
+    />
+  );
+}
+```
+
+`QwkSearchProviders` is the same shell without a page inside it, for hosts that
+render their own routes within the app chrome. It accepts a `ChromeProvider` to
+mount app-owned context (a settings modal, say) inside the stack, and
+`showDock` / `showCookieConsent` / `showToaster` to opt out of individual
+pieces.
+
+### Composing the pieces yourself
 
 ```tsx
 import {

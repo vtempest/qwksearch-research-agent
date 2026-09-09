@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  articleFromHtml,
+  articleFromHtmlViaCrawler,
   articleFromRenderedHtml,
   buildCite,
   classifyUrl,
@@ -98,7 +98,7 @@ describe('tiersForUrl', () => {
     const settings = resolveExtractionSettings({
       QWKSEARCH_EXTRACT_LANGUAGES: 'de,fr',
       QWKSEARCH_EXTRACT_TIMEOUT: '25',
-      QWKSEARCH_PDF_PROCESSOR: 'hybrid',
+      PDF_PROCESSOR: 'hybrid',
     });
     // The loader is a test seam rather than a setting, so it is injected here
     // instead of going through `toQwkSearchExtractOptions`.
@@ -185,14 +185,21 @@ describe('buildCite / countWords', () => {
   });
 });
 
-describe('articleFromHtml', () => {
+const articleHtml = (body: string, head = '') =>
+  `<html><head><title>My Post</title>${head}</head><body><article><h1>My Post</h1><p>${body}</p></article></body></html>`;
+
+const longBody = Array.from(
+  { length: 40 },
+  (_, i) => `Sentence number ${i} of the article body.`,
+).join(' ');
+
+describe('articleFromHtmlViaCrawler', () => {
   it('extracts readable content with the LobeHub crawler utilities', () => {
-    const body = Array.from(
-      { length: 40 },
-      (_, i) => `Sentence number ${i} of the article body.`,
-    ).join(' ');
-    const html = `<html><head><title>My Post</title></head><body><article><h1>My Post</h1><p>${body}</p></article></body></html>`;
-    const article = articleFromHtml(html, 'https://news.example.com/post', 'scraper');
+    const article = articleFromHtmlViaCrawler(
+      articleHtml(longBody),
+      'https://news.example.com/post',
+      'scraper',
+    );
 
     expect(article.error).toBeUndefined();
     expect(article.content).toContain('Sentence number 3');
@@ -204,7 +211,7 @@ describe('articleFromHtml', () => {
 
   it('reports an error for empty pages', () => {
     expect(
-      articleFromHtml('<html><body></body></html>', 'https://x.com', 'scraper').error,
+      articleFromHtmlViaCrawler('<html><body></body></html>', 'https://x.com', 'scraper').error,
     ).toBeDefined();
   });
 });
@@ -312,11 +319,7 @@ describe('extractViaQwkSearch', () => {
 });
 
 describe('articleFromRenderedHtml', () => {
-  const body = Array.from(
-    { length: 40 },
-    (_, i) => `Sentence number ${i} of the article body.`,
-  ).join(' ');
-  const html = `<html><head><title>My Post</title></head><body><article><h1>My Post</h1><p>${body}</p></article></body></html>`;
+  const html = articleHtml(longBody);
 
   it('prefers qwksearch citation extraction over readability', async () => {
     const article = await articleFromRenderedHtml(

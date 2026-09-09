@@ -22,7 +22,8 @@
  *
  * Requests that never touch D1 never open a session, and outside a session
  * scope (prerendering, scripts, unit tests) the wrapper is a pass-through to
- * the plain binding. The Sessions API is also a no-op on databases with read
+ * the plain binding. Authentication opts out of replica reads entirely — see
+ * `PRIMARY_ONLY_PATH_PREFIXES`. The Sessions API is also a no-op on databases with read
  * replication turned off, so this is safe to deploy before — and independently
  * of — flipping the switch in the D1 dashboard.
  *
@@ -193,6 +194,7 @@ function needsPrimary(request: Request): boolean {
  */
 function resolveStart(request: Request, mode: D1SessionMode): string {
   if (mode === "primary") return FIRST_PRIMARY;
+  if (requiresPrimary(request)) return FIRST_PRIMARY;
   if (mode === "unconstrained") return FIRST_UNCONSTRAINED;
 
   if (needsPrimary(request)) return FIRST_PRIMARY;

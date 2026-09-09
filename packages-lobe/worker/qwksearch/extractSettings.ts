@@ -230,8 +230,8 @@ export const extractionSettingsFromEnv = (
 ): Partial<ExtractionSettings> => ({
   citationStyle: normalizeCitationStyle(env.QWKSEARCH_CITATION_STYLE),
   languages: normalizeLanguages(env.QWKSEARCH_EXTRACT_LANGUAGES),
-  pdfProcessor: normalizePdfProcessor(env.QWKSEARCH_PDF_PROCESSOR),
-  pdfProcessorUrl: normalizeHttpUrl(env.QWKSEARCH_PDF_PROCESSOR_URL),
+  pdfProcessor: normalizePdfProcessor(env.PDF_PROCESSOR),
+  pdfProcessorUrl: normalizeHttpUrl(env.PDF_PROCESSOR_URL),
   proxy: normalizeHttpUrl(env.QWKSEARCH_EXTRACT_PROXY),
   scraperApiKey: text(env.SCRAPER_API_KEY),
   scraperDeadlineMs: integer(env.QWKSEARCH_SCRAPER_DEADLINE_MS, 1000, 30_000),

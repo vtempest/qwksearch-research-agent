@@ -169,8 +169,8 @@ Extraction is tuned by an optional group of vars, all defaulted (`worker/qwksear
 | `QWKSEARCH_EXTRACT_TIMEOUT` | `10` | `extract-webpage` request timeout, seconds (1–60) |
 | `QWKSEARCH_EXTRACT_TIERS` | all four | which tiers may run, in order: `qwksearch,scraper,tavily,crawler` |
 | `QWKSEARCH_SCRAPER_DEADLINE_MS` | `8000` | Puppeteer render budget (1000–30000) |
-| `QWKSEARCH_PDF_PROCESSOR` | `frontend` | `extract-pdf` OCR mode: `frontend` (none), `hybrid`, `docling` |
-| `QWKSEARCH_PDF_PROCESSOR_URL` | — | remote docling-compatible processor for `hybrid`/`docling` |
+| `PDF_PROCESSOR` | `frontend` | `extract-pdf` OCR mode: `frontend` (none), `hybrid`, `docling` |
+| `PDF_PROCESSOR_URL` | — | remote docling-compatible processor for `hybrid`/`docling` |
 | `QWKSEARCH_EXTRACT_PROXY` | — | outbound proxy for the extractor's own fetches |
 | `QWKSEARCH_EXTRACT_THIRD_PARTY_BACKUP` | `false` | let the extractor fall back to a third-party reader |
 
@@ -201,7 +201,10 @@ Hyperdrive bridge, and rendered-component tests for the article panel and the do
 - `src/libs/better-auth/utils/config.ts`: KV-backed `secondaryStorage` (`createKVSecondaryStorage`).
 - `apps/server/src/services/email/*`: `cloudflare` provider (Email Routing binding), default on Workers.
 - `apps/server/src/services/search/impls/`: new `qwksearch` provider (`SearchImplType.QwkSearch`);
-  the factory switch and enum are the only edits to upstream files.
+  the factory switch and enum are the only edits to upstream files there.
+- `packages/builtin-tool-web-browsing/`: new `src/searchCategories.ts`; `manifest.ts` swaps the
+  hard-coded `searchCategories` enum for `resolveSearchCategories()` (import + expression) and
+  `src/index.ts` gains one export line.
 - `packages/env/src/email.ts`: accepts `EMAIL_SERVICE_PROVIDER=cloudflare`.
 - `packages/business/const/src/branding.ts`, `packages/const/src/url.ts`: QwkSearch branding.
 - `packages/locales/src/default/{electron,qwksearch}.ts` + `locales/{en-US,zh-CN}`: new keys.

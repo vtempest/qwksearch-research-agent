@@ -1,7 +1,14 @@
 // @vitest-environment node
+import {
+  DEFAULT_SEARCH_CATEGORIES,
+  parseSearchProviders,
+  QWKSEARCH_SEARCH_CATEGORIES,
+  resolveSearchCategories,
+  WebBrowsingManifest,
+} from '@lobechat/builtin-tool-web-browsing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { QwkSearchImpl, mergeResults, normalizeCategories } from './index';
+import { mergeResults, normalizeCategories, QwkSearchImpl } from './index';
 
 const createMockResponse = (body: object, ok = true, status = 200) =>
   ({
@@ -42,6 +49,80 @@ describe('normalizeCategories', () => {
 
   it('caps the fan-out at three categories', () => {
     expect(normalizeCategories(['general', 'news', 'images', 'videos', 'science'])).toHaveLength(3);
+  });
+
+  it('passes through every category the tool manifest advertises', () => {
+    // The guard against drift between the two halves of the seam: anything the
+    // manifest offers the model but this drops silently becomes `general`,
+    // which is exactly the empty-page failure the enum exists to prevent.
+    for (const category of QWKSEARCH_SEARCH_CATEGORIES) {
+      expect(normalizeCategories([category]), category).toEqual([category]);
+    }
+  });
+});
+
+describe('searchCategories (tool manifest seam)', () => {
+  it('parses SEARCH_PROVIDERS the same way SearchService does', () => {
+    expect(parseSearchProviders('tavily,brave')).toEqual(['tavily', 'brave']);
+    expect(parseSearchProviders('tavily，brave')).toEqual(['tavily', 'brave']);
+    expect(parseSearchProviders('  qwksearch  ')).toEqual(['qwksearch']);
+    expect(parseSearchProviders('')).toEqual([]);
+  });
+
+  it('widens the advertised enum only when qwksearch is the sole provider', () => {
+    expect(resolveSearchCategories('qwksearch')).toEqual(QWKSEARCH_SEARCH_CATEGORIES);
+    expect(resolveSearchCategories('QwkSearch')).toEqual(QWKSEARCH_SEARCH_CATEGORIES);
+
+    // A second provider would be asked for categories it cannot serve.
+    expect(resolveSearchCategories('qwksearch,brave')).toEqual(DEFAULT_SEARCH_CATEGORIES);
+    expect(resolveSearchCategories('tavily')).toEqual(DEFAULT_SEARCH_CATEGORIES);
+    expect(resolveSearchCategories('')).toEqual(DEFAULT_SEARCH_CATEGORIES);
+  });
+
+  it('never drops a category LobeHub already offered', () => {
+    for (const category of DEFAULT_SEARCH_CATEGORIES) {
+      expect(QWKSEARCH_SEARCH_CATEGORIES, category).toContain(category);
+    }
+  });
+
+  it('reads SEARCH_PROVIDERS when called with no argument', () => {
+    const original = process.env.SEARCH_PROVIDERS;
+    try {
+      process.env.SEARCH_PROVIDERS = 'qwksearch';
+      expect(resolveSearchCategories()).toEqual(QWKSEARCH_SEARCH_CATEGORIES);
+
+      process.env.SEARCH_PROVIDERS = 'brave';
+      expect(resolveSearchCategories()).toEqual(DEFAULT_SEARCH_CATEGORIES);
+    } finally {
+      if (original === undefined) delete process.env.SEARCH_PROVIDERS;
+      else process.env.SEARCH_PROVIDERS = original;
+    }
+  });
+
+  it('falls back to the defaults where there is no process at all', () => {
+    // The manifest is imported by the SPA too, where reading `process.env`
+    // directly would throw rather than yield undefined.
+    const globals = globalThis as { process?: unknown };
+    const saved = globals.process;
+    try {
+      delete globals.process;
+      expect(resolveSearchCategories()).toEqual(DEFAULT_SEARCH_CATEGORIES);
+    } finally {
+      globals.process = saved;
+    }
+  });
+
+  it('is what the manifest actually hands the model', () => {
+    const search = WebBrowsingManifest.api.find((api) => api.name === 'search');
+    const properties = search?.parameters?.properties as Record<
+      string,
+      { items?: { enum?: string[] } }
+    >;
+
+    // Resolved at module evaluation, so this is whatever the env said then.
+    expect(properties?.searchCategories?.items?.enum).toEqual(
+      resolveSearchCategories(process.env.SEARCH_PROVIDERS ?? ''),
+    );
   });
 });
 

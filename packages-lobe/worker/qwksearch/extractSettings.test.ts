@@ -73,7 +73,7 @@ describe('extractionSettingsFromEnv', () => {
       QWKSEARCH_EXTRACT_LANGUAGES: 'de,fr',
       QWKSEARCH_EXTRACT_THIRD_PARTY_BACKUP: 'true',
       QWKSEARCH_EXTRACT_TIMEOUT: '30',
-      QWKSEARCH_PDF_PROCESSOR: 'hybrid',
+      PDF_PROCESSOR: 'hybrid',
       QWKSEARCH_SCRAPER_DEADLINE_MS: '12000',
       SCRAPER_API_KEY: 'sk-scraper',
       SCRAPER_URL: 'https://render.example.com',

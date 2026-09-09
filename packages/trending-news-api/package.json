@@ -26,19 +26,19 @@
     "react-dom": "^18 || ^19"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250115.0",
-    "@testing-library/react": "^16.1.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^6.0.3",
-    "@vitest/coverage-v8": "^4.0.18",
-    "jsdom": "^28.1.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "tsup": "^8.2.4",
-    "typescript": "^5.6.3",
-    "vitest": "^4.0.18",
-    "wrangler": "^3.88.0"
+    "@cloudflare/workers-types": "^5.20260908.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.0",
+    "jsdom": "^30.0.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tsup": "^8.5.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0",
+    "wrangler": "^4.130.0"
   },
   "scripts": {
     "build": "tsup",

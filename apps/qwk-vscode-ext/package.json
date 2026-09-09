@@ -134,17 +134,17 @@
     "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3",
-    "@types/vscode": "^1.85.0",
-    "esbuild": "^0.28.1",
-    "typescript": "^6.0.3",
-    "@vitest/coverage-v8": "^4.0.18",
-    "vitest": "^4.0.18",
-    "jsdom": "^28.1.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "@types/node": "^26.5.0",
+    "@types/vscode": "^1.136.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "@vitest/coverage-v8": "^5.0.0",
+    "vitest": "^5.0.0",
+    "jsdom": "^30.0.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "dependencies": {
-    "vite": "^8.1.4"
+    "vite": "^8.2.2"
   }
 }
